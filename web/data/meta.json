@@ -1,0 +1,22 @@
+{
+ "gerado_em": "2026-08-26T04:43:39+00:00",
+ "total": 3417,
+ "fontes": {
+  "biasi": {
+   "lidos": 100,
+   "validos": 100
+  },
+  "caixa": {
+   "lidos": 3199,
+   "validos": 3197
+  },
+  "frazao": {
+   "lidos": 120,
+   "validos": 120
+  },
+  "lancejudicial": {
+   "lidos": 0,
+   "validos": 0
+  }
+ }
+}
