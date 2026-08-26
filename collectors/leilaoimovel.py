@@ -12,7 +12,7 @@ Método (HTML, não há API JSON pública para a listagem):
 - Cada card traz id, url, título, endereço, lance, avaliação e data de
   encerramento. Descrição, leiloeiro, praças, áreas, matrícula, edital, fotos e
   situação (ocupado) só existem na página de detalhe /imovel/<uf>/<cidade>/<slug>,
-  que é aberta para cada lote (sequencial, sleep 0.3s, backoff em 429, falha tolerada;
+  que é aberta para cada lote (sequencial, sleep 0.5s, backoff em 429, falha tolerada;
   com falha o item fica só com os dados do card).
 
 Bloqueio: Cloudflare desafia (403 "Just a moment") toda conexão HTTP/2 e
@@ -25,6 +25,8 @@ Variáveis de ambiente para teste:
   LIMIT_PAGES=N   limita o total de páginas de listagem lidas.
   SKIP_DETAILS=1  não abre páginas de detalhe.
   DETAIL_WORKERS  threads para detalhe (padrão 1; o site devolve 429 com paralelismo).
+  LIST_CACHE=path  grava/reaproveita o resultado da listagem (json) para não
+                   repetir as ~520 páginas ao reprocessar só os detalhes.
 """
 import json
 import os
@@ -43,13 +45,14 @@ from common import session, money, city, tipo, desagio, flags, now_iso, save_raw
 BASE = "https://www.leilaoimovel.com.br"
 FONTE = "leilaoimovel"
 PAGE_SLEEP = 0.5
-DETAIL_SLEEP = 0.3
+DETAIL_SLEEP = 0.5
 MAX_PAGES = 50          # limite do site por consulta
 PER_PAGE = 19
 QUERY_CAP = MAX_PAGES * PER_PAGE
 LIMIT_PAGES = int(os.environ.get("LIMIT_PAGES", "0") or 0)
 SKIP_DETAILS = os.environ.get("SKIP_DETAILS", "") not in ("", "0")
 DETAIL_WORKERS = int(os.environ.get("DETAIL_WORKERS", "1") or 1)
+LIST_CACHE = os.environ.get("LIST_CACHE", "")
 
 _session = session()
 _use_curl = False
@@ -62,7 +65,7 @@ def _is_challenge(status, text):
 
 
 def _curl(url):
-    cmd = ["curl", "-s", "--http1.1", "--compressed", "-m", "40", "-A", UA,
+    cmd = ["curl", "-s", "-L", "--http1.1", "--compressed", "-m", "40", "-A", UA,
            "-H", "Accept-Language: pt-BR,pt;q=0.9", "-w", "\n%{http_code}", url]
     out = subprocess.run(cmd, capture_output=True).stdout.decode("utf-8", "replace")
     body, _, code = out.rpartition("\n")
@@ -84,13 +87,13 @@ def fetch(url, retries=4):
             code, body = _curl(url)
             if code == 200 and not _is_challenge(code, body):
                 _ok_streak += 1
-                if _ok_streak >= 100 and _extra_sleep > 0:
+                if _ok_streak >= 30 and _extra_sleep > 0:
                     _extra_sleep = max(0.0, _extra_sleep - 0.25)
                     _ok_streak = 0
                 return body
             last = "http %s" % code
             if code == 429:
-                _extra_sleep = min(4.0, _extra_sleep + 0.5)
+                _extra_sleep = min(2.0, _extra_sleep + 0.5)
                 _ok_streak = 0
                 wait = 15.0 * (i + 1)
                 print("[leilaoimovel] 429 rate limit, aguardando %.0fs (sleep extra %.1fs)" % (wait, _extra_sleep))
@@ -463,7 +466,7 @@ def finalize(item):
     return item
 
 
-def collect():
+def _listar():
     cidades = cities_sp()
     if not cidades:
         print("[leilaoimovel] nenhuma cidade (bloqueio ou mudança no site)")
@@ -490,6 +493,20 @@ def collect():
             print("[leilaoimovel] %3d/%d %s: %d/%d" % (i, len(cidades), c["nome"], novos, c["qty"]))
         time.sleep(PAGE_SLEEP)
     print("[leilaoimovel] listagem: %d lotes" % len(items))
+    return items
+
+
+def collect():
+    items = None
+    if LIST_CACHE and os.path.exists(LIST_CACHE):
+        with open(LIST_CACHE, encoding="utf-8") as f:
+            items = json.load(f)
+        print("[leilaoimovel] listagem reaproveitada de %s: %d lotes" % (LIST_CACHE, len(items)))
+    if items is None:
+        items = _listar()
+        if LIST_CACHE and items:
+            with open(LIST_CACHE, "w", encoding="utf-8") as f:
+                json.dump(items, f, ensure_ascii=False)
 
     if not SKIP_DETAILS and items:
         print("[leilaoimovel] abrindo %d detalhes com %d workers" % (len(items), DETAIL_WORKERS))
