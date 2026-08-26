@@ -9,13 +9,15 @@ Método: HTML + bs4 (Laravel/Blade; não há API JSON pública de listagem).
   Detalhe:          página do imóvel (descrição, matrícula, processo, ocupação, edital, fotos).
 
 Cada lote exige 1 request de detalhe (2 threads, pausa curta). O Cloudflare devolve 429
-("Just a moment") se apressar: 2,5s entre páginas e backoff de 6s/12s/18s no 429.
+("Just a moment") se apressar: 2,5s entre páginas e 5 tentativas com backoff de 8s a 40s no 429.
 
 Limitações:
 - Zuk não publica "valor de avaliação" na página; avaliacao = valor do 1º leilão
   (nos judiciais é a avaliação; nos extrajudiciais é o valor de 1ª praça do credor).
   Se o texto trouxer "avaliação R$ X" usa-se esse valor.
 - lance_minimo = valor da praça vigente (a primeira sem tachado no card).
+- Cards de praça única mostram "Lance inicial" + "X%" (desconto sobre a avaliação); nesse caso
+  avaliacao = lance / (1 - X/100).
 """
 import re, sys, os, time
 from concurrent.futures import ThreadPoolExecutor
@@ -29,7 +31,7 @@ MORE = BASE + "/leilao-de-imoveis/mais"
 THREADS = 2
 MAX = int(os.environ.get("GARIMPO_MAX", "0") or 0)
 
-def _req(s, method, url, tries=3, **kw):
+def _req(s, method, url, tries=5, **kw):
     for i in range(tries):
         try:
             r = s.request(method, url, timeout=40, **kw)
@@ -37,7 +39,7 @@ def _req(s, method, url, tries=3, **kw):
                 return r.text
             print(f"[zuk] HTTP {r.status_code} {url}", file=sys.stderr)
             if r.status_code == 429:
-                time.sleep(6 * (i + 1)); continue
+                time.sleep(8 * (i + 1)); continue
         except Exception as e:
             print(f"[zuk] erro {e} {url}", file=sys.stderr)
         time.sleep(1.5 * (i + 1))
@@ -82,14 +84,16 @@ def _parse_card(c):
     pracas = []
     for li in c.select("ul.card-property-prices li.card-property-price"):
         lab = _txt(li.select_one(".card-property-price-label"))
-        if "leil" not in lab.lower() and "praça" not in lab.lower() and "venda" not in lab.lower(): continue
+        if not re.search(r"leil|pra[çc]a|venda|lance", lab.lower()): continue
         val_el = li.select_one(".card-property-price-value")
         val = money(re.sub(r"\s*\d+\s*$", "", _txt(val_el).replace("R$", "")).strip()) if val_el else None
         # percentual de desconto vem dentro do value; pega só o primeiro número monetário
         mv = re.search(r"[\d\.]+,\d{2}", _txt(val_el)) if val_el else None
         if mv: val = money(mv.group(0))
         struck = bool(li.select_one("[style*='line-through']")) or "line-through" in (li.get("style") or "")
-        pracas.append({"label": lab, "valor": val, "data": _date(_txt(li.select_one(".card-property-price-data"))), "passada": struck})
+        pct = li.select_one(".card-property-price-percent")
+        pct = money(_txt(pct)) if pct else None
+        pracas.append({"label": lab, "valor": val, "data": _date(_txt(li.select_one(".card-property-price-data"))), "passada": struck, "desconto": pct})
     area = None
     for inf in c.select(".card-property-info-label"):
         t = _txt(inf)
@@ -175,7 +179,10 @@ def _build(card, d):
     mp = re.search(r"(\d)", vig[0]["label"])
     if mp: praca = int(mp.group(1))
     first = [p for p in pr if p["valor"]][0]
-    aval = d.get("avaliacao_txt") or first["valor"] or lance
+    aval = d.get("avaliacao_txt")
+    if not aval and len([p for p in pr if p["valor"]]) == 1 and first.get("desconto") and 0 < first["desconto"] < 100:
+        aval = round(first["valor"] / (1 - first["desconto"] / 100), 2)  # "Lance inicial" com X% abaixo da avaliação
+    if not aval: aval = first["valor"] or lance
     if aval < lance: aval = lance
     desc = (d.get("descricao") or "")
     full = desc + "\n" + (d.get("observacoes") or "")
