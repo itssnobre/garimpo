@@ -1,6 +1,6 @@
 {
- "gerado_em": "2026-08-26T04:43:39+00:00",
- "total": 3417,
+ "gerado_em": "2026-08-26T04:54:45+00:00",
+ "total": 4321,
  "fontes": {
   "biasi": {
    "lidos": 100,
@@ -15,8 +15,24 @@
    "validos": 120
   },
   "lancejudicial": {
-   "lidos": 0,
-   "validos": 0
+   "lidos": 163,
+   "validos": 146
+  },
+  "megaleiloes": {
+   "lidos": 450,
+   "validos": 434
+  },
+  "sodresantoro": {
+   "lidos": 31,
+   "validos": 26
+  },
+  "superbid": {
+   "lidos": 344,
+   "validos": 292
+  },
+  "zuk": {
+   "lidos": 6,
+   "validos": 6
   }
  }
 }

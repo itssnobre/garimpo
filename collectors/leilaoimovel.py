@@ -12,7 +12,7 @@ Método (HTML, não há API JSON pública para a listagem):
 - Cada card traz id, url, título, endereço, lance, avaliação e data de
   encerramento. Descrição, leiloeiro, praças, áreas, matrícula, edital, fotos e
   situação (ocupado) só existem na página de detalhe /imovel/<uf>/<cidade>/<slug>,
-  que é aberta para cada lote (paralelismo baixo, sleep 0.3s, falha tolerada;
+  que é aberta para cada lote (sequencial, sleep 0.3s, backoff em 429, falha tolerada;
   com falha o item fica só com os dados do card).
 
 Bloqueio: Cloudflare desafia (403 "Just a moment") toda conexão HTTP/2 e
@@ -24,7 +24,7 @@ subprocess curl --http1.1 ao detectar o desafio.
 Variáveis de ambiente para teste:
   LIMIT_PAGES=N   limita o total de páginas de listagem lidas.
   SKIP_DETAILS=1  não abre páginas de detalhe.
-  DETAIL_WORKERS  threads para detalhe (padrão 3).
+  DETAIL_WORKERS  threads para detalhe (padrão 1; o site devolve 429 com paralelismo).
 """
 import json
 import os
@@ -34,7 +34,6 @@ import sys
 import time
 import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
 
 from bs4 import BeautifulSoup
 
@@ -50,10 +49,12 @@ PER_PAGE = 19
 QUERY_CAP = MAX_PAGES * PER_PAGE
 LIMIT_PAGES = int(os.environ.get("LIMIT_PAGES", "0") or 0)
 SKIP_DETAILS = os.environ.get("SKIP_DETAILS", "") not in ("", "0")
-DETAIL_WORKERS = int(os.environ.get("DETAIL_WORKERS", "3") or 3)
+DETAIL_WORKERS = int(os.environ.get("DETAIL_WORKERS", "1") or 1)
 
 _session = session()
 _use_curl = False
+_extra_sleep = 0.0      # sobe a cada 429, desce devagar quando o site responde bem
+_ok_streak = 0
 
 
 def _is_challenge(status, text):
@@ -68,9 +69,9 @@ def _curl(url):
     return (int(code) if code.strip().isdigit() else 0), body
 
 
-def fetch(url, retries=3):
+def fetch(url, retries=4):
     """GET com retry; alterna para curl --http1.1 se o Cloudflare desafiar."""
-    global _use_curl
+    global _use_curl, _extra_sleep, _ok_streak
     last = ""
     for i in range(retries):
         try:
@@ -82,8 +83,19 @@ def fetch(url, retries=3):
                 print("[leilaoimovel] desafio Cloudflare via requests; usando curl --http1.1")
             code, body = _curl(url)
             if code == 200 and not _is_challenge(code, body):
+                _ok_streak += 1
+                if _ok_streak >= 100 and _extra_sleep > 0:
+                    _extra_sleep = max(0.0, _extra_sleep - 0.25)
+                    _ok_streak = 0
                 return body
             last = "http %s" % code
+            if code == 429:
+                _extra_sleep = min(4.0, _extra_sleep + 0.5)
+                _ok_streak = 0
+                wait = 15.0 * (i + 1)
+                print("[leilaoimovel] 429 rate limit, aguardando %.0fs (sleep extra %.1fs)" % (wait, _extra_sleep))
+                time.sleep(wait)
+                continue
         except Exception as e:  # noqa: BLE001
             last = repr(e)
         time.sleep(1.0 + i)
@@ -433,7 +445,7 @@ def enrich(item):
             item.update({k: v for k, v in parse_detail(html, item).items() if v is not None})
         except Exception as e:  # noqa: BLE001
             print("[leilaoimovel] erro parse detalhe %s: %r" % (item["url"], e))
-    time.sleep(DETAIL_SLEEP)
+    time.sleep(DETAIL_SLEEP + _extra_sleep)
     return item
 
 

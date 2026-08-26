@@ -13,7 +13,6 @@ exige TLS 1.3 e o Python 3.9 do sistema (LibreSSL 2.8.3) falha com
 `curl` via subprocess com os mesmos headers.
 """
 import base64, datetime as dt, re, sys, time, os, subprocess
-from typing import Optional
 from bs4 import BeautifulSoup
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -91,6 +90,8 @@ def parse_card(card):
     item["_valor_atual"] = money(price.get_text()) if price else None
     info = card.select_one(".card-info .text-uppercase")
     item["modalidade"] = modalidade(info.get_text() if info else "")
+    if item["modalidade"] == "outro" and card.select_one(".card-label-tag-direct-sale"):
+        item["modalidade"] = "venda_direta"
     loc = card.select_one(".card-locality")
     if loc:
         item["cidade"] = city(loc.get_text(strip=True).split(",")[0])
@@ -102,9 +103,10 @@ def parse_card(card):
     for row in card.select(".card-date-row"):
         label = row.select_one(".card-instance-label")
         lis = [li.get_text(" ", strip=True) for li in row.select(".card-instance-date li")]
-        n = re.search(r"(\d)", label.get_text() if label else "")
+        lt = label.get_text() if label else ""
+        n = re.search(r"(\d)", lt)
         pracas.append({
-            "n": int(n.group(1)) if n else None,
+            "n": int(n.group(1)) if n else (1 if "nica" in lt.lower() else None),
             "inicio": parse_dt(lis[0]) if len(lis) > 0 else None,
             "fim": parse_dt(lis[1]) if len(lis) > 1 else None,
             "valor": money(lis[2]) if len(lis) > 2 else None,
@@ -132,6 +134,10 @@ def section_text(soup, title):
 
 def parse_detail(html, item):
     s = BeautifulSoup(html, "html.parser")
+    if item.get("modalidade") == "outro":
+        pt = s.select_one(".product-info .product-card-type")
+        if pt: item["modalidade"] = modalidade(pt.get_text())
+        elif s.select_one(".card-label-tag-direct-sale"): item["modalidade"] = "venda_direta"
     # valores
     for d in s.select(".product-detail"):
         t = d.get_text(" ", strip=True)
@@ -184,6 +190,13 @@ def parse_detail(html, item):
     return item
 
 
+def area(s):
+    """'1.452' -> 1452 ; '192,50' -> 192.5 ; '5.000,00' -> 5000"""
+    s = (s or "").strip().rstrip(".")
+    if "," not in s: s = s.replace(".", "")
+    return money(s)
+
+
 def enrich_text(item):
     texto = (item.get("titulo") or "") + "\n" + (item.get("descricao") or "")
     t = texto.lower()
@@ -193,13 +206,16 @@ def enrich_text(item):
     else: item["ocupado"] = None
     m = re.search(r"matr[ií]cula\D{0,25}?n?[ºo°\.]?\s*([\d\.]{3,})", t)
     if m: item["matricula"] = m.group(1).rstrip(".")
-    m = re.search(r"a\.?\s?t\.?:?\s*([\d\.]+(?:,\d+)?)\s*m", t) or re.search(r"(?:área (?:total|do terreno|de terreno)[^\d]{0,15})([\d\.]+(?:,\d+)?)\s*m", t)
-    if m: item["area_terreno_m2"] = money(m.group(1))
-    m = re.search(r"a\.?\s?c\.?:?\s*([\d\.]+(?:,\d+)?)\s*m", t) or re.search(r"(?:área (?:útil|privativa|construída)[^\d]{0,15})([\d\.]+(?:,\d+)?)\s*m", t)
-    if m: item["area_privativa_m2"] = money(m.group(1))
-    elif "area_terreno_m2" not in item:
-        m = re.search(r"^(?:apartamento|casa|sobrado|sala|loja|galp[ãa]o)[^\d]{0,30}?([\d\.]+(?:,\d+)?)\s*m", t)
-        if m: item["area_privativa_m2"] = money(m.group(1))
+    num = r"([\d\.]+(?:,\d+)?)\s*m"
+    m = re.search(r"\ba\.?\s?t\.?:?\s*" + num, t) or re.search(r"(?:área (?:total|do terreno|de terreno)[^\d]{0,15})" + num, t)
+    if m: item["area_terreno_m2"] = area(m.group(1))
+    m = re.search(r"\ba\.?\s?c\.?:?\s*" + num, t) or re.search(r"(?:área (?:útil|privativa|construída)[^\d]{0,15})" + num, t)
+    if m: item["area_privativa_m2"] = area(m.group(1))
+    if "area_terreno_m2" not in item and "area_privativa_m2" not in item:
+        m = re.search(num, item.get("titulo", "").lower())
+        if m:
+            k = "area_terreno_m2" if item.get("tipo") in ("terreno", "rural") else "area_privativa_m2"
+            item[k] = area(m.group(1))
     m = re.search(r"(\d+)\s*(?:quartos|dorm)", t)
     if m: item["quartos"] = int(m.group(1))
     m = re.search(r"(\d+)\s*vaga", t)
