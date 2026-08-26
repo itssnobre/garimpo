@@ -45,10 +45,19 @@ def desagio(avaliacao, lance):
     return round(max(0.0, 1 - lance / avaliacao), 4)
 
 def flags(texto):
+    """Vetos: venda de direitos de fiduciante e venda de fração/parte ideal.
+    Ignora "fração ideal no/do terreno" (texto padrão de matrícula de apartamento)."""
     t = strip_accents((texto or "").lower())
+    t = re.sub(r"fracao ideal[^.;]{0,40}?(no|do|de|sobre o|correspondente ao) (terreno|solo|lote|condominio)", " ", t)
+    t = re.sub(r"fracao ideal (de|correspondente a) [\d.,]+ ?%? ?(m2|do terreno|das coisas|das partes|nas partes|das areas)", " ", t)
+    fracao = bool(re.search(
+        r"(venda|leilao|arrematacao|alienacao|direitos|penhora)[^.;]{0,60}(fracao|parte|metade|quinhao) ideal"
+        r"|(fracao|parte|metade|quinhao) ideal (de|correspondente a|equivalente a) [\d.,]+ ?%"
+        r"|\b\d{1,2}([.,]\d+)? ?% (da |de |do |dos )?(imovel|fracao|parte ideal|direitos|propriedade|nua propriedade)"
+        r"|\b(50|33|25|20)% ?\(", t))
     return {
-        "direitos_fiduciante": bool(re.search(r"direitos? (do|de) (devedor )?fiduciante|cessao de direitos", t)),
-        "fracao_ideal": bool(re.search(r"fracao ideal|parte ideal|\b\d{1,2}([.,]\d+)?\s?% (do|de) im[o]vel", t)),
+        "direitos_fiduciante": bool(re.search(r"direitos? (do |de |da )?(devedor |mutuario )?fiduciante|cessao (de |dos )?direitos", t)),
+        "fracao_ideal": fracao,
     }
 
 def save_raw(fonte, items):

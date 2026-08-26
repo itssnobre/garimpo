@@ -4,7 +4,7 @@ Uso: python3 collectors/build.py            (só junta o que já existe em data/
      python3 collectors/build.py --collect  (roda todos os coletores antes)
 """
 import glob, importlib, json, os, sys, traceback, datetime as dt
-from common import ROOT, RAW, now_iso, strip_accents
+from common import ROOT, RAW, now_iso, strip_accents, flags
 
 FONTES = ["caixa", "zuk", "megaleiloes", "superbid", "sodresantoro", "leilaoimovel", "frazao", "biasi", "lancejudicial",
           "santanderimoveis", "bradesco", "emgea", "itau"]
@@ -47,6 +47,9 @@ def main():
         ok = 0
         for it in items:
             if not valid(it): continue
+            fl = flags(f"{it.get('titulo','')} {it.get('descricao','')} {it.get('descricao_detalhe','')}")
+            it["direitos_fiduciante"] = bool(it.get("direitos_fiduciante")) or fl["direitos_fiduciante"]
+            it["fracao_ideal"] = fl["fracao_ideal"]
             k = key(it)
             if k in seen:
                 # mantém o de menor lance; guarda a outra fonte em `tambem_em`
