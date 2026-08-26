@@ -6,6 +6,7 @@ import Regua from "./Regua";
 import { urgencia, mapsUrl } from "@/lib/util";
 import { useFavoritos } from "@/lib/favoritos";
 import { IArea, ICama, ICarro, ICasa, IChave, IDoc, IEstrela, IMapa, IRelogio } from "./Icones";
+import { contato, MARCA } from "@/lib/marca";
 
 const CHECKLIST = [
   "Edital lido inteiro: regra de débitos (condomínio e IPTU) e quem paga",
@@ -211,6 +212,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             </dl>
             {i.tambem_em && i.tambem_em.length > 0 && <div className="tambem" style={{ padding: "0 16px 14px" }}><span style={{ fontSize: 12, color: "var(--musgo)" }}>Mesmo lote em:</span><br />{i.tambem_em.map((t) => <a key={t.url} href={t.url} target="_blank" rel="noreferrer">{FONTE_LABEL[t.fonte] ?? t.fonte} · {brl(t.lance_minimo)}</a>)}</div>}
           </div>
+          <div className="cta-lote"><b>Quer arrematar este lote com a conta feita?</b><p>Lemos matrícula e edital, fechamos o lance máximo e acompanhamos o pregão. 3% só se você arrematar.</p><a className="btn" href={contato(`Olá, quero assessoria da ${MARCA} para o lote ${i.titulo} (${i.cidade}). Link: ${typeof window !== "undefined" ? window.location.href : i.url}`)} target="_blank" rel="noreferrer">Pedir assessoria neste lote</a></div>
         </aside>
       </div>
     </>
