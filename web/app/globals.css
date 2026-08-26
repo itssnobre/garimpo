@@ -90,7 +90,7 @@ a { color:inherit; text-decoration:none }
 .vazio b { display:block; font-family:var(--f-display); font-size:20px; color:var(--tinta); margin-bottom:6px }
 
 /* Página do imóvel */
-.lote { max-width:1440px; margin:0 auto; padding:22px 22px 0 }
+.lote { max-width:1440px; margin:0 auto; padding:22px 22px 0; overflow-x:clip }
 .volta { font-size:12.5px; color:var(--musgo); letter-spacing:.06em; text-transform:uppercase } .volta:hover { color:var(--tinta) }
 .lote-cab { display:grid; grid-template-columns:1fr auto; gap:18px; align-items:end; margin:10px 0 18px }
 @media (max-width:760px) { .lote-cab { grid-template-columns:1fr } }
@@ -99,7 +99,7 @@ a { color:inherit; text-decoration:none }
 .acoes { display:flex; gap:8px; flex-wrap:wrap }
 .btn { display:inline-flex; align-items:center; gap:6px; font:600 13.5px var(--f-body); padding:10px 14px; border-radius:8px; border:1px solid var(--tinta); background:var(--tinta); color:var(--pedra); cursor:pointer }
 .btn.sec { background:var(--papel); color:var(--tinta) } .btn.ouro { background:var(--ouro); border-color:var(--ouro); color:#1a1200 } .btn:disabled { opacity:.5; cursor:wait }
-.lote-grid { display:grid; grid-template-columns:1fr 420px; gap:22px; align-items:start }
+.lote-grid > *, .doisdois > *, .tres > *, .custos > *, .lote-cab > * { min-width:0 } .lote-grid { display:grid; grid-template-columns:1fr 420px; gap:22px; align-items:start }
 @media (max-width:1040px) { .lote-grid { grid-template-columns:1fr } }
 .galeria { display:grid; grid-template-columns:3fr 1fr; gap:6px; border-radius:12px; overflow:hidden; background:var(--veio2); max-height:520px }
 .galeria .principal { aspect-ratio:4/3; background:var(--veio2) } .galeria img { width:100%; height:100%; object-fit:cover; display:block; cursor:zoom-in }
@@ -115,7 +115,7 @@ a { color:inherit; text-decoration:none }
 .ficha-cart .cab { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--tinta); color:var(--pedra); font-family:var(--f-display); font-size:12px; letter-spacing:.16em; text-transform:uppercase }
 .ficha-cart .cab .mono { font-size:11.5px; letter-spacing:0; text-transform:none; opacity:.85 }
 .linhas { margin:0; padding:6px 16px 10px } .linhas div { display:grid; grid-template-columns:120px 1fr; gap:10px; padding:7px 0; border-bottom:1px dotted var(--veio); font-size:13.5px } .linhas div:last-child { border-bottom:0 }
-.linhas dt { color:var(--musgo); font-size:12px; letter-spacing:.04em; padding-top:1px } .linhas dd { margin:0; font-weight:500 } .linhas dd.mono { font-weight:500 } .linhas dd.fraco { color:var(--musgo); font-weight:400 }
+.linhas dt { color:var(--musgo); font-size:12px; letter-spacing:.04em; padding-top:1px } .linhas dd { margin:0; font-weight:500; overflow-wrap:anywhere } .linhas dd.mono { font-weight:500 } .linhas dd.fraco { color:var(--musgo); font-weight:400 }
 .pracas { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 16px 14px } .pracas div { border:1px solid var(--veio); border-radius:8px; padding:8px 10px } .pracas div.ativa { border-color:var(--ouro); background:var(--ouro-fundo) } .pracas span { display:block; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--musgo) } .pracas b { font-family:var(--f-mono); font-size:15px } .pracas small { display:block; font-family:var(--f-mono); font-size:11px; color:var(--musgo) }
 
 .secao { background:var(--papel); border:1px solid var(--veio); border-radius:12px; padding:18px 20px; margin-top:18px; box-shadow:var(--sombra) }
@@ -129,13 +129,13 @@ a { color:inherit; text-decoration:none }
 .upload p { margin:0 0 8px; font-size:13.5px } .upload small { color:var(--musgo) }
 .analise h4 { font-family:var(--f-display); font-size:14px; letter-spacing:.06em; text-transform:uppercase; margin:16px 0 6px; color:var(--musgo) } .analise ul { margin:0; padding-left:18px } .analise li { margin:4px 0; font-size:13.5px }
 .kv { display:grid; grid-template-columns:1fr auto; gap:5px 12px; font-size:14px; margin:0 } .kv dt { color:var(--musgo) } .kv dd { margin:0; text-align:right; font-family:var(--f-mono); font-weight:500 } .kv .total dt, .kv .total dd { font-weight:700; color:var(--tinta); border-top:1px solid var(--veio); padding-top:6px }
-.tres { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0 }
+.tres { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0 } @media (max-width:520px) { .tres { grid-template-columns:1fr } .tres div { display:flex; justify-content:space-between; align-items:baseline; text-align:left } }
 .tres div { border:1px solid var(--veio); border-radius:8px; padding:10px; text-align:center; background:var(--papel2) } .tres div.alvo { border-color:var(--ouro); background:var(--ouro-fundo) }
-.tres span { display:block; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--musgo) } .tres b { font-family:var(--f-mono); font-size:17px; font-weight:600 }
+.tres span { display:block; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--musgo) } .tres b { font-family:var(--f-mono); font-size:16px; font-weight:600; white-space:nowrap }
 .custos { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px 12px }
 .check { list-style:none; padding:0; margin:0 } .check li { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px dotted var(--veio); font-size:13.5px } .check input { margin-top:3px; accent-color:var(--go); width:16px; height:16px } .check .ok { text-decoration:line-through; color:var(--musgo) }
 .progresso { height:6px; background:var(--veio2); border-radius:3px; overflow:hidden; margin:6px 0 12px } .progresso i { display:block; height:100%; background:var(--go); transition:width .3s }
-pre.desc { white-space:pre-wrap; font:13px/1.5 var(--f-body); color:var(--musgo); background:var(--pedra); padding:12px 14px; border-radius:8px; max-height:340px; overflow:auto; margin:0 }
+pre.desc { white-space:pre-wrap; overflow-wrap:anywhere; font:13px/1.5 var(--f-body); color:var(--musgo); background:var(--pedra); padding:12px 14px; border-radius:8px; max-height:340px; overflow:auto; margin:0 }
 .tambem a { display:inline-block; margin:4px 8px 0 0; font-size:13px; border:1px solid var(--veio); border-radius:999px; padding:4px 10px; background:var(--papel2) }
 .doisdois { display:grid; grid-template-columns:1fr 1fr; gap:18px } @media (max-width:760px) { .doisdois { grid-template-columns:1fr } }
 .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.88); display:grid; place-items:center; z-index:50; cursor:zoom-out } .lightbox img { max-width:96vw; max-height:92vh; object-fit:contain }
