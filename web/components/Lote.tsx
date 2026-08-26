@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Imovel } from "@/lib/types";
 import { avaliar, brl, pct, calcular, custosPara, CUSTOS_PADRAO, FONTE_LABEL, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
 import Regua from "./Regua";
+import { urgencia, mapsUrl } from "@/lib/util";
+import { useFavoritos } from "@/lib/favoritos";
+import { IArea, ICama, ICarro, ICasa, IChave, IDoc, IEstrela, IMapa, IRelogio } from "./Icones";
 
 const CHECKLIST = [
   "Edital lido inteiro: regra de débitos (condomínio e IPTU) e quem paga",
@@ -38,6 +41,9 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
   const classe = veto ? "nogo" : res.lucro <= 0 || res.margem < 0.25 ? "nogo" : res.margem < 0.30 ? "atencao" : "go";
   const feitos = checks.filter(Boolean).length;
   const fotos = i.fotos ?? [];
+  const u = urgencia(i.data_leilao);
+  const { favs, toggle } = useFavoritos(); const fav = favs.has(i.id);
+  const endCompleto = [i.endereco, i.bairro, i.cidade, i.uf].filter(Boolean).join(", ");
 
   async function analisar(file: File) {
     setErro(""); setCarregando(true);
@@ -76,6 +82,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
           <div className="end">{[i.endereco, i.bairro, `${i.cidade}/${i.uf}`].filter(Boolean).join(" · ")}</div>
         </div>
         <div className="acoes">
+          <button className={`btn sec ${fav ? "" : ""}`} onClick={() => toggle(i.id)} aria-pressed={fav} style={fav ? { color: "var(--ouro-tinta)", borderColor: "var(--ouro)" } : undefined}><IEstrela cheia={fav} /> {fav ? "Favorito" : "Guardar"}</button>
           <a className="btn" href={i.url} target="_blank" rel="noreferrer">Abrir na fonte ↗</a>
           {i.edital_url && <a className="btn sec" href={i.edital_url} target="_blank" rel="noreferrer">Edital PDF</a>}
           {i.matricula_url && <a className="btn ouro" href={i.matricula_url} target="_blank" rel="noreferrer">Matrícula PDF</a>}
@@ -93,7 +100,17 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
           </div>
           {zoom && fotos[foto] && <div className="lightbox" onClick={() => setZoom(false)}><img src={fotos[foto]} alt="" referrerPolicy="no-referrer" /></div>}
 
-          <section className="secao">
+          <div className="fatos-grid">
+            <div><ICasa /><div><span>Tipo</span><b>{i.tipo}</b></div></div>
+            <div><IArea /><div><span>{i.area_privativa_m2 ? "Área privativa" : "Terreno"}</span><b>{i.area_privativa_m2 ? `${i.area_privativa_m2} m²` : i.area_terreno_m2 ? `${i.area_terreno_m2} m²` : "não informado"}</b></div></div>
+            <div><ICama /><div><span>Dormitórios</span><b>{i.quartos ?? "não inf."}</b></div></div>
+            <div><ICarro /><div><span>Vagas</span><b>{i.vagas ?? "não inf."}</b></div></div>
+            <div><IChave /><div><span>Ocupação</span><b>{i.ocupado === true ? "Ocupado" : i.ocupado === false ? "Desocupado" : "não inf."}</b></div></div>
+            <div><IRelogio /><div><span>Leilão</span><b>{u ? u.txt : "sem data"}</b></div></div>
+          </div>
+          <nav className="ancoras" aria-label="Seções"><a href="#riscos">Riscos</a><a href="#valores">Valores</a><a href="#diligencia">Diligência</a><a href="#documentos">Documentos</a><a href="#descricao">Descrição</a></nav>
+
+          <section className="secao" id="riscos">
             <h2><span className="parte">Parte 1</span>Riscos</h2>
             <p className="lede">O que a fonte e as regras do garimpo já apontam. A leitura da matrícula fecha o resto.</p>
             {av.sinais.length === 0 && <div className="sinal">Nenhum sinal automático. Diligência manual obrigatória.</div>}
@@ -115,7 +132,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               </div>)}
           </section>
 
-          <section className="secao">
+          <section className="secao" id="valores">
             <h2><span className="parte">Parte 2</span>Valores</h2>
             <p className="lede">Capital total, lucro líquido e o lance máximo que ainda respeita a margem.</p>
             <div className="doisdois">
@@ -148,16 +165,30 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             </div>
           </section>
 
-          <section className="secao">
+          <section className="secao" id="diligencia">
             <h2>Diligência <span className="mono" style={{ fontSize: 13, color: "var(--musgo)", fontWeight: 500 }}>{feitos}/{CHECKLIST.length}</span></h2>
             <div className="progresso"><i style={{ width: (feitos / CHECKLIST.length) * 100 + "%" }} /></div>
             <ul className="check">{CHECKLIST.map((t, k) => <li key={k}><input type="checkbox" id={`c${k}`} checked={checks[k]} onChange={(e) => setChecks(checks.map((c, j) => (j === k ? e.target.checked : c)))} /><label htmlFor={`c${k}`} className={checks[k] ? "ok" : ""}>{t}</label></li>)}</ul>
           </section>
 
-          {(i.descricao || ex.descricao_detalhe) && <section className="secao"><h2>Descrição da fonte</h2><pre className="desc">{[ex.descricao_detalhe, i.descricao].filter(Boolean).join("\n\n")}</pre></section>}
+          <section className="secao" id="documentos">
+            <h2>Documentos e links</h2>
+            <p className="lede">Tudo que a fonte publicou sobre este lote, mais o mapa do endereço.</p>
+            <div className="docs">
+              {i.matricula_url && <a href={i.matricula_url} target="_blank" rel="noreferrer"><IDoc />Matrícula do imóvel (PDF)<small>{i.matricula ? `nº ${i.matricula}` : ""}</small></a>}
+              {i.edital_url && <a href={i.edital_url} target="_blank" rel="noreferrer"><IDoc />Edital do leilão (PDF)<small>{ex.edital_num ?? ""}</small></a>}
+              <a href={i.url} target="_blank" rel="noreferrer"><IDoc />Página do lote em {FONTE_LABEL[i.fonte] ?? i.fonte}<small>abre em nova aba</small></a>
+              {endCompleto && <a href={mapsUrl(endCompleto)} target="_blank" rel="noreferrer"><IMapa />Ver no Google Maps<small>{i.cidade}</small></a>}
+              {i.tambem_em?.map((t) => <a key={t.url} href={t.url} target="_blank" rel="noreferrer"><IDoc />Mesmo lote em {FONTE_LABEL[t.fonte] ?? t.fonte}<small>{brl(t.lance_minimo)}</small></a>)}
+              {!i.matricula_url && !i.edital_url && <div className="sinal">A fonte não publicou matrícula nem edital. Peça ao leiloeiro antes de qualquer lance.</div>}
+            </div>
+          </section>
+
+          {(i.descricao || ex.descricao_detalhe) && <section className="secao" id="descricao"><h2>Descrição da fonte</h2><pre className="desc">{[ex.descricao_detalhe, i.descricao].filter(Boolean).join("\n\n")}</pre></section>}
         </div>
 
         <aside className="lateral">
+          {u && <div className={`contador ${u.nivel}`}><IRelogio /><span>{i.praca ? `${i.praca}ª praça` : "Leilão"}: <b>{u.txt}</b>{i.data_leilao ? ` · ${data(i.data_leilao)}` : ""}</span></div>}
           <div className={`veredito ${classe}`}>
             <div className="big">{veto ? "VETO" : classe === "go" ? "GO" : classe === "atencao" ? "ATENÇÃO" : "NO-GO"}</div>
             <div className="sc">score {av.score} · {av.motivos.slice(0, 2).join(" · ")}</div>

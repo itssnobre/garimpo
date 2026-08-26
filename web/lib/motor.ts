@@ -68,6 +68,7 @@ export function sinais(i: Imovel): Sinal[] {
   const s: Sinal[] = [];
   if (i.direitos_fiduciante) s.push({ nivel: "veto", texto: "Vende direitos de devedor fiduciante (dívida embutida). Nunca comprar." });
   if (i.fracao_ideal) s.push({ nivel: "veto", texto: "Fração ideal do imóvel (copropriedade). Nunca comprar." });
+  if (!i.direitos_fiduciante && /\bdireitos\b/i.test(i.titulo)) s.push({ nivel: "alerta", texto: "Vende direitos sobre o imóvel (compromisso/posse), não a propriedade plena. Conferir na matrícula se há como registrar e quais ônus vêm junto." });
   if (i.modalidade === "leilao_sfi" && i.debitos_por_conta_comprador !== false)
     s.push({ nivel: "alerta", texto: "Leilão SFI: débitos de condomínio costumam ser 100% do comprador, sem teto. Conferir matrícula por execução condominial." });
   if (i.modalidade === "licitacao_aberta") s.push({ nivel: "info", texto: "Licitação Aberta: Caixa costuma limitar condomínio a 10% da avaliação." });

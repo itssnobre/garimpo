@@ -139,3 +139,39 @@ pre.desc { white-space:pre-wrap; overflow-wrap:anywhere; font:13px/1.5 var(--f-b
 .tambem a { display:inline-block; margin:4px 8px 0 0; font-size:13px; border:1px solid var(--veio); border-radius:999px; padding:4px 10px; background:var(--papel2) }
 .doisdois { display:grid; grid-template-columns:1fr 1fr; gap:18px } @media (max-width:760px) { .doisdois { grid-template-columns:1fr } }
 .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.88); display:grid; place-items:center; z-index:50; cursor:zoom-out } .lightbox img { max-width:96vw; max-height:92vh; object-fit:contain }
+
+/* v3: padrão dos grandes portais */
+.sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0) }
+.faixa-hero { background:var(--tinta); color:var(--pedra) }
+.faixa-hero-in { max-width:1440px; margin:0 auto; padding:34px 22px 28px; display:grid; grid-template-columns:1.1fr 1fr; gap:26px; align-items:center }
+@media (max-width:860px) { .faixa-hero-in { grid-template-columns:1fr; padding:26px 22px 22px } }
+.faixa-hero h1 { font-family:var(--f-display); font-weight:800; font-size:clamp(26px, 3.4vw, 40px); line-height:1.05; letter-spacing:-.02em; margin:0 0 8px } .faixa-hero h1 em { font-style:normal; color:var(--ouro) }
+.faixa-hero p { margin:0; color:color-mix(in srgb, var(--pedra) 72%, transparent); font-size:14.5px } .faixa-hero p b { color:var(--pedra) }
+.busca-grande input { width:100%; font:16px var(--f-body); padding:15px 18px; border-radius:12px; border:1px solid transparent; background:var(--papel2); color:var(--tinta); box-shadow:0 10px 30px -12px rgba(0,0,0,.5) } .busca-grande input:focus { outline:2px solid var(--ouro) }
+.barra-filtros { position:sticky; top:51px; z-index:15; background:color-mix(in srgb, var(--pedra) 92%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--veio) }
+.barra-in { max-width:1440px; margin:0 auto; padding:10px 22px }
+.chips { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px } .chips::-webkit-scrollbar { display:none }
+.chip { flex:none; display:inline-flex; align-items:center; gap:6px; font:500 13px var(--f-body); padding:8px 13px; border-radius:999px; border:1px solid var(--veio); background:var(--papel2); color:var(--tinta); cursor:pointer; white-space:nowrap }
+.chip.on { background:var(--tinta); color:var(--pedra); border-color:var(--tinta) } .chip.sel { appearance:none; -webkit-appearance:none; padding-right:28px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%234E6357' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 11px center }
+.mais-filtros { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px 14px; padding:12px 0 4px; border-top:1px dashed var(--veio); margin-top:10px }
+.conteudo { max-width:1440px; margin:0 auto; padding:18px 22px 0 }
+.ordem { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--musgo) } .ordem select { font:500 13.5px var(--f-body); padding:7px 10px; border-radius:8px; border:1px solid var(--veio); background:var(--papel2); color:var(--tinta) }
+.ficha { position:relative }
+.ficha .foto { display:block }
+.fav { position:absolute; top:10px; left:10px; z-index:2; width:34px; height:34px; border-radius:50%; border:0; background:color-mix(in srgb, var(--papel2) 85%, transparent); color:var(--tinta); display:grid; place-items:center; cursor:pointer; backdrop-filter:blur(6px) } .fav.on { color:var(--ouro-tinta) } .fav:hover { background:var(--papel2) }
+.urg { position:absolute; right:10px; bottom:10px; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:4px; font-weight:700; background:var(--papel2); color:var(--tinta) }
+.urg.hoje { background:var(--stop); color:#fff } .urg.breve { background:var(--warn); color:#fff } .urg.passou { background:var(--veio); color:var(--musgo) }
+.preco-linha { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap }
+.preco b { font-family:var(--f-display); font-size:22px; font-weight:800; letter-spacing:-.02em; line-height:1 } .preco s { display:block; color:var(--musgo); font-size:12px; margin-top:3px; font-family:var(--f-mono) }
+.preco-tags { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end }
+.tag-desc { font:600 12px var(--f-mono); background:var(--go-fundo); color:var(--go); padding:3px 7px; border-radius:5px }
+.tag-marg { font:600 12px var(--f-mono); padding:3px 7px; border-radius:5px; background:var(--pedra); color:var(--tinta) } .tag-marg.ok { color:var(--go) } .tag-marg.ruim { color:var(--stop) }
+.ficha-tit { font-size:16px; -webkit-line-clamp:2 } .ficha-tit:hover { text-decoration:underline }
+.fatos { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12.5px; color:var(--musgo) } .fatos li { display:inline-flex; align-items:center; gap:5px }
+.ficha-pe .ver { color:var(--ouro-tinta); font-weight:600 }
+.ancoras { display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; margin:14px 0 4px; border-bottom:1px solid var(--veio) } .ancoras a { flex:none; padding:10px 12px; font-size:13.5px; font-weight:500; color:var(--musgo); border-bottom:2px solid transparent; margin-bottom:-1px } .ancoras a:hover { color:var(--tinta); border-color:var(--veio) }
+.fatos-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-top:14px }
+.fatos-grid > div { background:var(--papel); border:1px solid var(--veio); border-radius:10px; padding:10px 12px; display:flex; gap:10px; align-items:center } .fatos-grid svg { width:20px; height:20px; color:var(--ouro-tinta); flex:none } .fatos-grid > div > div { min-width:0 } .fatos-grid span { display:block; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--musgo) } .fatos-grid b { font-size:14.5px; font-weight:600 }
+.docs { display:flex; flex-direction:column; gap:6px } .docs a { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--veio); border-radius:8px; background:var(--papel2); font-size:13.5px; font-weight:500 } .docs a:hover { border-color:var(--tinta) } .docs a svg { color:var(--ouro-tinta) } .docs a small { margin-left:auto; color:var(--musgo); font-weight:400 }
+.contador { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--musgo); margin:0 0 8px } .contador b { color:var(--tinta) } .contador.hoje b { color:var(--stop) }
+.secao[id] { scroll-margin-top:70px }

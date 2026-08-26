@@ -1,0 +1,11 @@
+const P = { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+export const IArea = () => <svg {...P}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 3v18" /></svg>;
+export const ICama = () => <svg {...P}><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M5 10V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3" /></svg>;
+export const ICarro = () => <svg {...P}><path d="M5 17h14M6 17l1.5-6h9L18 17M4 13h16M7 17v2M17 17v2" /></svg>;
+export const ICasa = () => <svg {...P}><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" /></svg>;
+export const IChave = () => <svg {...P}><circle cx="8" cy="12" r="4" /><path d="M12 12h9M18 12v3M15 12v2" /></svg>;
+export const IRelogio = () => <svg {...P}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
+export const IDoc = () => <svg {...P}><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6" /></svg>;
+export const IMapa = () => <svg {...P}><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z" /><circle cx="12" cy="10" r="2" /></svg>;
+export const IEstrela = ({ cheia }: { cheia?: boolean }) => <svg {...P} width={18} height={18} fill={cheia ? "currentColor" : "none"}><path d="M12 3l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.3 6.3 20.5l1.2-6.4L2.8 9.7l6.4-.8z" /></svg>;
+export const IFiltro = () => <svg {...P}><path d="M4 6h16M7 12h10M10 18h4" /></svg>;
