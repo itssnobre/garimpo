@@ -81,42 +81,50 @@ export function sinais(i: Imovel): Sinal[] {
   return s;
 }
 
-export interface Avaliacao { score: number; classe: "go" | "atencao" | "nogo"; motivos: string[]; res: Resultado; sinais: Sinal[]; regiao: string }
+export interface Avaliacao { score: number; classe: "go" | "atencao" | "nogo"; motivos: string[]; res: Resultado; sinais: Sinal[]; regiao: string; passa: boolean }
 
 export interface Criterios { faixaMin: number; faixaMax: number; desagioMin: number; margemMin: number; soRegiao: boolean }
 export const CRITERIOS_PADRAO: Criterios = { faixaMin: 200000, faixaMax: 250000, desagioMin: 0.40, margemMin: 0.25, soRegiao: false };
 
-export function avaliar(i: Imovel, crit: Criterios = CRITERIOS_PADRAO, custos?: Custos): Avaliacao {
-  const c = custosPara(i, custos);
-  const res = calcular(i.avaliacao, i.lance_minimo, c);
-  const sg = sinais(i);
-  const regiao = regiaoDe(i.cidade);
-  const motivos: string[] = [];
-  let score = 0;
-  if (sg.some((x) => x.nivel === "veto")) return { score: 0, classe: "nogo", motivos: ["Veto de diligência"], res, sinais: sg, regiao };
+export interface Regras { faixaMin: number; faixaMax: number; lanceMax: number; desagioMin: number; margemMin: number; margemAlvo: number; ufs: string[]; cidades: string[]; tipos: string[]; modalidades: string[]; ocupacao: "qualquer" | "desocupado"; exigeFinanciamento: boolean; vetoFiduciante: boolean; vetoFracao: boolean; vetoEdital: boolean; custos: Custos }
 
-  // 1. Margem líquida (40 pts): 25% = 20, 30% = 30, 35%+ = 40
-  if (res.margem >= 0.35) score += 40; else if (res.margem >= 0.30) score += 30; else if (res.margem >= 0.25) score += 20;
-  else if (res.margem >= 0.15) score += 8;
+export const REGRAS_BASE: Regras = { faixaMin: 0, faixaMax: 0, lanceMax: 0, desagioMin: 0.3, margemMin: 0.25, margemAlvo: 0.3, ufs: [], cidades: [], tipos: [], modalidades: [], ocupacao: "qualquer", exigeFinanciamento: false, vetoFiduciante: true, vetoFracao: true, vetoEdital: false, custos: CUSTOS_PADRAO };
+
+// Compatibilidade: avaliar() com os critérios antigos vira avaliarPadrao() com regras equivalentes.
+export function avaliar(i: Imovel, crit: Criterios = CRITERIOS_PADRAO, custos?: Custos): Avaliacao {
+  return avaliarPadrao(i, { ...REGRAS_BASE, faixaMin: crit.faixaMin, faixaMax: crit.faixaMax, desagioMin: crit.desagioMin, margemMin: crit.margemMin, custos: custos ?? CUSTOS_PADRAO });
+}
+
+const nrm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+// Score de 0 a 100 sobre as regras do usuário. "passa" = cumpre todos os limites duros do padrão.
+export function avaliarPadrao(i: Imovel, r: Regras): Avaliacao {
+  const c = { ...r.custos, itbi: ITBI_CIDADE[i.cidade] ?? r.custos.itbi, desocupacao: r.custos.desocupacao || (i.ocupado ? 8000 : i.ocupado === false ? 0 : 4000) };
+  const res = calcular(i.avaliacao, i.lance_minimo, c);
+  const sg = sinais(i).filter((s) => !(s.nivel === "veto" && ((i.direitos_fiduciante && !r.vetoFiduciante) || (i.fracao_ideal && !r.vetoFracao))));
+  const regiao = regiaoDe(i.cidade);
+  const naRegiao = (r.ufs.length === 0 || r.ufs.includes(i.uf)) && (r.cidades.length === 0 || r.cidades.some((cd) => nrm(cd) === nrm(i.cidade)));
+  const motivos: string[] = [];
+  if (sg.some((x) => x.nivel === "veto")) return { score: 0, classe: "nogo", motivos: ["Veto do seu padrão"], res, sinais: sg, regiao, passa: false };
+  const naFaixa = (r.faixaMin <= 0 || i.avaliacao >= r.faixaMin) && (r.faixaMax <= 0 || i.avaliacao <= r.faixaMax) && (r.lanceMax <= 0 || i.lance_minimo <= r.lanceMax);
+  const limites = [naFaixa, i.desagio_pct >= r.desagioMin, res.margem >= r.margemMin, naRegiao,
+    r.tipos.length === 0 || r.tipos.includes(i.tipo), r.modalidades.length === 0 || r.modalidades.includes(i.modalidade),
+    r.ocupacao === "qualquer" || i.ocupado === false, !r.exigeFinanciamento || i.aceita_financiamento === true];
+  const passa = limites.every(Boolean);
+  let score = 0;
+  if (res.margem >= r.margemAlvo + 0.05) score += 45; else if (res.margem >= r.margemAlvo) score += 38; else if (res.margem >= r.margemMin) score += 25; else if (res.margem >= r.margemMin - 0.1) score += 8;
   motivos.push(`Margem líquida ${(res.margem * 100).toFixed(0)}%`);
-  // 2. Deságio bruto (20 pts)
-  if (i.desagio_pct >= 0.50) score += 20; else if (i.desagio_pct >= crit.desagioMin) score += 15; else if (i.desagio_pct >= 0.30) score += 6;
+  if (i.desagio_pct >= r.desagioMin + 0.1) score += 20; else if (i.desagio_pct >= r.desagioMin) score += 15; else if (i.desagio_pct >= r.desagioMin - 0.1) score += 5;
   motivos.push(`Deságio ${(i.desagio_pct * 100).toFixed(0)}%`);
-  // 3. Faixa de avaliação (15 pts)
-  if (i.avaliacao >= crit.faixaMin && i.avaliacao <= crit.faixaMax) { score += 15; motivos.push("Na faixa alvo"); }
-  else if (i.avaliacao >= crit.faixaMin * 0.75 && i.avaliacao <= crit.faixaMax * 1.3) { score += 7; motivos.push("Perto da faixa"); }
-  // 4. Região (15 pts)
-  if (regiao !== "Outra") { score += 15; motivos.push(`Região ${regiao}`); }
-  // 5. Risco (10 pts, perde por alerta)
+  if (naFaixa) { score += 10; if (r.faixaMin > 0 || r.faixaMax > 0 || r.lanceMax > 0) motivos.push("Na faixa"); }
+  if (naRegiao) { score += 10; if (r.ufs.length || r.cidades.length) motivos.push("Na região"); }
   const alertas = sg.filter((x) => x.nivel === "alerta").length;
-  score += Math.max(0, 10 - alertas * 4);
+  score += Math.max(0, 15 - alertas * 5);
   if (i.ocupado === false) score += 3;
   if (i.aceita_financiamento) score += 2;
   score = Math.min(100, score);
-
-  const passa = res.margem >= crit.margemMin && i.desagio_pct >= crit.desagioMin;
   const classe = passa && score >= 60 ? "go" : score >= 40 ? "atencao" : "nogo";
-  return { score, classe, motivos, res, sinais: sg, regiao };
+  return { score, classe, motivos, res, sinais: sg, regiao, passa };
 }
 
 export { brl, pct } from "./fmt";
