@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
-import { IMOVEIS, META } from "@/lib/data";
+import { META } from "@/lib/data";
+import { TODOS as IMOVEIS } from "@/lib/dadosCompletos";
 import { avaliarPadrao, brl, pct, REGRAS_BASE, CUSTOS_PADRAO, type Regras } from "@/lib/motor";
 export const runtime = "nodejs"; export const maxDuration = 60;
 

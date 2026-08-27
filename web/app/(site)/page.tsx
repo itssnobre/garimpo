@@ -10,7 +10,7 @@ export const dynamic = "force-static";
 export default function Landing() {
   const av = IMOVEIS.map((i) => ({ i, a: avaliar(i, CRITERIOS_PADRAO) }));
   const go = av.filter((x) => x.a.classe === "go");
-  const top = go.filter((x) => x.i.fotos?.length).sort((x, y) => y.a.score - x.a.score).slice(0, 4);
+  const top = go.filter((x) => x.i.fotos?.length || x.i.foto).sort((x, y) => y.a.score - x.a.score).slice(0, 4);
   const ex = top[0];
   const fontes = Object.keys(META.fontes).length;
   return (

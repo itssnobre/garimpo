@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { byId } from "@/lib/data";
+import { byId } from "@/lib/dadosCompletos";
 import Lote from "@/components/Lote";
 export const dynamic = "force-dynamic";
 export default async function Pagina({ params }: { params: Promise<{ id: string }> }) {

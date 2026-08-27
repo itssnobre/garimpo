@@ -1,13 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { byId } from "@/lib/data";
 import { usePadroes } from "@/lib/usePadroes";
 type M = { role: "user" | "assistant"; content: string };
 const SUG = ["Quais os 5 melhores lotes em Sorocaba hoje?", "Qual o lance máximo pra 30% de margem neste lote?", "O que é perigoso em leilão SFI da Caixa?", "Compare os apartamentos com margem acima de 35%"];
-export default function Sage({ loteId }: { loteId?: string }) {
-  const lote = loteId ? byId(loteId) : undefined; const { ativo } = usePadroes();
-  const [msgs, setMsgs] = useState<M[]>([{ role: "assistant", content: lote ? `Estou com o lote "${lote.titulo}" (${lote.cidade}) aberto. Pergunte sobre risco, lance máximo ou o que checar na matrícula.` : "Sou o Sage. Conheço todos os lotes da coleta e o padrão do garimpo. Pergunte por cidade, faixa, margem ou sobre um lote específico." }]);
+export default function Sage({ loteId, loteNome }: { loteId?: string; loteNome?: string }) {
+  const { ativo } = usePadroes();
+  const [msgs, setMsgs] = useState<M[]>([{ role: "assistant", content: loteNome ? `Estou com o lote "${loteNome}" aberto. Pergunte sobre risco, lance máximo ou o que checar na matrícula.` : "Sou o Sage. Conheço todos os lotes da coleta e o padrão do garimpo. Pergunte por cidade, faixa, margem ou sobre um lote específico." }]);
   const [txt, setTxt] = useState(""); const [carregando, setCarregando] = useState(false); const fim = useRef<HTMLDivElement>(null);
   useEffect(() => { if (msgs.length > 1 || carregando) fim.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [msgs, carregando]);
   async function enviar(t: string) {

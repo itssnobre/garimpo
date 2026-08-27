@@ -17,7 +17,7 @@ export default function Pipeline() {
         <div key={et} className="coluna"><h3>{et}<b>{col.length}</b></h3>
           {col.map((i) => { const a = avaliar(i); return (
             <div key={i.id} className="kcard">
-              {i.fotos?.[0] && <img src={i.fotos[0]} alt="" referrerPolicy="no-referrer" />}
+              {(i.fotos?.[0] ?? i.foto) && <img src={i.fotos?.[0] ?? i.foto} alt="" referrerPolicy="no-referrer" />}
               <Link href={`/app/imovel/${encodeURIComponent(i.id)}`} className="t">{tituloLimpo(i)}</Link>
               <div className="s">{i.cidade} · {brl(i.lance_minimo)} · máx 30% {brl(a.res.lanceMax30)} · score {a.score}</div>
               <div className="mv">{ETAPAS.filter((e) => e !== et).map((e) => <button key={e} onClick={() => mover(i.id, e)}>→ {e}</button>)}<button onClick={() => tirar(i.id)} style={{ color: "var(--bad)" }}>tirar</button></div>

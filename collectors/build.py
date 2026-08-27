@@ -67,6 +67,22 @@ def main():
         print(f"[{fonte}] {len(items)} lidos, {ok} válidos únicos")
     out.sort(key=lambda x: -x["desagio_pct"])
     json.dump(out, open(os.path.join(ROOT, "web", "data", "imoveis.json"), "w", encoding="utf-8"), ensure_ascii=False)
+    # índice enxuto para as listas (o JSON completo fica só no servidor, na página do lote)
+    CAMPOS = ["id","fonte","tipo","endereco","bairro","cidade","uf","area_privativa_m2","area_terreno_m2","quartos","vagas",
+              "avaliacao","lance_minimo","desagio_pct","modalidade","praca","data_leilao","ocupado","aceita_financiamento",
+              "aceita_fgts","direitos_fiduciante","fracao_ideal","dominio_util","massa_falida","direitos_aquisitivos",
+              "onus_averbado","matricula","debitos_por_conta_comprador"]
+    import re as _re
+    idx = []
+    for it in out:
+        r = {k: it[k] for k in CAMPOS if it.get(k) is not None}
+        f = it.get("fotos") or []
+        if f: r["foto"] = f[0]
+        d = it.get("debitos_regra") or ""
+        if _re.search(r"10% (em rela..o a|do valor de) avalia", d, _re.I): r["debitos_teto10"] = True
+        idx.append(r)
+    json.dump(idx, open(os.path.join(ROOT, "web", "data", "indice.json"), "w", encoding="utf-8"), ensure_ascii=False)
+    print(f"índice enxuto -> web/data/indice.json")
     json.dump({"gerado_em": now_iso(), "total": len(out), "fontes": stats},
               open(os.path.join(ROOT, "web", "data", "meta.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(f"TOTAL {len(out)} imóveis -> web/data/imoveis.json")

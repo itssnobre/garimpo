@@ -15,7 +15,7 @@ export default function Card({ i, a, fav, toggle }: { i: Imovel; a: Avaliacao; f
   return (
     <article className="ficha">
       <Link href={href} className="foto" aria-label={tituloLimpo(i)}>
-        {i.fotos?.[0] ? <img src={i.fotos[0]} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <div className="semfoto">{i.tipo} · sem foto</div>}
+        {(i.fotos?.[0] ?? i.foto) ? <img src={i.fotos?.[0] ?? i.foto} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <div className="semfoto">{i.tipo} · sem foto</div>}
         <span className="fonte-tag">{FONTE_LABEL[i.fonte] ?? i.fonte} · {MODALIDADE_LABEL[i.modalidade]}</span>
         {u && <span className={`urg ${u.nivel}`}>{u.txt}</span>}
         <span className={`selo ${a.classe}`}>{a.score}<small>{a.classe === "go" ? "GO" : a.classe === "atencao" ? "ATENÇÃO" : "NO-GO"}</small></span>
