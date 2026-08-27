@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Imovel } from "@/lib/types";
 import { avaliar, brl, pct, calcular, custosPara, CUSTOS_PADRAO, FONTE_LABEL, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
@@ -212,6 +213,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             </dl>
             {i.tambem_em && i.tambem_em.length > 0 && <div className="tambem" style={{ padding: "0 16px 14px" }}><span style={{ fontSize: 12, color: "var(--musgo)" }}>Mesmo lote em:</span><br />{i.tambem_em.map((t) => <a key={t.url} href={t.url} target="_blank" rel="noreferrer">{FONTE_LABEL[t.fonte] ?? t.fonte} · {brl(t.lance_minimo)}</a>)}</div>}
           </div>
+          <Link href={`/app/sage?lote=${encodeURIComponent(i.id)}`} className="btn sec" style={{ justifyContent: "center" }}>Perguntar ao Sage sobre este lote</Link>
           <div className="cta-lote"><b>Quer arrematar este lote com a conta feita?</b><p>Lemos matrícula e edital, fechamos o lance máximo e acompanhamos o pregão. 3% só se você arrematar.</p><a className="btn" href={contato(`Olá, quero assessoria da ${MARCA} para o lote ${i.titulo} (${i.cidade}). Link: ${typeof window !== "undefined" ? window.location.href : i.url}`)} target="_blank" rel="noreferrer">Pedir assessoria neste lote</a></div>
         </aside>
       </div>

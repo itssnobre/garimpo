@@ -4,6 +4,7 @@ import { avaliar, brl, pct, CRITERIOS_PADRAO } from "@/lib/motor";
 import { MARCA, PLANOS } from "@/lib/marca";
 import Destaques from "@/components/Destaques";
 import Contato from "@/components/Contato";
+import Reveal from "@/components/Reveal";
 export const dynamic = "force-static";
 
 export default function Landing() {
@@ -14,13 +15,14 @@ export default function Landing() {
   const fontes = Object.keys(META.fontes).length;
   return (
     <>
+      <Reveal />
       <section className="land-hero">
         <div className="land-hero-in">
           <div>
             <p className="eyebrow">Leilão de imóveis · São Paulo</p>
             <h1>Todo leilão de SP, <em>com a conta feita</em> antes do lance.</h1>
             <p className="sub">A {MARCA} junta {fontes} fontes de leilão num só catálogo, refaz a conta de cada lote com leiloeiro, ITBI, registro, carrego e imposto, e mostra o lance máximo que ainda paga sua margem. Você só vê o que vale a pena.</p>
-            <div className="ctas"><Link href="/imoveis" className="btn ouro">Ver os {go.length} lotes que passam hoje</Link><a href="#assessoria" className="btn sec">Como cobramos</a></div>
+            <div className="ctas"><Link href="/app/buscar" className="btn ouro">Abrir a plataforma</Link><Link href="/app/sage" className="btn sec">Conhecer o Sage, nossa IA</Link></div>
             <div className="prova"><div><b>{IMOVEIS.length.toLocaleString("pt-BR")}</b><span>lotes monitorados</span></div><div><b>{fontes}</b><span>fontes oficiais</span></div><div><b>{go.length}</b><span>passam no padrão</span></div><div><b>25%+</b><span>margem líquida mínima</span></div></div>
           </div>
           {ex && (
@@ -60,7 +62,7 @@ export default function Landing() {
       <section className="land-sec">
         <div className="sec-cab"><p className="eyebrow">Passam no padrão hoje</p><h2>Os melhores lotes da coleta.</h2><p>Faixa alvo, deságio de 40% ou mais e margem líquida acima de 25% depois de todos os custos.</p></div>
         <Destaques itens={top} />
-        <p style={{ marginTop: 18 }}><Link href="/imoveis" className="btn">Ver o catálogo completo →</Link></p>
+        <p style={{ marginTop: 18 }}><Link href="/app/buscar" className="btn">Ver o catálogo completo →</Link></p>
       </section>
 
       <section className="land-sec" id="assessoria">
