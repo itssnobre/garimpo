@@ -6,7 +6,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <>
         <nav className="topo">
-          <Link href="/" className="marca" aria-label={`${MARCA}, início`}><img src="/marca/logo-dark.svg" alt={MARCA} className="logo-img" /></Link>
+          <Link href="/" className="marca" aria-label={`${MARCA}, início`}><img src="/marca/logo-dark.svg" alt={MARCA} className="logo-img logo-inv" /></Link>
           <div className="topo-links">
             <Link href="/app/buscar">Imóveis</Link>
             <Link href="/#como-funciona">Como funciona</Link>

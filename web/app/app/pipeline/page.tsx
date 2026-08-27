@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { IMOVEIS } from "@/lib/data";
 import { avaliar, brl } from "@/lib/motor";
+import { tituloLimpo } from "@/lib/util";
 import { useFavoritos } from "@/lib/favoritos";
 import { ETAPAS, usePipeline, type Etapa } from "@/lib/pipeline";
 export default function Pipeline() {
@@ -17,7 +18,7 @@ export default function Pipeline() {
           {col.map((i) => { const a = avaliar(i); return (
             <div key={i.id} className="kcard">
               {i.fotos?.[0] && <img src={i.fotos[0]} alt="" referrerPolicy="no-referrer" />}
-              <Link href={`/app/imovel/${encodeURIComponent(i.id)}`} className="t">{i.titulo}</Link>
+              <Link href={`/app/imovel/${encodeURIComponent(i.id)}`} className="t">{tituloLimpo(i)}</Link>
               <div className="s">{i.cidade} · {brl(i.lance_minimo)} · máx 30% {brl(a.res.lanceMax30)} · score {a.score}</div>
               <div className="mv">{ETAPAS.filter((e) => e !== et).map((e) => <button key={e} onClick={() => mover(i.id, e)}>→ {e}</button>)}<button onClick={() => tirar(i.id)} style={{ color: "var(--bad)" }}>tirar</button></div>
             </div>); })}

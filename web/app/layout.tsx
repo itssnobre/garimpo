@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Fraunces, Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import { Source_Serif_4, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { MARCA, TAGLINE } from "@/lib/marca";
 
-const display = Fraunces({ subsets: ["latin"], variable: "--f-display", weight: "variable", axes: ["opsz"] });
-const body = Instrument_Sans({ subsets: ["latin"], variable: "--f-body", weight: ["400", "500", "600"] });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--f-mono", weight: ["400", "500"] });
+const display = Source_Serif_4({ subsets: ["latin"], variable: "--f-display", weight: ["600", "700"] });
+const body = Public_Sans({ subsets: ["latin"], variable: "--f-body", weight: ["400", "500", "600", "700"] });
+const mono = IBM_Plex_Mono({ subsets: ["latin"], variable: "--f-mono", weight: ["400", "500"] });
 
 export const metadata: Metadata = {
   title: { default: `${MARCA} · ${TAGLINE}`, template: `%s · ${MARCA}` },
