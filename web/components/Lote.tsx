@@ -9,6 +9,7 @@ import { urgencia, mapsUrl } from "@/lib/util";
 import { useFavoritos } from "@/lib/favoritos";
 import { contato, MARCA } from "@/lib/marca";
 import Regua from "./Regua";
+import CampoMoeda from "./CampoMoeda";
 import { IArea, ICama, ICarro, ICasa, IChave, IDoc, IEstrela, IMapa, IRelogio } from "./Icones";
 
 const CHECKLIST = [
@@ -90,13 +91,8 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
 
   return (
     <>
-      {/* Cabeçalho */}
-      <header className="lote-topo">
-        <div className="lote-tit">
-          <p className="lote-eyebrow">{FONTE_LABEL[i.fonte] ?? i.fonte}<span>·</span>{MODALIDADE_LABEL[i.modalidade]}{i.praca ? <><span>·</span>{i.praca}ª praça</> : null}</p>
-          <h1 title={i.titulo}>{i.titulo}</h1>
-          <p className="lote-end"><IMapa />{[i.endereco, i.bairro, `${i.cidade}/${i.uf}`].filter(Boolean).join(" · ")}</p>
-        </div>
+      <div className="lote-barra">
+        <Link href="/app/buscar" className="volta">← Voltar à busca</Link>
         <div className="lote-acoes">
           <button className={`btn sec ${fav ? "favon" : ""}`} onClick={() => toggle(i.id)} aria-pressed={fav}><IEstrela cheia={fav} />{fav ? "Guardado" : "Guardar"}</button>
           {endCompleto && <a className="btn sec" href={mapsUrl(endCompleto)} target="_blank" rel="noreferrer"><IMapa />Ver no mapa</a>}
@@ -104,7 +100,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
           {i.edital_url && <a className="btn sec" href={i.edital_url} target="_blank" rel="noreferrer"><IDoc />Edital</a>}
           <a className="btn" href={i.url} target="_blank" rel="noreferrer">Abrir na fonte ↗</a>
         </div>
-      </header>
+      </div>
 
       <div className="lote-grid">
         <div>
@@ -127,6 +123,12 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               <span className="lb-conta">{foto + 1} de {fotos.length} · arraste ou use as setas</span>
               <button className="lb-fechar" onClick={() => setZoom(false)} aria-label="Fechar">✕</button>
             </div>)}
+
+          <header className="lote-tit">
+            <p className="lote-eyebrow">{FONTE_LABEL[i.fonte] ?? i.fonte}<span>·</span>{MODALIDADE_LABEL[i.modalidade]}{i.praca ? <><span>·</span>{i.praca}ª praça</> : null}</p>
+            <h1 title={i.titulo}>{i.titulo}</h1>
+            <p className="lote-end"><IMapa />{[i.endereco, i.bairro, `${i.cidade}/${i.uf}`].filter(Boolean).join(" · ")}</p>
+          </header>
 
           {/* Fatos */}
           <div className="fatos-grid">
@@ -158,8 +160,8 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             </div>
 
             <div className="simular">
-              <label className="campo"><span>Se eu vender por</span><input className="num" type="number" value={venda} onChange={(e) => setVenda(+e.target.value || 0)} /></label>
-              <label className="campo"><span>e arrematar por</span><input className="num" type="number" value={lance} onChange={(e) => setLance(+e.target.value || 0)} /></label>
+              <div className="campo"><span>Se eu vender por</span><CampoMoeda valor={venda} onChange={setVenda} /></div>
+              <div className="campo"><span>e arrematar por</span><CampoMoeda valor={lance} onChange={setLance} /></div>
               <button className="btn sec" onClick={() => { setLance(Math.floor(lanceAlvo)); }}>Usar o teto</button>
             </div>
 
@@ -179,7 +181,9 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
 
             <details className="custos-det" open={abrirCustos} onToggle={(e) => setAbrirCustos((e.target as HTMLDetailsElement).open)}>
               <summary>Ajustar os custos deste lote</summary>
-              <div className="custos">{CAMPOS.map(([k, l]) => <label className="campo" key={k}><span>{l}</span><input className="num" type="number" value={custos[k]} onChange={(e) => setCustos({ ...custos, [k]: +e.target.value || 0 })} /></label>)}</div>
+              <div className="custos">{CAMPOS.map(([k, l]) => l.endsWith("R$")
+                ? <div className="campo" key={k}><span>{l.replace(" R$", "")}</span><CampoMoeda valor={custos[k]} onChange={(v) => setCustos({ ...custos, [k]: v })} /></div>
+                : <label className="campo" key={k}><span>{l}</span><input className="num" type="number" step="0.1" value={custos[k]} onChange={(e) => setCustos({ ...custos, [k]: +e.target.value || 0 })} /></label>)}</div>
               <p style={{ margin: "12px 0 0" }}><button className="btn sec mini" onClick={() => { setCustos(custosPara(i, regras.custos ?? CUSTOS_PADRAO)); setLance(i.lance_minimo); setVenda(i.avaliacao); }}>Restaurar</button></p>
             </details>
           </section>

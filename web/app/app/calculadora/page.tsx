@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { brl, pct, calcular, CUSTOS_PADRAO, ITBI_CIDADE, type Custos } from "@/lib/motor";
 import Regua from "@/components/Regua";
+import CampoMoeda from "@/components/CampoMoeda";
 const CAMPOS: [keyof Custos, string][] = [["leiloeiro", "Leiloeiro %"], ["itbi", "ITBI %"], ["registro", "Registro %"], ["advogado", "Advogado R$"], ["certidoes", "Certidões R$"], ["debitos", "Débitos R$"], ["desocupacao", "Desocupação R$"], ["reforma", "Reforma R$"], ["meses", "Meses até vender"], ["mensal", "Custo mensal R$"], ["corretagem", "Corretagem %"], ["ir", "IR ganho capital %"], ["descontoVenda", "Vender abaixo da aval. %"]];
 export default function Calculadora() {
   const [venda, setVenda] = useState(220000); const [lance, setLance] = useState(120000); const [c, setC] = useState<Custos>(CUSTOS_PADRAO);
@@ -10,9 +11,11 @@ export default function Calculadora() {
     <div className="app-cab"><div><h1>Calculadora de lance</h1><p>Qualquer lote, de qualquer fonte: valor de venda, lance e custos. Sai o lance máximo pra cada margem.</p></div></div>
     <div className="lote-grid">
       <div className="painel">
-        <div className="par"><label className="campo"><span>Valor real de venda R$</span><input className="mono" type="number" value={venda} onChange={(e) => setVenda(+e.target.value || 0)} /></label><label className="campo"><span>Lance R$</span><input className="mono" type="number" value={lance} onChange={(e) => setLance(+e.target.value || 0)} /></label></div>
+        <div className="par"><div className="campo"><span>Valor real de venda</span><CampoMoeda valor={venda} onChange={setVenda} /></div><div className="campo"><span>Lance</span><CampoMoeda valor={lance} onChange={setLance} /></div></div>
         <label className="campo" style={{ maxWidth: 260 }}><span>ITBI por cidade</span><select onChange={(e) => setC({ ...c, itbi: ITBI_CIDADE[e.target.value] ?? c.itbi })}><option value="">Manual</option>{Object.keys(ITBI_CIDADE).map((k) => <option key={k}>{k}</option>)}</select></label>
-        <div className="custos" style={{ marginTop: 10 }}>{CAMPOS.map(([k, l]) => <label className="campo" key={k}><span>{l}</span><input className="mono" type="number" value={c[k]} onChange={(e) => setC({ ...c, [k]: +e.target.value || 0 })} /></label>)}</div>
+        <div className="custos" style={{ marginTop: 10 }}>{CAMPOS.map(([k, l]) => l.endsWith("R$")
+          ? <div className="campo" key={k}><span>{l.replace(" R$", "")}</span><CampoMoeda valor={c[k]} onChange={(v) => setC({ ...c, [k]: v })} /></div>
+          : <label className="campo" key={k}><span>{l}</span><input className="num" type="number" step="0.1" value={c[k]} onChange={(e) => setC({ ...c, [k]: +e.target.value || 0 })} /></label>)}</div>
       </div>
       <aside className="lateral">
         <div className={`veredito ${classe}`}><div className="big">{classe === "go" ? "GO" : classe === "atencao" ? "ATENÇÃO" : "NO-GO"}</div><div className="sc">margem {pct(r.margem)} · deságio real {pct(Math.max(0, r.descReal))}</div><p>Lucro líquido {brl(r.lucro)} sobre {brl(r.total)} de capital.</p></div>

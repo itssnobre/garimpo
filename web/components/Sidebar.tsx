@@ -27,6 +27,7 @@ const GRUPOS: { titulo?: string; itens: { href: string; label: string; icone: ke
 export default function Sidebar() {
   const path = usePathname(); const { tema, aplicar } = useTema(); const [aberto, setAberto] = useState(false);
   useEffect(() => { setAberto(false); }, [path]);
+  useEffect(() => { document.body.classList.toggle("travado", aberto); return () => document.body.classList.remove("travado"); }, [aberto]);
   return (
     <>
       <header className="app-topo-mobile">

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Imovel } from "@/lib/types";
 import { avaliarPadrao, REGRAS_BASE, FONTE_LABEL, MODALIDADE_LABEL } from "@/lib/motor";
@@ -52,6 +52,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
     busca && { k: "busca", txt: `"${busca}"`, off: () => setBusca("") },
   ].filter(Boolean) as { k: string; txt: string; off: () => void; destaque?: boolean }[];
   const nFiltros = pills.filter((p) => p.k !== "padrao" && p.k !== "busca").length;
+  useEffect(() => { document.body.classList.toggle("travado", painel); return () => document.body.classList.remove("travado"); }, [painel]);
   const limpar = () => { setCidade(""); setTipo(""); setFonte(""); setModalidade(""); setBusca(""); setSoFoto(false); setSoFavs(false); setOcultarVeto(true); setSoPassam(true); };
 
   return (
