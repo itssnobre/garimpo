@@ -29,11 +29,18 @@ export default function Sidebar() {
   return (
     <>
       <header className="app-topo-mobile">
-        <button className="hamb" aria-label="Abrir menu" onClick={() => setAberto(true)}><svg {...P} width={22} height={22}><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
-        <Link href="/app/buscar" className="marca"><span className="marca-selo">L</span><span>{MARCA.toUpperCase()}</span></Link>
+        <Link href="/app/buscar" aria-label={MARCA}><img src="/marca/logo-light.svg" alt={MARCA} /></Link>
+        <Link href="/#contato" className="btn ouro mini">Assessoria</Link>
       </header>
-      {aberto && <div className="sombra-menu" onClick={() => setAberto(false)} />}
-      <aside className={`sidebar ${aberto ? "aberta" : ""}`}>
+      <nav className="tabbar" aria-label="Navegação principal">
+        {GRUPOS[0].itens.slice(0, 4).map((it) => { const on = path.startsWith(it.href); return <Link key={it.href} href={it.href} className={`tab ${on ? "on" : ""}`}>{I[it.icone]}<span>{it.label}</span></Link>; })}
+        <button className={`tab ${aberto ? "on" : ""}`} onClick={() => setAberto(true)} aria-expanded={aberto}><svg {...P}><circle cx="5" cy="12" r="1.6" fill="currentColor" /><circle cx="12" cy="12" r="1.6" fill="currentColor" /><circle cx="19" cy="12" r="1.6" fill="currentColor" /></svg><span>Mais</span></button>
+      </nav>
+      {aberto && <><div className="folha-fundo" onClick={() => setAberto(false)} /><div className="folha" role="dialog" aria-label="Mais opções">
+        <h3>Mais</h3>{[...GRUPOS[0].itens.slice(4), ...GRUPOS[1].itens].map((it) => { const on = path.startsWith(it.href); return <Link key={it.href} href={it.href} className={`sb-item ${on ? "on" : ""}`}><span className="sb-ico">{I[it.icone]}</span><span>{it.label}</span></Link>; })}
+        <h3>Tema</h3><div className="tema" style={{ background: "var(--ground)" }}>{(["light", "dark", "system"] as const).map((t) => <button key={t} aria-pressed={tema === t} onClick={() => aplicar(t)} style={{ color: tema === t ? "var(--ground)" : "var(--mute)", background: tema === t ? "var(--ink)" : "transparent" }}>{t === "light" ? "Claro" : t === "dark" ? "Escuro" : "Sistema"}</button>)}</div>
+      </div></>}
+      <aside className="sidebar">
         <Link href="/" className="sb-logo" aria-label={`${MARCA}, site`}><img src="/marca/logo-light.svg" alt={MARCA} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; (e.currentTarget.nextSibling as HTMLElement).style.display = "flex"; }} /><span className="marca" style={{ display: "none" }}><span className="marca-selo">L</span><span>{MARCA.toUpperCase()}</span></span></Link>
         <nav className="sb-nav">
           {GRUPOS.map((g, k) => <div key={k} className="sb-grupo">{g.itens.map((it) => { const on = path.startsWith(it.href); return (

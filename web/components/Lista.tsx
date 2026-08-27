@@ -40,7 +40,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
   return (
     <>
       <section className="faixa-hero">
-        <div className="faixa-hero-in">
+        <div className="faixa-hero-in" style={{ display: "none" }}>
           <div><h1>Imóveis em leilão, <em>só o que paga a margem</em>.</h1>
             <p>{imoveis.length.toLocaleString("pt-BR")} lotes em SP de {fontes.length} fontes, recalculados com todos os custos. <b>{totalGo} passam no padrão</b> hoje.</p></div>
           <label className="busca-grande"><span className="sr">Buscar</span><input placeholder="Buscar por bairro, rua, cidade ou matrícula" value={busca} onChange={(e) => setBusca(e.target.value)} /></label>
@@ -50,8 +50,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
       <div className="barra-filtros">
         <div className="barra-in">
           <div className="chips">
-            <button className={`chip ${soPassam ? "on" : ""}`} aria-pressed={soPassam} onClick={() => setSoPassam(!soPassam)}>Padrão do garimpo</button>
-            <button className={`chip ${crit.soRegiao ? "on" : ""}`} aria-pressed={crit.soRegiao} onClick={() => setCrit({ ...crit, soRegiao: !crit.soRegiao })}>Sorocaba + ABC</button>
+            <button className={`chip ${soPassam ? "on" : ""}`} aria-pressed={soPassam} onClick={() => setSoPassam(!soPassam)}>Meu padrão</button>
             <button className={`chip ${soFoto ? "on" : ""}`} aria-pressed={soFoto} onClick={() => setSoFoto(!soFoto)}>Com foto</button>
             <button className={`chip ${!ocultarVeto ? "on" : ""}`} aria-pressed={!ocultarVeto} onClick={() => setOcultarVeto(!ocultarVeto)}>Mostrar vetados</button>
             <button className={`chip ${soFavs ? "on" : ""}`} aria-pressed={soFavs} onClick={() => setSoFavs(!soFavs)}><IEstrela cheia={soFavs} /> Favoritos{favs.size ? ` (${favs.size})` : ""}</button>
@@ -59,7 +58,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
             <select className="chip sel" value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo"><option value="">Tipo: todos</option>{["apartamento", "casa", "terreno", "comercial", "rural", "outro"].map((t) => <option key={t} value={t}>{t}</option>)}</select>
             <select className="chip sel" value={modalidade} onChange={(e) => setModalidade(e.target.value)} aria-label="Modalidade"><option value="">Modalidade: todas</option>{Object.entries(MODALIDADE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
             <select className="chip sel" value={fonte} onChange={(e) => setFonte(e.target.value)} aria-label="Fonte"><option value="">Fonte: todas</option>{fontes.map((f) => <option key={f} value={f}>{FONTE_LABEL[f] ?? f}</option>)}</select>
-            <button className={`chip ${mais ? "on" : ""}`} aria-expanded={mais} onClick={() => setMais(!mais)}><IFiltro /> Régua do padrão</button>
+            <button className={`chip ${mais ? "on" : ""}`} aria-expanded={mais} onClick={() => setMais(!mais)}><IFiltro /> Ajustar padrão</button>
           </div>
           {mais && <div className="mais-filtros">
             <label className="campo"><span>Avaliação de (R$)</span><input className="mono" inputMode="numeric" value={crit.faixaMin} onChange={(e) => setCrit({ ...crit, faixaMin: num(e.target.value) })} /></label>
@@ -74,7 +73,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
       <main className="conteudo">
         <div className="contagem"><div><b>{lista.length.toLocaleString("pt-BR")}</b> <span>lotes · {go} GO</span></div>
           <label className="ordem"><span>Ordenar</span><select value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)}>{ORDENS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label></div>
-        {lista.length === 0 ? <div className="vazio"><b>Nada passa nesse recorte</b>{soFavs ? "Você ainda não marcou favoritos. Toque na estrela de um lote pra guardar aqui." : "Abra a faixa de avaliação, baixe o deságio mínimo ou desligue o chip \"Padrão do garimpo\"."}</div> : (
+        {lista.length === 0 ? <div className="vazio"><b>Nada passa nesse recorte</b>{soFavs ? "Você ainda não marcou favoritos. Toque na estrela de um lote pra guardar aqui." : "Abra a faixa de avaliação, baixe o deságio mínimo ou desligue o chip \"Meu padrão\"."}</div> : (
           <>
             <div className="grade">{lista.slice(0, limite).map(({ i, a }) => {
               return <Card key={i.id} i={i} a={a} fav={favs.has(i.id)} toggle={toggle} />;

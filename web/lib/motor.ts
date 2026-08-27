@@ -119,8 +119,7 @@ export function avaliar(i: Imovel, crit: Criterios = CRITERIOS_PADRAO, custos?: 
   return { score, classe, motivos, res, sinais: sg, regiao };
 }
 
-export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-export const pct = (v: number) => (v * 100).toFixed(0) + "%";
+export { brl, pct } from "./fmt";
 export const MODALIDADE_LABEL: Record<string, string> = {
   leilao_sfi: "Leilão SFI", licitacao_aberta: "Licitação Aberta", venda_online: "Venda Online", venda_direta: "Venda Direta",
   judicial: "Judicial", extrajudicial: "Extrajudicial", outro: "Outro",
