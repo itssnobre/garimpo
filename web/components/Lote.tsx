@@ -130,14 +130,21 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             <p className="lote-end"><IMapa />{[i.endereco, i.bairro, `${i.cidade}/${i.uf}`].filter(Boolean).join(" · ")}</p>
           </header>
 
-          {/* Fatos */}
-          <div className="fatos-grid">
-            <div><ICasa /><div><span>Tipo</span><b>{i.tipo}</b></div></div>
-            <div><IArea /><div><span>{i.area_privativa_m2 ? "Área privativa" : "Terreno"}</span><b>{i.area_privativa_m2 ? `${i.area_privativa_m2} m²` : i.area_terreno_m2 ? `${i.area_terreno_m2} m²` : "não informado"}</b></div></div>
-            <div><ICama /><div><span>Dormitórios</span><b>{i.quartos ?? "não informado"}</b></div></div>
-            <div><ICarro /><div><span>Vagas</span><b>{i.vagas ?? "não informado"}</b></div></div>
-            <div><IChave /><div><span>Ocupação</span><b>{i.ocupado === true ? "Ocupado" : i.ocupado === false ? "Desocupado" : "não informado"}</b></div></div>
-            <div><IRelogio /><div><span>Leilão</span><b>{u ? u.txt : "sem data"}</b></div></div>
+          {/* Especificações */}
+          <div className="specs">
+            {([
+              { ic: <ICasa />, r: "Tipo", v: i.tipo ? i.tipo[0].toUpperCase() + i.tipo.slice(1) : null },
+              { ic: <IArea />, r: i.area_privativa_m2 ? "Área útil" : "Terreno", v: i.area_privativa_m2 ? `${i.area_privativa_m2.toLocaleString("pt-BR")} m²` : i.area_terreno_m2 ? `${i.area_terreno_m2.toLocaleString("pt-BR")} m²` : null },
+              { ic: <ICama />, r: "Dormitórios", v: i.quartos ?? null },
+              { ic: <ICarro />, r: "Vagas", v: i.vagas ?? null },
+              { ic: <IChave />, r: "Ocupação", v: i.ocupado === true ? "Ocupado" : i.ocupado === false ? "Desocupado" : null },
+              { ic: <IRelogio />, r: i.praca ? `${i.praca}ª praça` : "Leilão", v: u ? u.txt[0].toUpperCase() + u.txt.slice(1) : null },
+            ]).map((x) => (
+              <div className={`spec ${x.v === null ? "vazio" : ""}`} key={x.r}>
+                <span className="spec-ic">{x.ic}</span>
+                <b>{x.v ?? "—"}</b>
+                <span className="spec-r">{x.r}</span>
+              </div>))}
           </div>
 
           <nav className="ancoras" aria-label="Seções"><a href="#valores">Valores</a><a href="#riscos">Riscos</a><a href="#diligencia">Diligência</a><a href="#documentos">Documentos</a><a href="#descricao">Descrição</a></nav>
