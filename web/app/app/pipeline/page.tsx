@@ -19,7 +19,7 @@ export default function Pipeline() {
               {i.fotos?.[0] && <img src={i.fotos[0]} alt="" referrerPolicy="no-referrer" />}
               <Link href={`/app/imovel/${encodeURIComponent(i.id)}`} className="t">{i.titulo}</Link>
               <div className="s">{i.cidade} · {brl(i.lance_minimo)} · máx 30% {brl(a.res.lanceMax30)} · score {a.score}</div>
-              <div className="mv">{ETAPAS.filter((e) => e !== et).map((e) => <button key={e} onClick={() => mover(i.id, e)}>→ {e}</button>)}<button onClick={() => tirar(i.id)} style={{ color: "var(--stop)" }}>tirar</button></div>
+              <div className="mv">{ETAPAS.filter((e) => e !== et).map((e) => <button key={e} onClick={() => mover(i.id, e)}>→ {e}</button>)}<button onClick={() => tirar(i.id)} style={{ color: "var(--bad)" }}>tirar</button></div>
             </div>); })}
         </div>); })}</div>)}
   </>);

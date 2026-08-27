@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import type { Imovel } from "@/lib/types";
-import { brl, pct, FONTE_LABEL, MODALIDADE_LABEL, type Avaliacao } from "@/lib/motor";
+import { pct, FONTE_LABEL, MODALIDADE_LABEL, type Avaliacao } from "@/lib/motor";
+import { brl, brlCurto } from "@/lib/fmt";
 import { urgencia } from "@/lib/util";
 import Regua from "./Regua";
 import { IArea, ICama, ICarro, IEstrela, IChave } from "./Icones";
@@ -19,7 +20,7 @@ export default function Card({ i, a, fav, toggle }: { i: Imovel; a: Avaliacao; f
                   <button className={`fav ${fav ? "on" : ""}`} aria-label={fav ? "Tirar dos favoritos" : "Guardar nos favoritos"} aria-pressed={fav} onClick={() => toggle(i.id)}><IEstrela cheia={fav} /></button>
                   <div className="ficha-corpo">
                     <div className="preco-linha">
-                      <div className="preco"><b>{brl(i.lance_minimo)}</b>{i.avaliacao > i.lance_minimo && <s>{brl(i.avaliacao)}</s>}</div>
+                      <div className="preco"><b title={brl(i.lance_minimo)}>{i.lance_minimo >= 1e6 ? brlCurto(i.lance_minimo) : brl(i.lance_minimo)}</b>{i.avaliacao > i.lance_minimo && <s>{i.avaliacao >= 1e6 ? brlCurto(i.avaliacao) : brl(i.avaliacao)}</s>}</div>
                       {!veto && <div className="preco-tags"><span className="tag-desc">-{pct(i.desagio_pct)}</span><span className={`tag-marg ${a.res.margem >= 0.25 ? "ok" : "ruim"}`}>margem {pct(a.res.margem)}</span></div>}
                     </div>
                     <Link href={`/app/imovel/${encodeURIComponent(i.id)}`}><h2 className="ficha-tit">{i.titulo}</h2></Link>

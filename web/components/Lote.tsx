@@ -79,12 +79,12 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
     <>
       <header className="lote-cab">
         <div>
-          <div className="volta" style={{ color: "var(--ouro-tinta)" }}>{FONTE_LABEL[i.fonte] ?? i.fonte} · {MODALIDADE_LABEL[i.modalidade]}{i.praca ? ` · ${i.praca}ª praça` : ""}{av.regiao !== "Outra" ? ` · região ${av.regiao}` : ""}</div>
+          <div className="volta" style={{ color: "var(--champ2)" }}>{FONTE_LABEL[i.fonte] ?? i.fonte} · {MODALIDADE_LABEL[i.modalidade]}{i.praca ? ` · ${i.praca}ª praça` : ""}{av.regiao !== "Outra" ? ` · região ${av.regiao}` : ""}</div>
           <h1>{i.titulo}</h1>
           <div className="end">{[i.endereco, i.bairro, `${i.cidade}/${i.uf}`].filter(Boolean).join(" · ")}</div>
         </div>
         <div className="acoes">
-          <button className={`btn sec ${fav ? "" : ""}`} onClick={() => toggle(i.id)} aria-pressed={fav} style={fav ? { color: "var(--ouro-tinta)", borderColor: "var(--ouro)" } : undefined}><IEstrela cheia={fav} /> {fav ? "Favorito" : "Guardar"}</button>
+          <button className={`btn sec ${fav ? "" : ""}`} onClick={() => toggle(i.id)} aria-pressed={fav} style={fav ? { color: "var(--champ2)", borderColor: "var(--champ)" } : undefined}><IEstrela cheia={fav} /> {fav ? "Favorito" : "Guardar"}</button>
           <a className="btn" href={i.url} target="_blank" rel="noreferrer">Abrir na fonte ↗</a>
           {i.edital_url && <a className="btn sec" href={i.edital_url} target="_blank" rel="noreferrer">Edital PDF</a>}
           {i.matricula_url && <a className="btn ouro" href={i.matricula_url} target="_blank" rel="noreferrer">Matrícula PDF</a>}
@@ -97,7 +97,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             {fotos.length === 0 ? <div className="semfoto">{i.tipo} · a fonte não publicou foto</div> : (
               <>
                 <div className="principal"><img src={fotos[foto]} alt={i.titulo} referrerPolicy="no-referrer" onClick={() => setZoom(true)} /></div>
-                {fotos.length > 1 && <div className="thumbs">{fotos.slice(0, 8).map((f, k) => <img key={f} src={f} alt="" referrerPolicy="no-referrer" onClick={() => setFoto(k)} style={{ outline: k === foto ? "2px solid var(--ouro)" : "none" }} />)}</div>}
+                {fotos.length > 1 && <div className="thumbs">{fotos.slice(0, 8).map((f, k) => <img key={f} src={f} alt="" referrerPolicy="no-referrer" onClick={() => setFoto(k)} style={{ outline: k === foto ? "2px solid var(--champ)" : "none" }} />)}</div>}
               </>)}
           </div>
           {zoom && fotos[foto] && <div className="lightbox" onClick={() => setZoom(false)}><img src={fotos[foto]} alt="" referrerPolicy="no-referrer" /></div>}
@@ -154,13 +154,13 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
                   <dt>Fixos + carrego ({custos.meses} m)</dt><dd>{brl(res.fixos)}</dd>
                   <div className="total" style={{ display: "contents" }}><dt>Capital total</dt><dd>{brl(res.total)}</dd></div>
                   <dt>Venda líquida (após corretagem)</dt><dd>{brl(res.receita)}</dd>
-                  <dt>Lucro líquido (após IR)</dt><dd style={{ color: res.lucro > 0 ? "var(--go)" : "var(--stop)" }}>{brl(res.lucro)}</dd>
+                  <dt>Lucro líquido (após IR)</dt><dd style={{ color: res.lucro > 0 ? "var(--ok)" : "var(--bad)" }}>{brl(res.lucro)}</dd>
                   <dt>Margem sobre capital</dt><dd>{pct(res.margem)}</dd>
                   <dt>Deságio real</dt><dd>{pct(Math.max(0, res.descReal))}</dd>
                 </dl>
               </div>
               <div>
-                <h4 style={{ margin: "0 0 8px", fontFamily: "var(--f-display)", fontSize: 13, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--musgo)" }}>Custos (edite pro caso real)</h4>
+                <h4 style={{ margin: "0 0 8px", fontFamily: "var(--f-display)", fontSize: 13, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--mute)" }}>Custos (edite pro caso real)</h4>
                 <div className="custos">{CAMPOS.map(([k, label]) => <label className="campo" key={k}><span>{label}</span><input className="mono" type="number" value={custos[k]} onChange={(e) => setCustos({ ...custos, [k]: +e.target.value || 0 })} /></label>)}</div>
                 <p style={{ margin: "10px 0 0" }}><button className="btn sec" onClick={() => { setCustos(custosPara(i, CUSTOS_PADRAO)); setLance(i.lance_minimo); setVenda(i.avaliacao); }}>Restaurar padrão</button></p>
               </div>
@@ -168,7 +168,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
           </section>
 
           <section className="secao" id="diligencia">
-            <h2>Diligência <span className="mono" style={{ fontSize: 13, color: "var(--musgo)", fontWeight: 500 }}>{feitos}/{CHECKLIST.length}</span></h2>
+            <h2>Diligência <span className="mono" style={{ fontSize: 13, color: "var(--mute)", fontWeight: 500 }}>{feitos}/{CHECKLIST.length}</span></h2>
             <div className="progresso"><i style={{ width: (feitos / CHECKLIST.length) * 100 + "%" }} /></div>
             <ul className="check">{CHECKLIST.map((t, k) => <li key={k}><input type="checkbox" id={`c${k}`} checked={checks[k]} onChange={(e) => setChecks(checks.map((c, j) => (j === k ? e.target.checked : c)))} /><label htmlFor={`c${k}`} className={checks[k] ? "ok" : ""}>{t}</label></li>)}</ul>
           </section>
@@ -200,18 +200,18 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             <div className="cab"><span>Ficha do lote</span><span className="mono">{i.id}</span></div>
             <div style={{ padding: "12px 16px 0" }}>
               <Regua grande minimo={i.lance_minimo} avaliacao={i.avaliacao} lance={lance} max25={res.lanceMax25} max30={res.lanceMax30} max35={res.lanceMax35} />
-              <div className="legenda-regua"><span><i style={{ background: "var(--go)" }} />margem ≥ 35%</span><span><i style={{ background: "var(--warn)" }} />25 a 35%</span><span><i style={{ background: "var(--veio)" }} />abaixo de 25%</span><span><i style={{ background: "var(--tinta)" }} />seu lance</span></div>
+              <div className="legenda-regua"><span><i style={{ background: "var(--ok)" }} />margem ≥ 35%</span><span><i style={{ background: "var(--warn)" }} />25 a 35%</span><span><i style={{ background: "var(--line)" }} />abaixo de 25%</span><span><i style={{ background: "var(--ink)" }} />seu lance</span></div>
             </div>
             <div className="pracas" style={{ paddingTop: 14 }}>
               <div className={i.praca === 1 ? "ativa" : ""}><span>1ª praça</span><b>{ex.lance_1a_praca ? brl(ex.lance_1a_praca) : i.praca === 1 ? brl(i.lance_minimo) : "—"}</b><small>{data(ex.datas_leilao?.["1"]) ?? (i.praca === 1 ? data(i.data_leilao) : "") ?? ""}</small></div>
               <div className={i.praca === 2 || !i.praca ? "ativa" : ""}><span>{i.praca ? "2ª praça" : "Lance mínimo"}</span><b>{ex.lance_2a_praca ? brl(ex.lance_2a_praca) : brl(i.lance_minimo)}</b><small>{data(ex.datas_leilao?.["2"]) ?? data(i.data_leilao) ?? data(i.data_fim) ?? "sem data na fonte"}</small></div>
             </div>
             <dl className="linhas">
-              <div><dt>Avaliação</dt><dd className="mono">{brl(i.avaliacao)} <span style={{ color: "var(--musgo)" }}>· deságio {pct(i.desagio_pct)}</span></dd></div>
+              <div><dt>Avaliação</dt><dd><span className="num">{brl(i.avaliacao)}</span> <span style={{ color: "var(--mute)" }}>deságio <span className="num">{pct(i.desagio_pct)}</span></span></dd></div>
               {linhas.map(([k, v]) => <div key={k}><dt>{k}</dt>{v !== null && v !== undefined && v !== "" ? <dd>{v}</dd> : <dd className="fraco">não informado</dd>}</div>)}
               <div><dt>Coletado</dt><dd className="fraco">{new Date(i.coletado_em).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</dd></div>
             </dl>
-            {i.tambem_em && i.tambem_em.length > 0 && <div className="tambem" style={{ padding: "0 16px 14px" }}><span style={{ fontSize: 12, color: "var(--musgo)" }}>Mesmo lote em:</span><br />{i.tambem_em.map((t) => <a key={t.url} href={t.url} target="_blank" rel="noreferrer">{FONTE_LABEL[t.fonte] ?? t.fonte} · {brl(t.lance_minimo)}</a>)}</div>}
+            {i.tambem_em && i.tambem_em.length > 0 && <div className="tambem" style={{ padding: "0 16px 14px" }}><span style={{ fontSize: 12, color: "var(--mute)" }}>Mesmo lote em:</span><br />{i.tambem_em.map((t) => <a key={t.url} href={t.url} target="_blank" rel="noreferrer">{FONTE_LABEL[t.fonte] ?? t.fonte} · {brl(t.lance_minimo)}</a>)}</div>}
           </div>
           <Link href={`/app/sage?lote=${encodeURIComponent(i.id)}`} className="btn sec" style={{ justifyContent: "center" }}>Perguntar ao Sage sobre este lote</Link>
           <div className="cta-lote"><b>Quer arrematar este lote com a conta feita?</b><p>Lemos matrícula e edital, fechamos o lance máximo e acompanhamos o pregão. 3% só se você arrematar.</p><a className="btn" href={contato(`Olá, quero assessoria da ${MARCA} para o lote ${i.titulo} (${i.cidade}). Link: ${typeof window !== "undefined" ? window.location.href : i.url}`)} target="_blank" rel="noreferrer">Pedir assessoria neste lote</a></div>

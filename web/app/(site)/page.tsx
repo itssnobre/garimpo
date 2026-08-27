@@ -19,11 +19,11 @@ export default function Landing() {
       <section className="land-hero">
         <div className="land-hero-in">
           <div>
-            <p className="eyebrow">Leilão de imóveis · São Paulo</p>
-            <h1>Todo leilão de SP, <em>com a conta feita</em> antes do lance.</h1>
-            <p className="sub">A {MARCA} junta {fontes} fontes de leilão num só catálogo, refaz a conta de cada lote com leiloeiro, ITBI, registro, carrego e imposto, e mostra o lance máximo que ainda paga sua margem. Você só vê o que vale a pena.</p>
+            <p className="eyebrow">Leilão de imóveis · Brasil</p>
+            <h1>Todo leilão do país, <em>com a conta feita</em> antes do lance.</h1>
+            <p className="sub">A {MARCA} junta as fontes de leilão num só catálogo, refaz a conta de cada lote com leiloeiro, ITBI, registro, carrego e imposto, e filtra pelo padrão que você define: faixa, deságio, margem, região. Você só vê o que vale a pena.</p>
             <div className="ctas"><Link href="/app/buscar" className="btn ouro">Abrir a plataforma</Link><Link href="/app/sage" className="btn sec">Conhecer o Sage, nossa IA</Link></div>
-            <div className="prova"><div><b>{IMOVEIS.length.toLocaleString("pt-BR")}</b><span>lotes monitorados</span></div><div><b>{fontes}</b><span>fontes oficiais</span></div><div><b>{go.length}</b><span>passam no padrão</span></div><div><b>25%+</b><span>margem líquida mínima</span></div></div>
+            <div className="prova"><div><b>{IMOVEIS.length.toLocaleString("pt-BR")}</b><span>lotes monitorados</span></div><div><b>{fontes}</b><span>fontes oficiais</span></div><div><b>{go.length}</b><span>passam no padrão</span></div><div><b>{Object.keys(META.fontes).length}</b><span>coletas por dia</span></div></div>
           </div>
           {ex && (
             <div className="hero-ficha" aria-hidden>
@@ -31,9 +31,9 @@ export default function Landing() {
               <div><span className="n">{brl(ex.i.lance_minimo)}</span><s>{brl(ex.i.avaliacao)}</s></div>
               <div className="lin"><span>Deságio no lance</span><b>{pct(ex.i.desagio_pct)}</b></div>
               <div className="lin"><span>Custos totais de arremate</span><b>{brl(ex.a.res.total - ex.i.lance_minimo)}</b></div>
-              <div className="lin"><span>Lucro líquido estimado</span><b style={{ color: "var(--go)" }}>{brl(ex.a.res.lucro)}</b></div>
+              <div className="lin"><span>Lucro líquido estimado</span><b style={{ color: "var(--ok)" }}>{brl(ex.a.res.lucro)}</b></div>
               <div className="lin"><span>Margem sobre capital</span><b>{pct(ex.a.res.margem)}</b></div>
-              <div className="lin" style={{ border: 0 }}><span>Lance máximo para 30%</span><b style={{ color: "var(--ouro-tinta)" }}>{brl(ex.a.res.lanceMax30)}</b></div>
+              <div className="lin" style={{ border: 0 }}><span>Lance máximo para 30%</span><b style={{ color: "var(--champ2)" }}>{brl(ex.a.res.lanceMax30)}</b></div>
             </div>)}
         </div>
       </section>
@@ -55,12 +55,12 @@ export default function Landing() {
           <div className="dif"><h3>Todas as fontes, uma tela</h3><p>{fontes} plataformas num catálogo só, com o mesmo lote identificado em mais de uma fonte e o menor lance apontado.</p></div>
           <div className="dif"><h3>Matrícula lida por IA</h3><p>Suba o PDF e receba ônus, alertas, custos previstos e as perguntas a fazer antes do lance.</p></div>
           <div className="dif"><h3>Vetos que protegem o caixa</h3><p>Direitos de fiduciante, fração ideal, doação com retrocessão: o que já quebrou investidor não passa do filtro.</p></div>
-          <div className="dif"><h3>Foco regional</h3><p>Começamos por Sorocaba e ABC, onde conhecemos preço de rua e cartório. O resto de SP entra no catálogo com o mesmo rigor.</p></div>
+          <div className="dif"><h3>Seu padrão, não o nosso</h3><p>Faixa de valor, deságio, margem mínima, regiões, tipos e custos são seus. O score é calculado sobre as suas regras.</p></div>
         </div>
       </section>
 
       <section className="land-sec">
-        <div className="sec-cab"><p className="eyebrow">Passam no padrão hoje</p><h2>Os melhores lotes da coleta.</h2><p>Faixa alvo, deságio de 40% ou mais e margem líquida acima de 25% depois de todos os custos.</p></div>
+        <div className="sec-cab"><p className="eyebrow">Passam no padrão hoje</p><h2>Os melhores lotes da coleta.</h2><p>Exemplo com um padrão conservador: deságio de 40% ou mais e margem líquida acima de 25% depois de todos os custos.</p></div>
         <Destaques itens={top} />
         <p style={{ marginTop: 18 }}><Link href="/app/buscar" className="btn">Ver o catálogo completo →</Link></p>
       </section>
