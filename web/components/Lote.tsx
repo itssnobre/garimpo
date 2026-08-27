@@ -5,7 +5,7 @@ import type { Imovel } from "@/lib/types";
 import { avaliarPadrao, REGRAS_BASE, calcular, custosPara, CUSTOS_PADRAO, FONTE_LABEL, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
 import { brl, brlCurto, pct, dataBR } from "@/lib/fmt";
 import { usePadroes } from "@/lib/usePadroes";
-import { urgencia, mapsUrl } from "@/lib/util";
+import { urgencia, mapsUrl, tituloLimpo } from "@/lib/util";
 import { useFavoritos } from "@/lib/favoritos";
 import { contato, MARCA } from "@/lib/marca";
 import Regua from "./Regua";
@@ -126,7 +126,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
 
           <header className="lote-tit">
             <p className="lote-eyebrow">{FONTE_LABEL[i.fonte] ?? i.fonte}<span>·</span>{MODALIDADE_LABEL[i.modalidade]}{i.praca ? <><span>·</span>{i.praca}ª praça</> : null}</p>
-            <h1 title={i.titulo}>{i.titulo}</h1>
+            <h1>{tituloLimpo(i)}</h1>
             <p className="lote-end"><IMapa />{[i.endereco, i.bairro, `${i.cidade}/${i.uf}`].filter(Boolean).join(" · ")}</p>
           </header>
 
@@ -245,42 +245,43 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             </div>
           </section>
 
-          {(i.descricao || ex.descricao_detalhe) && <section className="secao" id="descricao"><h2>Descrição da fonte</h2><pre className="desc">{[ex.descricao_detalhe, i.descricao].filter(Boolean).join("\n\n")}</pre></section>}
+          <section className="secao" id="descricao"><h2>Descrição da fonte</h2><p className="lede">Como o lote foi publicado por {FONTE_LABEL[i.fonte] ?? i.fonte}.</p><p className="titulo-fonte">{i.titulo}</p>{(i.descricao || ex.descricao_detalhe) && <pre className="desc">{[ex.descricao_detalhe, i.descricao].filter(Boolean).join("\n\n")}</pre>}</section>
         </div>
 
         {/* Lateral */}
         <aside className="lateral">
-          <div className={`veredicto ${classe}`}>
-            <div className="v-cab">
-              <span className="v-pill">{veto ? "VETO" : classe === "go" ? "GO" : classe === "atencao" ? "ATENÇÃO" : "NO-GO"}</span>
-              <span className="v-score">Score <b className="num">{av.score}</b><small>/100</small></span>
+          <div className="cart destaque">
+            <div className={`sit ${classe}`}>
+              <span className="sit-pill">{veto ? "Não comprar" : classe === "go" ? "Vale a pena" : classe === "atencao" ? "Atenção" : "Não vale a pena"}</span>
+              <span className="sit-score">{av.score}<small> de 100</small></span>
             </div>
-            <div className="v-barra" aria-hidden><i style={{ width: `${av.score}%` }} /></div>
-            {veto ? <p className="v-nota">Este lote é vetado pelas suas regras. Não avance.</p> : (<>
-              <div className="v-heroi">
-                <span>Margem líquida</span>
-                <b className="num">{pct(res.margem)}</b>
-              </div>
-              <p className="v-nota"><b className="num">{brl(res.lucro)}</b> de lucro sobre <b className="num">{brl(res.total)}</b> de capital empregado.</p>
-            </>)}
-            <div className="v-metricas">
-              <div><span>Lance mínimo</span><b className="num">{brlCurto(i.lance_minimo)}</b></div>
-              <div><span>Avaliação</span><b className="num">{brlCurto(i.avaliacao)}</b></div>
-              <div><span>Deságio</span><b className="num">{pct(i.desagio_pct)}</b></div>
+            <div className="cart-corpo">
+              {veto ? <p className="v-nota" style={{ color: "var(--bad)" }}>Este lote é vetado pelas suas regras. Não avance.</p> : (<>
+                <div className="heroi">
+                  <span>Quanto sobra pra você, se vender pela avaliação</span>
+                  <b className={`num ${classe}`}>{brl(res.lucro)}</b>
+                  <small>Isso é {pct(res.margem)} de retorno sobre os {brl(res.total)} que você põe no negócio (lance mais custos).</small>
+                </div>
+              </>)}
+            </div>
+            <div className="valores-lote">
+              <div><span>Lance inicial do leilão</span><b className="num">{brl(i.lance_minimo)}</b></div>
+              <div><span>Quanto o imóvel vale (avaliação da fonte)</span><b className="num">{brl(i.avaliacao)}</b><small>{pct(i.desagio_pct)} abaixo do lance</small></div>
             </div>
           </div>
 
           <div className="cart">
-            <div className="cart-cab"><span>Seu teto de lance</span></div>
+            <div className="cart-cab"><span>Até quanto pagar</span></div>
             <div className="cart-corpo">
-              <div className="teto-h">
-                <span>Para {alvoPct} de margem</span>
-                <b className="num">{brl(lanceAlvo)}</b>
+              <div className="heroi">
+                <span>Pague no máximo</span>
+                <b className="num destaque-ouro">{brl(lanceAlvo)}</b>
+                <small>É o lance mais alto que ainda deixa {alvoPct} de retorno pra você depois de todos os custos.</small>
               </div>
               <Regua grande minimo={i.lance_minimo} avaliacao={i.avaliacao} lance={lance} max25={res.lanceMax25} max30={res.lanceMax30} max35={res.lanceMax35} />
               <div className="teto-alt">
                 {([[0.25, res.lanceMax25], [0.30, res.lanceMax30], [0.35, res.lanceMax35]] as const).filter(([m]) => Math.abs(m - regras.margemAlvo) > 0.001).map(([m, v]) => (
-                  <div key={m}><span>{pct(m)} de margem</span><b className="num" title={brl(v)}>{brlCurto(v)}</b></div>))}
+                  <div key={m}><span>Se aceitar {pct(m)} de retorno</span><b className="num" title={brl(v)}>{brl(v)}</b></div>))}
               </div>
             </div>
             {(() => {

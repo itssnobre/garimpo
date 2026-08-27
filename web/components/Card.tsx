@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Imovel } from "@/lib/types";
 import { pct, FONTE_LABEL, MODALIDADE_LABEL, type Avaliacao } from "@/lib/motor";
 import { brl, brlCurto, matriculaCurta, dataBR } from "@/lib/fmt";
-import { urgencia } from "@/lib/util";
+import { urgencia, tituloLimpo } from "@/lib/util";
 import Regua from "./Regua";
 import { IArea, ICama, ICarro, IEstrela, IChave } from "./Icones";
 
@@ -14,7 +14,7 @@ export default function Card({ i, a, fav, toggle }: { i: Imovel; a: Avaliacao; f
   const preco = (v: number) => (v >= 1e6 ? brlCurto(v) : brl(v));
   return (
     <article className="ficha">
-      <Link href={href} className="foto" aria-label={i.titulo}>
+      <Link href={href} className="foto" aria-label={tituloLimpo(i)}>
         {i.fotos?.[0] ? <img src={i.fotos[0]} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <div className="semfoto">{i.tipo} · sem foto</div>}
         <span className="fonte-tag">{FONTE_LABEL[i.fonte] ?? i.fonte} · {MODALIDADE_LABEL[i.modalidade]}</span>
         {u && <span className={`urg ${u.nivel}`}>{u.txt}</span>}
@@ -35,7 +35,7 @@ export default function Card({ i, a, fav, toggle }: { i: Imovel; a: Avaliacao; f
             </div>)}
         </div>
 
-        <Link href={href}><h2 className="ficha-tit">{i.titulo}</h2></Link>
+        <Link href={href}><h2 className="ficha-tit">{tituloLimpo(i)}</h2></Link>
 
         <p className="ficha-sub"><b>{i.cidade}/{i.uf}</b>{i.bairro ? `, ${i.bairro}` : ""}{i.endereco ? ` · ${i.endereco}` : ""}{a.regiao !== "Outra" && <span className="regiao-tag">{a.regiao}</span>}</p>
 
