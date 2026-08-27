@@ -58,6 +58,10 @@ def flags(texto):
     return {
         "direitos_fiduciante": bool(re.search(r"direitos? (do |de |da )?(devedor |mutuario )?fiduciante|cessao (de |dos )?direitos", t)),
         "fracao_ideal": fracao,
+        # Enfiteuse: vende-se só o domínio útil (foro anual + laudêmio de 5% na revenda + anuência da SPU).
+        "dominio_util": bool(re.search(r"dominio util|enfiteuse|enfiteutico|aforamento|terreno de marinha", t)),
+        # Massa falida: venda pelo juízo falimentar (costuma ser livre de ônus, mas o rito é longo).
+        "massa_falida": bool(re.search(r"massa falida|falencia|juizo falimentar|recuperacao judicial", t)),
     }
 
 def save_raw(fonte, items):

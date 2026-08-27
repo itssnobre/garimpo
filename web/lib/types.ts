@@ -8,7 +8,7 @@ export interface Imovel {
   modalidade: Modalidade; praca?: number; data_leilao?: string; data_fim?: string;
   ocupado?: boolean | null; aceita_financiamento?: boolean | null; aceita_fgts?: boolean | null;
   debitos_regra?: string; debitos_por_conta_comprador?: boolean | null;
-  direitos_fiduciante: boolean; fracao_ideal: boolean;
+  direitos_fiduciante: boolean; fracao_ideal: boolean; dominio_util?: boolean; massa_falida?: boolean;
   matricula?: string; cartorio?: string; edital_url?: string; matricula_url?: string;
   fotos?: string[]; descricao?: string; leiloeiro?: string; coletado_em: string;
   tambem_em?: { fonte: string; url: string; lance_minimo: number }[];

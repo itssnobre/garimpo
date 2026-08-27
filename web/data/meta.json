@@ -1,6 +1,6 @@
 {
- "gerado_em": "2026-08-26T15:10:55+00:00",
- "total": 4566,
+ "gerado_em": "2026-08-27T20:47:22+00:00",
+ "total": 8263,
  "fontes": {
   "biasi": {
    "lidos": 100,
@@ -18,6 +18,10 @@
    "lidos": 163,
    "validos": 146
   },
+  "leilaoimovel": {
+   "lidos": 9275,
+   "validos": 3709
+  },
   "megaleiloes": {
    "lidos": 450,
    "validos": 434
@@ -28,7 +32,7 @@
   },
   "superbid": {
    "lidos": 344,
-   "validos": 292
+   "validos": 280
   },
   "zuk": {
    "lidos": 253,

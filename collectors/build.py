@@ -50,6 +50,8 @@ def main():
             fl = flags(f"{it.get('titulo','')} {it.get('descricao','')} {it.get('descricao_detalhe','')}")
             it["direitos_fiduciante"] = bool(it.get("direitos_fiduciante")) or fl["direitos_fiduciante"]
             it["fracao_ideal"] = fl["fracao_ideal"]
+            it["dominio_util"] = fl["dominio_util"]
+            it["massa_falida"] = fl["massa_falida"]
             k = key(it)
             if k in seen:
                 # mantém o de menor lance; guarda a outra fonte em `tambem_em`

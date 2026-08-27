@@ -69,6 +69,9 @@ export function sinais(i: Imovel): Sinal[] {
   if (i.direitos_fiduciante) s.push({ nivel: "veto", texto: "Vende direitos de devedor fiduciante (dívida embutida). Nunca comprar." });
   if (i.fracao_ideal) s.push({ nivel: "veto", texto: "Fração ideal do imóvel (copropriedade). Nunca comprar." });
   if (!i.direitos_fiduciante && /\bdireitos\b/i.test(i.titulo)) s.push({ nivel: "alerta", texto: "Vende direitos sobre o imóvel (compromisso/posse), não a propriedade plena. Conferir na matrícula se há como registrar e quais ônus vêm junto." });
+  if (i.dominio_util) s.push({ nivel: "alerta", texto: "Vende o domínio útil, não a propriedade (enfiteuse). O terreno é de outro dono, em geral a União: há foro anual, laudêmio de 5% sobre a avaliação da SPU na hora de revender, e a transferência depende de autorização. Financiamento é difícil e a revenda é mais lenta." });
+  if (i.massa_falida) s.push({ nivel: "alerta", texto: "Bem de massa falida. A venda pelo juízo da falência costuma ser livre de ônus e sem sucessão de dívidas (art. 141, II da Lei 11.101/2005), o que é bom, mas confirme isso no edital. O rito é longo: conte meses até a carta de arrematação." });
+  if (i.desagio_pct >= 0.85) s.push({ nivel: "alerta", texto: `Deságio de ${(i.desagio_pct * 100).toFixed(0)}%. Desconto desse tamanho quase nunca é oportunidade escondida: em geral o mercado já olhou o lote e recusou. Procure o motivo no edital e na matrícula antes de qualquer coisa.` });
   if (i.modalidade === "leilao_sfi" && i.debitos_por_conta_comprador !== false)
     s.push({ nivel: "alerta", texto: "Leilão SFI: débitos de condomínio costumam ser 100% do comprador, sem teto. Conferir matrícula por execução condominial." });
   if (i.modalidade === "licitacao_aberta") s.push({ nivel: "info", texto: "Licitação Aberta: Caixa costuma limitar condomínio a 10% da avaliação." });
