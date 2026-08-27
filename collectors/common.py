@@ -56,7 +56,15 @@ def flags(texto):
         r"|\b\d{1,2}([.,]\d+)? ?% (da |de |do |dos )?(imovel|fracao|parte ideal|direitos|propriedade|nua propriedade)"
         r"|\b(50|33|25|20)% ?\(", t))
     return {
-        "direitos_fiduciante": bool(re.search(r"direitos? (do |de |da )?(devedor |mutuario )?fiduciante|cessao (de |dos )?direitos", t)),
+        # Venda de DIREITOS (aquisitivos, do compromissário, do fiduciante) em vez da propriedade.
+        "direitos_fiduciante": bool(re.search(
+            r"direitos? (do |de |da |dos )?(devedor |mutuario |parte executada )?fiduciante"
+            r"|direitos? aquisitivos?[^.;]{0,120}fiducia"
+            r"|devedora? fiduciante"
+            r"|cessao (de |dos )?direitos fiduciari", t)),
+        "direitos_aquisitivos": bool(re.search(
+            r"direitos? aquisitivos?|direitos? (sobre|do|da) (o )?imovel|direitos? (do |da )?compromissari"
+            r"|direitos? possessorios|cessao (de |dos )?direitos", t)),
         "fracao_ideal": fracao,
         # Enfiteuse: vende-se só o domínio útil (foro anual + laudêmio de 5% na revenda + anuência da SPU).
         "dominio_util": bool(re.search(r"dominio util|enfiteuse|enfiteutico|aforamento|terreno de marinha", t)),

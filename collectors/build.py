@@ -51,6 +51,7 @@ def main():
             it["direitos_fiduciante"] = bool(it.get("direitos_fiduciante")) or fl["direitos_fiduciante"]
             it["fracao_ideal"] = fl["fracao_ideal"]
             it["dominio_util"] = fl["dominio_util"]
+            it["direitos_aquisitivos"] = fl["direitos_aquisitivos"]
             it["massa_falida"] = fl["massa_falida"]
             k = key(it)
             if k in seen:
