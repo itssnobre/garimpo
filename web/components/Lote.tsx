@@ -250,22 +250,38 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
 
         {/* Lateral */}
         <aside className="lateral">
-          <div className={`decisao ${classe}`}>
-            <div className="d-topo"><span className="d-big">{veto ? "VETO" : classe === "go" ? "GO" : classe === "atencao" ? "ATENÇÃO" : "NO-GO"}</span><span className="d-score num">{av.score}<small>/100</small></span></div>
-            <p>{veto ? "Veto pelas suas regras. Não avançar." : `Margem líquida de ${pct(res.margem)} sobre ${brl(res.total)} de capital, lucro estimado de ${brl(res.lucro)}.`}</p>
-            <div className="d-metricas">
+          <div className={`veredicto ${classe}`}>
+            <div className="v-cab">
+              <span className="v-pill">{veto ? "VETO" : classe === "go" ? "GO" : classe === "atencao" ? "ATENÇÃO" : "NO-GO"}</span>
+              <span className="v-score">Score <b className="num">{av.score}</b><small>/100</small></span>
+            </div>
+            <div className="v-barra" aria-hidden><i style={{ width: `${av.score}%` }} /></div>
+            {veto ? <p className="v-nota">Este lote é vetado pelas suas regras. Não avance.</p> : (<>
+              <div className="v-heroi">
+                <span>Margem líquida</span>
+                <b className="num">{pct(res.margem)}</b>
+              </div>
+              <p className="v-nota"><b className="num">{brl(res.lucro)}</b> de lucro sobre <b className="num">{brl(res.total)}</b> de capital empregado.</p>
+            </>)}
+            <div className="v-metricas">
               <div><span>Lance mínimo</span><b className="num">{brlCurto(i.lance_minimo)}</b></div>
               <div><span>Avaliação</span><b className="num">{brlCurto(i.avaliacao)}</b></div>
               <div><span>Deságio</span><b className="num">{pct(i.desagio_pct)}</b></div>
             </div>
           </div>
 
-          <div className="ficha-cart">
-            <div className="cab"><span>Seu teto de lance</span></div>
-            <div style={{ padding: "16px 16px 6px" }}>
-              <div className="teto-lateral"><span>{alvoPct} de margem</span><b className="num">{brl(lanceAlvo)}</b></div>
+          <div className="cart">
+            <div className="cart-cab"><span>Seu teto de lance</span></div>
+            <div className="cart-corpo">
+              <div className="teto-h">
+                <span>Para {alvoPct} de margem</span>
+                <b className="num">{brl(lanceAlvo)}</b>
+              </div>
               <Regua grande minimo={i.lance_minimo} avaliacao={i.avaliacao} lance={lance} max25={res.lanceMax25} max30={res.lanceMax30} max35={res.lanceMax35} />
-              <div className="legenda-regua"><span><i style={{ background: "var(--ok)" }} />margem ≥ 35%</span><span><i style={{ background: "var(--warn)" }} />25 a 35%</span><span><i style={{ background: "var(--line)" }} />abaixo de 25%</span></div>
+              <div className="teto-alt">
+                {([[0.25, res.lanceMax25], [0.30, res.lanceMax30], [0.35, res.lanceMax35]] as const).filter(([m]) => Math.abs(m - regras.margemAlvo) > 0.001).map(([m, v]) => (
+                  <div key={m}><span>{pct(m)} de margem</span><b className="num" title={brl(v)}>{brlCurto(v)}</b></div>))}
+              </div>
             </div>
             {(() => {
               const p1 = ex.lance_1a_praca ?? (i.praca === 1 ? i.lance_minimo : undefined);
@@ -274,9 +290,11 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               const d2 = ex.datas_leilao?.["2"] ?? (i.praca !== 1 ? (i.data_leilao ?? i.data_fim) : undefined);
               const cols = [p1 !== undefined && { t: "1ª praça", v: p1, d: d1, on: i.praca === 1 }, p2 !== undefined && { t: i.praca ? "2ª praça" : "Lance mínimo", v: p2, d: d2, on: i.praca !== 1 }].filter(Boolean) as { t: string; v: number; d?: string; on: boolean }[];
               if (!cols.length) return null;
-              return <div className="pracas" style={cols.length === 1 ? { gridTemplateColumns: "1fr" } : undefined}>
-                {cols.map((c) => <div key={c.t} className={c.on ? "ativa" : ""}><span>{c.t}</span><b title={brl(c.v)}>{brlCurto(c.v)}</b><small>{dataBR(c.d, { day: "2-digit", month: "short", year: "numeric" }) ?? "sem data na fonte"}</small></div>)}
-              </div>;
+              return <div className="cart-bloco">{cols.map((c) => (
+                <div className={`praca-lin ${c.on ? "on" : ""}`} key={c.t}>
+                  <span className="p-t">{c.t}{c.on && <i>vigente</i>}</span>
+                  <span className="p-v"><b className="num" title={brl(c.v)}>{brlCurto(c.v)}</b><small>{dataBR(c.d, { day: "2-digit", month: "short", year: "numeric" }) ?? "sem data"}</small></span>
+                </div>))}</div>;
             })()}
             {linhas.length > 0 && <dl className="linhas">{linhas.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
             <div className="cart-pe mono">{i.id} · coletado {dataBR(i.coletado_em, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
