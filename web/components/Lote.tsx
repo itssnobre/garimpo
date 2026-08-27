@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Imovel } from "@/lib/types";
 import { avaliarPadrao, REGRAS_BASE, brl, pct, calcular, custosPara, CUSTOS_PADRAO, FONTE_LABEL, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
+import { brlCurto } from "@/lib/fmt";
 import { usePadroes } from "@/lib/usePadroes";
 import Regua from "./Regua";
 import { urgencia, mapsUrl } from "@/lib/util";
@@ -81,12 +82,12 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
     <>
       <header className="lote-cab">
         <div>
-          <div className="volta" style={{ color: "var(--champ2)" }}>{FONTE_LABEL[i.fonte] ?? i.fonte} · {MODALIDADE_LABEL[i.modalidade]}{i.praca ? ` · ${i.praca}ª praça` : ""}{av.regiao !== "Outra" ? ` · região ${av.regiao}` : ""}</div>
+          <div className="volta" style={{ color: "var(--accent-ink)" }}>{FONTE_LABEL[i.fonte] ?? i.fonte} · {MODALIDADE_LABEL[i.modalidade]}{i.praca ? ` · ${i.praca}ª praça` : ""}{av.regiao !== "Outra" ? ` · região ${av.regiao}` : ""}</div>
           <h1>{i.titulo}</h1>
           <div className="end">{[i.endereco, i.bairro, `${i.cidade}/${i.uf}`].filter(Boolean).join(" · ")}</div>
         </div>
         <div className="acoes">
-          <button className={`btn sec ${fav ? "" : ""}`} onClick={() => toggle(i.id)} aria-pressed={fav} style={fav ? { color: "var(--champ2)", borderColor: "var(--champ)" } : undefined}><IEstrela cheia={fav} /> {fav ? "Favorito" : "Guardar"}</button>
+          <button className={`btn sec ${fav ? "" : ""}`} onClick={() => toggle(i.id)} aria-pressed={fav} style={fav ? { color: "var(--accent-ink)", borderColor: "var(--accent)" } : undefined}><IEstrela cheia={fav} /> {fav ? "Favorito" : "Guardar"}</button>
           <a className="btn" href={i.url} target="_blank" rel="noreferrer">Abrir na fonte ↗</a>
           {i.edital_url && <a className="btn sec" href={i.edital_url} target="_blank" rel="noreferrer">Edital PDF</a>}
           {i.matricula_url && <a className="btn ouro" href={i.matricula_url} target="_blank" rel="noreferrer">Matrícula PDF</a>}
@@ -99,7 +100,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             {fotos.length === 0 ? <div className="semfoto">{i.tipo} · a fonte não publicou foto</div> : (
               <>
                 <div className="principal"><img src={fotos[foto]} alt={i.titulo} referrerPolicy="no-referrer" onClick={() => setZoom(true)} /></div>
-                {fotos.length > 1 && <div className="thumbs">{fotos.slice(0, 8).map((f, k) => <img key={f} src={f} alt="" referrerPolicy="no-referrer" onClick={() => setFoto(k)} style={{ outline: k === foto ? "2px solid var(--champ)" : "none" }} />)}</div>}
+                {fotos.length > 1 && <div className="thumbs">{fotos.slice(0, 8).map((f, k) => <img key={f} src={f} alt="" referrerPolicy="no-referrer" onClick={() => setFoto(k)} style={{ outline: k === foto ? "2px solid var(--accent)" : "none" }} />)}</div>}
               </>)}
           </div>
           {zoom && fotos[foto] && <div className="lightbox" onClick={() => setZoom(false)}><img src={fotos[foto]} alt="" referrerPolicy="no-referrer" /></div>}
@@ -205,8 +206,8 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               <div className="legenda-regua"><span><i style={{ background: "var(--ok)" }} />margem ≥ 35%</span><span><i style={{ background: "var(--warn)" }} />25 a 35%</span><span><i style={{ background: "var(--line)" }} />abaixo de 25%</span><span><i style={{ background: "var(--ink)" }} />seu lance</span></div>
             </div>
             <div className="pracas" style={{ paddingTop: 14 }}>
-              <div className={i.praca === 1 ? "ativa" : ""}><span>1ª praça</span><b>{ex.lance_1a_praca ? brl(ex.lance_1a_praca) : i.praca === 1 ? brl(i.lance_minimo) : "—"}</b><small>{data(ex.datas_leilao?.["1"]) ?? (i.praca === 1 ? data(i.data_leilao) : "") ?? ""}</small></div>
-              <div className={i.praca === 2 || !i.praca ? "ativa" : ""}><span>{i.praca ? "2ª praça" : "Lance mínimo"}</span><b>{ex.lance_2a_praca ? brl(ex.lance_2a_praca) : brl(i.lance_minimo)}</b><small>{data(ex.datas_leilao?.["2"]) ?? data(i.data_leilao) ?? data(i.data_fim) ?? "sem data na fonte"}</small></div>
+              <div className={i.praca === 1 ? "ativa" : ""}><span>1ª praça</span><b title={ex.lance_1a_praca ? brl(ex.lance_1a_praca) : undefined}>{ex.lance_1a_praca ? brlCurto(ex.lance_1a_praca) : i.praca === 1 ? brlCurto(i.lance_minimo) : "—"}</b><small>{data(ex.datas_leilao?.["1"]) ?? (i.praca === 1 ? data(i.data_leilao) : "") ?? ""}</small></div>
+              <div className={i.praca === 2 || !i.praca ? "ativa" : ""}><span>{i.praca ? "2ª praça" : "Lance mínimo"}</span><b title={brl(ex.lance_2a_praca ?? i.lance_minimo)}>{brlCurto(ex.lance_2a_praca ?? i.lance_minimo)}</b><small>{data(ex.datas_leilao?.["2"]) ?? data(i.data_leilao) ?? data(i.data_fim) ?? "sem data na fonte"}</small></div>
             </div>
             <dl className="linhas">
               <div><dt>Avaliação</dt><dd><span className="num">{brl(i.avaliacao)}</span> <span style={{ color: "var(--mute)" }}>deságio <span className="num">{pct(i.desagio_pct)}</span></span></dd></div>

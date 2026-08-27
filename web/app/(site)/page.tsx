@@ -33,7 +33,7 @@ export default function Landing() {
               <div className="lin"><span>Custos totais de arremate</span><b>{brl(ex.a.res.total - ex.i.lance_minimo)}</b></div>
               <div className="lin"><span>Lucro líquido estimado</span><b style={{ color: "var(--ok)" }}>{brl(ex.a.res.lucro)}</b></div>
               <div className="lin"><span>Margem sobre capital</span><b>{pct(ex.a.res.margem)}</b></div>
-              <div className="lin" style={{ border: 0 }}><span>Lance máximo para 30%</span><b style={{ color: "var(--champ2)" }}>{brl(ex.a.res.lanceMax30)}</b></div>
+              <div className="lin" style={{ border: 0 }}><span>Lance máximo para 30%</span><b style={{ color: "var(--accent-ink)" }}>{brl(ex.a.res.lanceMax30)}</b></div>
             </div>)}
         </div>
       </section>
@@ -41,9 +41,9 @@ export default function Landing() {
       <section className="land-sec" id="como-funciona">
         <div className="sec-cab"><p className="eyebrow">Como funciona</p><h2>Três passos entre o catálogo e a escritura.</h2><p>O leilão premia quem chega com a conta pronta e a matrícula lida. Fazemos as duas coisas antes de você levantar a mão.</p></div>
         <div className="passos">
-          <div className="passo"><div className="num">PASSO 1</div><h3>Garimpo</h3><p>Coletamos todo dia os lotes de Caixa, bancos e leiloeiros judiciais e extrajudiciais de SP. Cada um recebe um score que combina deságio, margem líquida real, região e sinais de risco. Vetos automáticos tiram da frente o que não se compra: direitos de fiduciante, fração ideal.</p></div>
-          <div className="passo"><div className="num">PASSO 2</div><h3>Diligência</h3><p>Lemos matrícula e edital averbação por averbação, com analista e IA: ônus, penhoras, execução condominial, intimação por edital, origem do imóvel. Levantamos débitos reais com síndico e prefeitura e conferimos o valor de venda no entorno.</p></div>
-          <div className="passo"><div className="num">PASSO 3</div><h3>Arremate</h3><p>Definimos juntos o lance máximo que respeita sua margem, cuidamos do cadastro no leiloeiro e acompanhamos o pregão. Depois, orientamos ITBI, registro e desocupação até o imóvel estar no seu nome.</p></div>
+          <div className="passo"><div className="num">1</div><h3>Garimpo</h3><p>Coletamos todo dia os lotes de Caixa, bancos e leiloeiros judiciais e extrajudiciais de SP. Cada um recebe um score que combina deságio, margem líquida real, região e sinais de risco. Vetos automáticos tiram da frente o que não se compra: direitos de fiduciante, fração ideal.</p></div>
+          <div className="passo"><div className="num">2</div><h3>Diligência</h3><p>Lemos matrícula e edital averbação por averbação, com analista e IA: ônus, penhoras, execução condominial, intimação por edital, origem do imóvel. Levantamos débitos reais com síndico e prefeitura e conferimos o valor de venda no entorno.</p></div>
+          <div className="passo"><div className="num">3</div><h3>Arremate</h3><p>Definimos juntos o lance máximo que respeita sua margem, cuidamos do cadastro no leiloeiro e acompanhamos o pregão. Depois, orientamos ITBI, registro e desocupação até o imóvel estar no seu nome.</p></div>
         </div>
       </section>
 

@@ -42,14 +42,14 @@ export default function EditorPadrao({ inicial, onSalvar, onCancelar }: { inicia
           <div className="painel" style={{ marginTop: 14 }}>
             <h2>2 · Onde e o quê</h2>
             <p style={{ color: "var(--mute)", fontSize: 13.5, margin: "0 0 8px" }}>Nada marcado = Brasil inteiro, todos os tipos, todas as modalidades.</p>
-            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--champ2)", margin: "10px 0 6px" }}>Estados</h3>
+            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-ink)", margin: "10px 0 6px" }}>Estados</h3>
             <div className="chips" style={{ flexWrap: "wrap" }}>{UFS.map((u) => <button key={u} className={`chip ${p.ufs.includes(u) ? "on" : ""}`} onClick={() => toggle("ufs", u)}>{u}</button>)}</div>
-            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--champ2)", margin: "14px 0 6px" }}>Cidades</h3>
+            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-ink)", margin: "14px 0 6px" }}>Cidades</h3>
             <div className="par"><label className="campo"><span>Adicionar cidade</span><input list="cidades-lista" value={cidadeTxt} onChange={(e) => setCidadeTxt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && cidadeTxt.trim()) { toggle("cidades", cidadeTxt.trim()); setCidadeTxt(""); } }} placeholder="Digite e Enter" /><datalist id="cidades-lista">{cidades.slice(0, 400).map((c) => <option key={c} value={c} />)}</datalist></label></div>
             <div className="chips" style={{ flexWrap: "wrap", marginTop: 8 }}>{p.cidades.map((c) => <button key={c} className="chip on" onClick={() => toggle("cidades", c)}>{c} ×</button>)}{p.cidades.length === 0 && <span style={{ fontSize: 13, color: "var(--mute)" }}>Nenhuma cidade específica.</span>}</div>
-            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--champ2)", margin: "14px 0 6px" }}>Tipos</h3>
+            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-ink)", margin: "14px 0 6px" }}>Tipos</h3>
             <div className="chips" style={{ flexWrap: "wrap" }}>{TIPOS.map((t) => <button key={t} className={`chip ${p.tipos.includes(t) ? "on" : ""}`} onClick={() => toggle("tipos", t)}>{t}</button>)}</div>
-            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--champ2)", margin: "14px 0 6px" }}>Modalidades</h3>
+            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-ink)", margin: "14px 0 6px" }}>Modalidades</h3>
             <div className="chips" style={{ flexWrap: "wrap" }}>{Object.entries(MODALIDADE_LABEL).map(([k, v]) => <button key={k} className={`chip ${p.modalidades.includes(k) ? "on" : ""}`} onClick={() => toggle("modalidades", k)}>{v}</button>)}</div>
             <div className="par" style={{ marginTop: 14 }}>
               <label className="campo"><span>Ocupação</span><select value={p.ocupacao} onChange={(e) => set("ocupacao", e.target.value)}><option value="qualquer">Aceito ocupado</option><option value="desocupado">Só desocupado confirmado</option></select></label>
@@ -61,7 +61,7 @@ export default function EditorPadrao({ inicial, onSalvar, onCancelar }: { inicia
             <label className="toggle"><input type="checkbox" checked={p.vetoFiduciante} onChange={(e) => set("vetoFiduciante", e.target.checked)} />Vetar direitos de devedor fiduciante (dívida embutida)</label>
             <label className="toggle"><input type="checkbox" checked={p.vetoFracao} onChange={(e) => set("vetoFracao", e.target.checked)} />Vetar fração ideal (copropriedade)</label>
             <label className="toggle"><input type="checkbox" checked={p.vetoEdital} onChange={(e) => set("vetoEdital", e.target.checked)} />Tratar intimação por edital como veto (quando a fonte informar)</label>
-            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--champ2)", margin: "14px 0 8px" }}>Seus custos</h3>
+            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-ink)", margin: "14px 0 8px" }}>Seus custos</h3>
             <div className="custos">{CUSTOS.map(([k, l]) => <label className="campo" key={k}><span>{l}</span><input className="mono" type="number" value={p.custos[k]} onChange={(e) => set("custos", { ...p.custos, [k]: +e.target.value || 0 })} /></label>)}</div>
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}><button className="btn ouro" onClick={() => onSalvar(p)}>Salvar e usar este padrão</button>{onCancelar && <button className="btn sec" onClick={onCancelar}>Cancelar</button>}<button className="btn sec" onClick={() => setPasso(0)}>Trocar preset</button></div>
