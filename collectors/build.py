@@ -3,7 +3,7 @@
 Uso: python3 collectors/build.py            (só junta o que já existe em data/raw)
      python3 collectors/build.py --collect  (roda todos os coletores antes)
 """
-import glob, importlib, json, os, sys, traceback, datetime as dt
+import glob, importlib, json, os, re, sys, traceback, datetime as dt
 from common import ROOT, RAW, now_iso, strip_accents, flags
 
 FONTES = ["caixa", "zuk", "megaleiloes", "superbid", "sodresantoro", "leilaoimovel", "frazao", "biasi", "lancejudicial",
@@ -52,6 +52,7 @@ def main():
             it["fracao_ideal"] = fl["fracao_ideal"]
             it["dominio_util"] = fl["dominio_util"]
             it["direitos_aquisitivos"] = fl["direitos_aquisitivos"]
+            it["onus_averbado"] = fl["onus_averbado"] or bool(re.search(r"(gravame|penhora|indisponibilidade).{0,60}averbad|regulariza\u00e7\u00e3o por conta do adquirente", (it.get("debitos_regra") or ""), re.I))
             it["massa_falida"] = fl["massa_falida"]
             k = key(it)
             if k in seen:

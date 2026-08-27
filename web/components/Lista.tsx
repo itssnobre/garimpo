@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Imovel } from "@/lib/types";
 import { avaliarPadrao, REGRAS_BASE, FONTE_LABEL, MODALIDADE_LABEL } from "@/lib/motor";
+import { brl } from "@/lib/fmt";
 import { usePadroes } from "@/lib/usePadroes";
 import Card from "./Card";
+import CampoMoeda from "./CampoMoeda";
 import { useFavoritos } from "@/lib/favoritos";
 
 type Ordem = "score" | "margem" | "desagio" | "lance" | "data";
@@ -22,6 +24,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
   const regras = ativo ?? REGRAS_BASE;
   const [busca, setBusca] = useState(""); const [cidade, setCidade] = useState(""); const [tipo, setTipo] = useState(""); const [fonte, setFonte] = useState(""); const [modalidade, setModalidade] = useState("");
   const [soPassam, setSoPassam] = useState(true); const [ocultarVeto, setOcultarVeto] = useState(true); const [soFoto, setSoFoto] = useState(false); const [soFavs, setSoFavs] = useState(false);
+  const [precoMin, setPrecoMin] = useState(0); const [precoMax, setPrecoMax] = useState(0);
   const [ordem, setOrdem] = useState<Ordem>("score"); const [limite, setLimite] = useState(48); const [painel, setPainel] = useState(false);
   const { favs, toggle } = useFavoritos();
 
@@ -33,15 +36,17 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
     const q = busca.trim().toLowerCase();
     const l = avaliados.filter(({ i, a }) =>
       (!cidade || i.cidade === cidade) && (!tipo || i.tipo === tipo) && (!fonte || i.fonte === fonte) && (!modalidade || i.modalidade === modalidade) &&
+      (precoMin <= 0 || i.lance_minimo >= precoMin) && (precoMax <= 0 || i.lance_minimo <= precoMax) &&
       (!ocultarVeto || !(i.direitos_fiduciante || i.fracao_ideal)) && (!soFoto || (i.fotos && i.fotos.length > 0)) && (!soFavs || favs.has(i.id)) &&
       (!soPassam || a.passa) &&
       (!q || `${i.titulo} ${i.endereco ?? ""} ${i.bairro ?? ""} ${i.cidade} ${i.uf} ${i.matricula ?? ""}`.toLowerCase().includes(q)));
     const k: Record<Ordem, (x: (typeof l)[number]) => number | string> = { score: (x) => -x.a.score, margem: (x) => -x.a.res.margem, desagio: (x) => -x.i.desagio_pct, lance: (x) => x.i.lance_minimo, data: (x) => x.i.data_leilao ?? "9999" };
     return l.sort((x, y) => { const a = k[ordem](x), b = k[ordem](y); return a < b ? -1 : a > b ? 1 : 0; });
-  }, [avaliados, cidade, tipo, fonte, modalidade, busca, soPassam, ocultarVeto, soFoto, soFavs, favs, ordem]);
+  }, [avaliados, cidade, tipo, fonte, modalidade, busca, soPassam, ocultarVeto, soFoto, soFavs, favs, ordem, precoMin, precoMax]);
 
   const pills = [
     soPassam && { k: "padrao", txt: ativo ? `Padrão: ${ativo.nome}` : "Padrão neutro", off: () => setSoPassam(false), destaque: true },
+    (precoMin > 0 || precoMax > 0) && { k: "preco", txt: precoMin > 0 && precoMax > 0 ? `Lance ${brl(precoMin)} a ${brl(precoMax)}` : precoMin > 0 ? `Lance a partir de ${brl(precoMin)}` : `Lance até ${brl(precoMax)}`, off: () => { setPrecoMin(0); setPrecoMax(0); } },
     cidade && { k: "cidade", txt: cidade, off: () => setCidade("") },
     tipo && { k: "tipo", txt: tipo, off: () => setTipo("") },
     modalidade && { k: "mod", txt: MODALIDADE_LABEL[modalidade], off: () => setModalidade("") },
@@ -53,7 +58,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
   ].filter(Boolean) as { k: string; txt: string; off: () => void; destaque?: boolean }[];
   const nFiltros = pills.filter((p) => p.k !== "padrao" && p.k !== "busca").length;
   useEffect(() => { document.body.classList.toggle("travado", painel); return () => document.body.classList.remove("travado"); }, [painel]);
-  const limpar = () => { setCidade(""); setTipo(""); setFonte(""); setModalidade(""); setBusca(""); setSoFoto(false); setSoFavs(false); setOcultarVeto(true); setSoPassam(true); };
+  const limpar = () => { setPrecoMin(0); setPrecoMax(0); setCidade(""); setTipo(""); setFonte(""); setModalidade(""); setBusca(""); setSoFoto(false); setSoFavs(false); setOcultarVeto(true); setSoPassam(true); };
 
   return (
     <>
@@ -79,6 +84,17 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
                   <label className="toggle"><input type="checkbox" checked={soPassam} onChange={(e) => setSoPassam(e.target.checked)} />Mostrar só o que passa {ativo ? `no padrão "${ativo.nome}"` : "no padrão neutro"}</label>
                   {padroes.length > 1 && <select className="fseletor" style={{ marginTop: 8 }} value={ativo?.id ?? ""} onChange={(e) => ativar(e.target.value)} aria-label="Padrão ativo">{padroes.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select>}
                   <p style={{ margin: "10px 0 0", fontSize: 13 }}><Link href="/app/padrao" style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{ativo ? "Ajustar minhas regras →" : "Criar meu padrão →"}</Link></p>
+                </div>
+                <div className="fgrupo">
+                  <h4>Lance mínimo do leilão</h4>
+                  <div className="par">
+                    <div className="campo"><span>De (0 = sem mínimo)</span><CampoMoeda valor={precoMin} onChange={setPrecoMin} /></div>
+                    <div className="campo"><span>Até (0 = sem teto)</span><CampoMoeda valor={precoMax} onChange={setPrecoMax} /></div>
+                  </div>
+                  <div className="fopcoes" style={{ marginTop: 10 }}>
+                    {([[0, 150000, "até 150 mil"], [150000, 300000, "150 a 300 mil"], [300000, 600000, "300 a 600 mil"], [600000, 0, "acima de 600 mil"]] as const).map(([a, b2, l]) => (
+                      <button key={l} className={`fopcao ${precoMin === a && precoMax === b2 ? "on" : ""}`} onClick={() => { setPrecoMin(precoMin === a && precoMax === b2 ? 0 : a); setPrecoMax(precoMin === a && precoMax === b2 ? 0 : b2); }}>{l}</button>))}
+                  </div>
                 </div>
                 <div className="fgrupo">
                   <h4>Localização</h4>

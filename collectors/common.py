@@ -68,6 +68,11 @@ def flags(texto):
         "fracao_ideal": fracao,
         # Enfiteuse: vende-se só o domínio útil (foro anual + laudêmio de 5% na revenda + anuência da SPU).
         "dominio_util": bool(re.search(r"dominio util|enfiteuse|enfiteutico|aforamento|terreno de marinha", t)),
+        # Ônus ainda averbado que o comprador terá de cancelar por conta própria.
+        "onus_averbado": bool(re.search(
+            r"(gravame|penhora|indisponibilidade)[^.;]{0,60}averbad"
+            r"|regularizacao por conta do adquirente"
+            r"|onus[^.;]{0,40}por conta do (adquirente|comprador)", t)),
         # Massa falida: venda pelo juízo falimentar (costuma ser livre de ônus, mas o rito é longo).
         "massa_falida": bool(re.search(r"massa falida|falencia|juizo falimentar|recuperacao judicial", t)),
     }
