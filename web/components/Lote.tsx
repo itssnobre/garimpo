@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Imovel } from "@/lib/types";
-import { avaliar, brl, pct, calcular, custosPara, CUSTOS_PADRAO, FONTE_LABEL, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
+import { avaliarPadrao, REGRAS_BASE, brl, pct, calcular, custosPara, CUSTOS_PADRAO, FONTE_LABEL, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
+import { usePadroes } from "@/lib/usePadroes";
 import Regua from "./Regua";
 import { urgencia, mapsUrl } from "@/lib/util";
 import { useFavoritos } from "@/lib/favoritos";
@@ -38,7 +39,8 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
   useEffect(() => { try { localStorage.setItem(chave, JSON.stringify({ custos, lance, venda, checks, ia })); } catch {} }, [chave, custos, lance, venda, checks, ia]);
 
   const res = useMemo(() => calcular(venda, lance, custos), [venda, lance, custos]);
-  const av = useMemo(() => avaliar(i), [i]);
+  const { ativo } = usePadroes();
+  const av = useMemo(() => avaliarPadrao(i, ativo ?? REGRAS_BASE), [i, ativo]);
   const veto = av.sinais.some((s) => s.nivel === "veto") || ia?.risco_geral === "veto";
   const classe = veto ? "nogo" : res.lucro <= 0 || res.margem < 0.25 ? "nogo" : res.margem < 0.30 ? "atencao" : "go";
   const feitos = checks.filter(Boolean).length;

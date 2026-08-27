@@ -7,6 +7,7 @@ import { MARCA } from "@/lib/marca";
 
 const P = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 const I = {
+  padrao: <svg {...P}><path d="M4 6h16M4 12h10M4 18h6" /><circle cx="18" cy="12" r="2" /><circle cx="14" cy="18" r="2" /></svg>,
   buscar: <svg {...P}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>,
   sugeridos: <svg {...P}><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z" /><path d="M19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z" /></svg>,
   sage: <svg {...P}><path d="M4 12a8 8 0 1 1 4.2 7L4 20l1-4.2A8 8 0 0 1 4 12z" /><path d="M9 11h6M9 14h4" /></svg>,
@@ -20,7 +21,7 @@ const I = {
 };
 const GRUPOS: { titulo?: string; itens: { href: string; label: string; icone: keyof typeof I; ia?: boolean }[] }[] = [
   { itens: [{ href: "/app/buscar", label: "Buscar", icone: "buscar" }, { href: "/app/sugeridos", label: "Sugeridos", icone: "sugeridos" }, { href: "/app/sage", label: "Sage", icone: "sage", ia: true }, { href: "/app/pipeline", label: "Pipeline", icone: "pipeline" }, { href: "/app/carteira", label: "Carteira", icone: "carteira" }] },
-  { itens: [{ href: "/app/calculadora", label: "Calculadora", icone: "calculadora" }, { href: "/app/favoritos", label: "Favoritos", icone: "favoritos" }, { href: "/app/juridico", label: "Jurídico", icone: "juridico" }, { href: "/app/cobertura", label: "Cobertura", icone: "cobertura" }, { href: "/app/configuracoes", label: "Configurações", icone: "config" }] },
+  { itens: [{ href: "/app/padrao", label: "Meu padrão", icone: "padrao" }, { href: "/app/calculadora", label: "Calculadora", icone: "calculadora" }, { href: "/app/favoritos", label: "Favoritos", icone: "favoritos" }, { href: "/app/juridico", label: "Jurídico", icone: "juridico" }, { href: "/app/cobertura", label: "Cobertura", icone: "cobertura" }, { href: "/app/configuracoes", label: "Configurações", icone: "config" }] },
 ];
 
 export default function Sidebar() {

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import type { Imovel } from "@/lib/types";
 import { pct, FONTE_LABEL, MODALIDADE_LABEL, type Avaliacao } from "@/lib/motor";
-import { brl, brlCurto } from "@/lib/fmt";
+import { brl, brlCurto, matriculaCurta } from "@/lib/fmt";
 import { urgencia } from "@/lib/util";
 import Regua from "./Regua";
 import { IArea, ICama, ICarro, IEstrela, IChave } from "./Icones";
@@ -30,7 +30,7 @@ export default function Card({ i, a, fav, toggle }: { i: Imovel; a: Avaliacao; f
                       {i.quartos ? <li><ICama />{i.quartos} dorm.</li> : null}
                       {i.vagas ? <li><ICarro />{i.vagas} vaga{i.vagas > 1 ? "s" : ""}</li> : null}
                       {i.ocupado !== null && i.ocupado !== undefined ? <li><IChave />{i.ocupado ? "ocupado" : "desocupado"}</li> : null}
-                      {i.matricula ? <li className="mono">matr. {i.matricula}</li> : null}
+                      {i.matricula ? <li className="mono" title={i.matricula}>matr. {matriculaCurta(i.matricula)}</li> : null}
                     </ul>
                     {veto ? <div className="veto-faixa">VETO · {i.direitos_fiduciante ? "direitos de fiduciante" : "fração ideal"}</div>
                       : <Regua minimo={i.lance_minimo} avaliacao={i.avaliacao} max25={a.res.lanceMax25} max30={a.res.lanceMax30} max35={a.res.lanceMax35} />}
