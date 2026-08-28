@@ -1,11 +1,12 @@
-"""Coletor Leilão Imóvel (agregador) para o estado de SP.
+"""Coletor Leilão Imóvel (agregador), Brasil inteiro.
 
 Fonte: https://www.leilaoimovel.com.br
 
 Método (HTML, não há API JSON pública para a listagem):
-- /getAllCities (JSON) devolve todas as cidades com a quantidade de lotes ativos
-  por cidade; filtramos state == "SP" e qty > 0.
-- Listagem por cidade: /leilao-de-imovel/<cidade>-sp?pag=N (19 cards por página).
+- /getAllCities (JSON) devolve todas as cidades do país (5.600) com a quantidade de
+  lotes ativos e o campo state (UF); usamos qty > 0 e state com 2 letras (há um
+  pseudo-estado "NA" que é ignorado). A UF do item vem do state da cidade.
+- Listagem por cidade: /leilao-de-imovel/<cidade>-<uf>?pag=N (19 cards por página).
   O site limita a paginação a 50 páginas (950 lotes) por consulta; para cidades
   maiores (São Paulo tem > 2.000) fatiamos por faixa de preço com
   preco_min/preco_max até cada fatia caber no limite.
@@ -141,7 +142,7 @@ def _modalidade(texto, href=""):
 
 # ---------- cidades ----------
 
-def cities_sp():
+def cities_all():
     txt = fetch(BASE + "/getAllCities")
     if not txt:
         return []
@@ -152,17 +153,18 @@ def cities_sp():
         return []
     out = []
     for c in locs:
-        if c.get("state") != "SP" or not c.get("qty"):
+        uf = (c.get("state") or "").strip().upper()
+        if not re.fullmatch(r"[A-Z]{2}", uf) or uf == "NA" or not c.get("qty"):
             continue
-        name = re.sub(r"/SP.*$", "", c.get("name", "")).strip()
-        out.append({"slug": c["slug"], "nome": name, "qty": int(c["qty"])})
+        name = re.sub(r"/[A-Z]{2}.*$", "", c.get("name", "")).strip()
+        out.append({"slug": c["slug"], "nome": name, "uf": uf, "qty": int(c["qty"])})
     out.sort(key=lambda c: -c["qty"])
     return out
 
 
 # ---------- listagem ----------
 
-def parse_cards(html, cidade_nome):
+def parse_cards(html, cidade_nome, uf):
     soup = BeautifulSoup(html, "html.parser")
     items = []
     for box in soup.select("div.place-box"):
@@ -202,7 +204,7 @@ def parse_cards(html, cidade_nome):
             "titulo": titulo,
             "endereco": endereco,
             "cidade": city(cidade_nome),
-            "uf": "SP",
+            "uf": uf,
             "avaliacao": aval,
             "lance_minimo": lance,
             "modalidade": modal,
@@ -221,7 +223,7 @@ def _count(html):
 _pages_read = 0
 
 
-def list_query(url_base, cidade_nome, expected=None):
+def list_query(url_base, cidade_nome, uf, expected=None):
     """Percorre ?pag=1..N de uma consulta. Devolve (items, total_informado)."""
     global _pages_read
     items, total = [], expected
@@ -236,7 +238,7 @@ def list_query(url_base, cidade_nome, expected=None):
             continue
         if pag == 1:
             total = _count(html) if _count(html) is not None else total
-        cards = parse_cards(html, cidade_nome)
+        cards = parse_cards(html, cidade_nome, uf)
         items.extend(cards)
         if len(cards) < PER_PAGE or (total is not None and len(items) >= total):
             break
@@ -247,7 +249,7 @@ def list_query(url_base, cidade_nome, expected=None):
 def list_city(c):
     url = BASE + c["slug"]
     if c["qty"] <= QUERY_CAP:
-        items, _ = list_query(url, c["nome"], c["qty"])
+        items, _ = list_query(url, c["nome"], c["uf"], c["qty"])
         return items
     # cidade acima do limite: fatia por faixa de preço (recursivo)
     print("[leilaoimovel] %s tem %d lotes, fatiando por preço" % (c["nome"], c["qty"]))
@@ -267,11 +269,11 @@ def list_city(c):
             return
         n = _count(html) or 0
         if n <= QUERY_CAP or hi - lo <= 1000:
-            first = parse_cards(html, c["nome"])
+            first = parse_cards(html, c["nome"], c["uf"])
             add(first)
             if len(first) >= PER_PAGE and n > PER_PAGE:
                 time.sleep(PAGE_SLEEP)
-                rest, _ = list_query(q, c["nome"], n)
+                rest, _ = list_query(q, c["nome"], c["uf"], n)
                 add(rest)
             return
         mid = (lo + hi) // 2
@@ -467,12 +469,12 @@ def finalize(item):
 
 
 def _listar():
-    cidades = cities_sp()
+    cidades = cities_all()
     if not cidades:
         print("[leilaoimovel] nenhuma cidade (bloqueio ou mudança no site)")
         return []
     total_prev = sum(c["qty"] for c in cidades)
-    print("[leilaoimovel] %d cidades em SP, %d lotes previstos" % (len(cidades), total_prev))
+    print("[leilaoimovel] %d cidades (Brasil), %d lotes previstos" % (len(cidades), total_prev))
     items, seen = [], set()
     for i, c in enumerate(cidades, 1):
         if LIMIT_PAGES and _pages_read >= LIMIT_PAGES:
@@ -490,7 +492,7 @@ def _listar():
             items.append(it)
             novos += 1
         if novos != c["qty"]:
-            print("[leilaoimovel] %3d/%d %s: %d/%d" % (i, len(cidades), c["nome"], novos, c["qty"]))
+            print("[leilaoimovel] %3d/%d %s/%s: %d/%d" % (i, len(cidades), c["nome"], c["uf"], novos, c["qty"]))
         time.sleep(PAGE_SLEEP)
     print("[leilaoimovel] listagem: %d lotes" % len(items))
     return items

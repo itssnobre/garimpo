@@ -1,11 +1,12 @@
-"""Coletor Frazão Leilões (https://www.frazaoleiloes.com.br), imóveis em SP.
+"""Coletor Frazão Leilões (https://www.frazaoleiloes.com.br), imóveis no Brasil inteiro.
 
 Método (site ASP.NET MVC, sem API JSON pública):
-  1. Listagem: GET /Sale/SearchLotResult?uf=SP&loteAtivo=true&start=N&limit=20&page=P
+  1. Listagem: GET /Sale/SearchLotResult?uf=UF&loteAtivo=true&start=N&limit=20&page=P (iterando as 27 UFs)
      (mesmo endpoint que o JS SearchLotResult.min.js chama via ajax). Retorna um
      fragmento HTML com os cards e o atributo total="N" para paginar. Cada card
      traz id do lote, url, tipo, endereço, área útil, datas de 1º/2º leilão e
-     valores. O filtro uf=SP já retorna só imóveis (casa/apto/terreno/comercial).
+     valores. O filtro uf=XX já retorna só imóveis (casa/apto/terreno/comercial).
+     A UF real de cada lote sai do h2.lot-subtitle da página de detalhe.
   2. Detalhe: GET /lote/<id>-<slug> (HTML). Traz descrição, status, ocupação,
      endereço completo, fotos (carousel-photos), processo (judicial), e para
      lotes Santander um bloco "Valor Avaliado".
@@ -25,6 +26,7 @@ from common import session, money, city, tipo, desagio, flags, now_iso, save_raw
 BASE = "https://www.frazaoleiloes.com.br"
 LIST = BASE + "/Sale/SearchLotResult"
 PAGE = 20
+UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"]
 SKIP_STATUS = ("ENCERRADO", "RETIRADO", "CANCELADO", "SUSPENSO")
 
 S = session()
@@ -110,27 +112,37 @@ def parse_card(card):
     return item
 
 
-def list_lots():
+def list_uf(uf):
     out, start, total = [], 0, None
     while True:
-        params = {"uf": "SP", "start": start, "limit": PAGE, "page": start // PAGE + 1,
+        params = {"uf": uf, "start": start, "limit": PAGE, "page": start // PAGE + 1,
                   "loteAtivo": "true", "ExibirInternosPrimeiro": "true"}
         h = get(LIST, params)
         if h is None:
-            print(f"[frazao] falha na listagem start={start}"); break
+            print(f"[frazao] falha na listagem {uf} start={start}"); break
         m = re.search(r'total="(\d+)"', h)
         if total is None:
             total = int(m.group(1)) if m else 0
-            print(f"[frazao] total na fonte (SP, ativos): {total}")
+            print(f"[frazao] total na fonte ({uf}, ativos): {total}")
         soup = BeautifulSoup(h, "html.parser")
         cards = soup.select("#card-lote, [id='card-lote']")
         if not cards: break
         for c in cards:
             it = parse_card(c)
-            if it: out.append(it)
+            if it:
+                it["uf_lista"] = uf
+                out.append(it)
         start += PAGE
         if start >= total: break
         time.sleep(0.5)
+    return out
+
+
+def list_lots():
+    out = []
+    for uf in UFS:
+        out.extend(list_uf(uf))
+        time.sleep(0.3)
     # dedup
     seen, uniq = set(), []
     for it in out:
@@ -267,7 +279,7 @@ def build(item, d, docs):
     fl = flags(descricao + " " + titulo)
     cidade = d.get("cidade")
     if not cidade:
-        m = re.search(r",\s*([^,]+?)\s*[,/]?\s*SP\s*$", titulo)
+        m = re.search(r",\s*([^,]+?)\s*[,/]?\s*[A-Z]{2}\s*$", titulo)
         cidade = m.group(1) if m else ""
     bairro = d.get("bairro")
     if not bairro:
@@ -286,7 +298,7 @@ def build(item, d, docs):
         "endereco": d.get("endereco") or item.get("endereco") or None,
         "bairro": city(bairro) if bairro else None,
         "cidade": city(cidade),
-        "uf": d.get("uf") or "SP",
+        "uf": d.get("uf") or item.get("uf_lista"),
         "cep": d.get("cep"),
         "area_privativa_m2": d.get("area_privativa_m2") or item.get("area_util"),
         "area_terreno_m2": d.get("area_terreno_m2"),
@@ -323,7 +335,7 @@ def build(item, d, docs):
 
 def collect():
     items = list_lots()
-    print(f"[frazao] {len(items)} cards na listagem SP")
+    print(f"[frazao] {len(items)} cards na listagem (Brasil)")
     out = []
     for i, it in enumerate(items, 1):
         if any(k in it.get("status", "") for k in SKIP_STATUS):
@@ -343,7 +355,7 @@ def collect():
         except Exception as e:
             print(f"[frazao] erro montando lote {it['id_fonte']}: {e}")
             continue
-        if rec["uf"] != "SP" or not rec["lance_minimo"]:
+        if rec["uf"] not in UFS or not rec["lance_minimo"]:
             continue
         out.append(rec)
         if i % 20 == 0: print(f"[frazao] {i}/{len(items)} lotes processados, {len(out)} válidos")

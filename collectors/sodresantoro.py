@@ -1,10 +1,11 @@
-"""Coletor Sodré Santoro (www.sodresantoro.com.br/imoveis), estado de SP.
+"""Coletor Sodré Santoro (www.sodresantoro.com.br/imoveis), Brasil inteiro.
 
 Método: API JSON interna do site (Nuxt server routes, protegidas por WAF Azion):
   1) GET  https://www.sodresantoro.com.br/imoveis/lotes  (só para obter cookies az_asm/az_botm;
      precisa de headers de navegação: Sec-Fetch-*, sec-ch-ua, Upgrade-Insecure-Requests)
   2) POST https://www.sodresantoro.com.br/api/search-lots  (corpo Elasticsearch: query/from/size)
-     filtro: leilão online/aberto, lot_state = "são paulo", segmento imoveis OU lot_is_property
+     filtro: leilão online/aberto, segmento imoveis OU lot_is_property (sem filtro de estado;
+     lot_state vem como nome por extenso em minúsculas, ex. "paraná", convertido em UF via UF_NOME)
      (judiciais ficam no segmento "judiciais" com lot_is_property=true).
   3) GET  https://www.sodresantoro.com.br/api/lots/{auction_id}/{lot_id}  (detalhe: documentos,
      endereço, fotos, dados judiciais, parcelamento).
@@ -16,7 +17,7 @@ URL do lote: https://www.sodresantoro.com.br/leilao/{auction_id}/lote/{lot_id}
 """
 import re, sys, os, time, json, html
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import session, money, city, tipo, desagio, flags, now_iso, save_raw
+from common import session, money, city, tipo, desagio, flags, now_iso, save_raw, strip_accents
 
 SITE = "https://www.sodresantoro.com.br"
 CH_UA = '"Chromium";v="126", "Google Chrome";v="126", "Not-A.Brand";v="99"'
@@ -31,6 +32,18 @@ STATUS = {"bool": {"should": [
     {"bool": {"must": [{"term": {"auction_status": "aberto"}}], "must_not": [{"terms": {"lot_status_id": [5, 7]}}]}},
 ], "minimum_should_match": 1}}
 PAGE = 100
+UF_NOME = {"acre": "AC", "alagoas": "AL", "amapa": "AP", "amazonas": "AM", "bahia": "BA", "ceara": "CE",
+           "distrito federal": "DF", "espirito santo": "ES", "goias": "GO", "maranhao": "MA", "mato grosso": "MT",
+           "mato grosso do sul": "MS", "minas gerais": "MG", "para": "PA", "paraiba": "PB", "parana": "PR",
+           "pernambuco": "PE", "piaui": "PI", "rio de janeiro": "RJ", "rio grande do norte": "RN",
+           "rio grande do sul": "RS", "rondonia": "RO", "roraima": "RR", "santa catarina": "SC", "sao paulo": "SP",
+           "sergipe": "SE", "tocantins": "TO"}
+UFS = set(UF_NOME.values())
+
+def _uf(v):
+    v = strip_accents((v or "").strip()).lower()
+    if v.upper() in UFS: return v.upper()
+    return UF_NOME.get(v)
 
 def _req(s, method, url, tries=3, **kw):
     for i in range(tries):
@@ -48,7 +61,7 @@ def _req(s, method, url, tries=3, **kw):
 
 def _search(s, frm):
     body = {"query": {"bool": {"filter": [
-        STATUS, {"term": {"lot_state": "são paulo"}},
+        STATUS,
         {"bool": {"should": [{"term": {"segment_slug": "imoveis"}}, {"term": {"lot_is_property": True}}], "minimum_should_match": 1}},
     ]}}, "from": frm, "size": PAGE, "sort": [{"lot_id": "asc"}]}
     r = _req(s, "POST", SITE + "/api/search-lots", data=json.dumps(body), headers=XHR)
@@ -87,6 +100,8 @@ def _kv(lst):
 
 def _item(r, det):
     aid, lid = r.get("auction_id"), r.get("lot_id")
+    uf = _uf(r.get("lot_state")) or _uf((det.get("location") or {}).get("state"))
+    if not uf: return {}
     desc = _strip(det.get("description") or r.get("lot_description") or "")
     title = (r.get("lot_title") or det.get("title") or "").strip()
     title = re.sub(r"^\d+\s*-\s*", "", title)
@@ -139,7 +154,7 @@ def _item(r, det):
         "endereco": endereco,
         "bairro": city(opt.get("bairro") or r.get("lot_neighborhood") or "") or None,
         "cidade": city(opt.get("cidade") or r.get("lot_city") or ""),
-        "uf": "SP",
+        "uf": uf,
         "area_privativa_m2": area_u if area_u and area_u > 0 else None,
         "area_terreno_m2": area_t if area_t and area_t > 0 and tt == "terreno" else None,
         "quartos": int(r["lot_dormitories"]) if str(r.get("lot_dormitories") or "0").isdigit() and int(r["lot_dormitories"]) > 0 else None,

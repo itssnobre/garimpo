@@ -1,7 +1,8 @@
-"""Coletor Portal Zuk (www.portalzuk.com.br), imóveis em leilão no estado de SP.
+"""Coletor Portal Zuk (www.portalzuk.com.br), imóveis em leilão, Brasil inteiro.
 
 Método: HTML + bs4 (Laravel/Blade; não há API JSON pública de listagem).
-  Listagem inicial: GET https://www.portalzuk.com.br/leilao-de-imoveis/u/todos-imoveis/sp  (30 cards)
+  Listagem inicial: GET https://www.portalzuk.com.br/leilao-de-imoveis  (nacional, 30 cards;
+                    /leilao-de-imoveis/u/todos-imoveis/<uf> filtra por UF). UF sai do card ("Cidade / UF - Bairro").
   Paginação:        POST https://www.portalzuk.com.br/leilao-de-imoveis/mais  ("carregar mais", 30 por vez)
                     campos: limit (qtd já carregada), count_imovel_zuk, path, order=data_leilao
                     (única ordenação estável para paginar; "relevancia" embaralha e repete lotes),
@@ -26,7 +27,7 @@ from bs4 import BeautifulSoup
 from common import session, money, city, tipo, desagio, flags, now_iso, save_raw
 
 BASE = "https://www.portalzuk.com.br"
-LIST = BASE + "/leilao-de-imoveis/u/todos-imoveis/sp"
+LIST = BASE + "/leilao-de-imoveis"
 MORE = BASE + "/leilao-de-imoveis/mais"
 THREADS = 2
 MAX = int(os.environ.get("GARIMPO_MAX", "0") or 0)
@@ -215,7 +216,7 @@ def _build(card, d):
         "endereco": card.get("endereco"),
         "bairro": card.get("bairro"),
         "cidade": city(card.get("cidade") or ""),
-        "uf": "SP",
+        "uf": card.get("uf"),
         "area_privativa_m2": card.get("area") if tt != "terreno" else None,
         "area_terreno_m2": card.get("area") if tt == "terreno" else None,
         "avaliacao": aval,
@@ -245,9 +246,9 @@ def _build(card, d):
 def collect():
     s = session()
     cards = _list_all(s)
-    cards = [c for c in cards if (c.get("uf") or "SP") == "SP"]
+    cards = [c for c in cards if re.fullmatch(r"[A-Z]{2}", c.get("uf") or "")]
     if MAX: cards = cards[:MAX]
-    print(f"[zuk] {len(cards)} lotes em SP; buscando detalhes...", file=sys.stderr)
+    print(f"[zuk] {len(cards)} lotes (Brasil); buscando detalhes...", file=sys.stderr)
     items, seen = [], set()
     def work(c):
         try:

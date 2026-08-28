@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { IMOVEIS } from "@/lib/data";
+import { useIndice } from "@/lib/indice";
 import { avaliarPadrao, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
 import { brl, pct } from "@/lib/fmt";
 import { PRESETS, TIPOS, UFS, novoPadrao, type Padrao } from "@/lib/padrao";
@@ -13,8 +13,9 @@ export default function EditorPadrao({ inicial, onSalvar, onCancelar }: { inicia
   const [cidadeTxt, setCidadeTxt] = useState("");
   const set = (k: keyof Padrao, v: unknown) => setP({ ...p, [k]: v });
   const num = (v: string) => Number(String(v).replace(/[^\d]/g, "")) || 0;
-  const cidades = useMemo(() => Array.from(new Set(IMOVEIS.filter((i) => p.ufs.length === 0 || p.ufs.includes(i.uf)).map((i) => i.cidade))).sort((a, b) => a.localeCompare(b, "pt-BR")), [p.ufs]);
-  const previa = useMemo(() => { const av = IMOVEIS.map((i) => avaliarPadrao(i, p)); const ok = av.filter((a) => a.passa); return { passam: ok.length, alvo: ok.filter((a) => a.res.margem >= p.margemAlvo).length, melhor: ok.reduce((m, a) => Math.max(m, a.score), 0) }; }, [p]);
+  const { imoveis: IMOVEIS } = useIndice(p.ufs);
+  const cidades = useMemo(() => Array.from(new Set(IMOVEIS.filter((i) => p.ufs.length === 0 || p.ufs.includes(i.uf)).map((i) => i.cidade))).sort((a, b) => a.localeCompare(b, "pt-BR")), [p.ufs, IMOVEIS]);
+  const previa = useMemo(() => { const av = IMOVEIS.map((i) => avaliarPadrao(i, p)); const ok = av.filter((a) => a.passa); return { passam: ok.length, alvo: ok.filter((a) => a.res.margem >= p.margemAlvo).length, melhor: ok.reduce((m, a) => Math.max(m, a.score), 0) }; }, [p, IMOVEIS]);
   const toggle = (k: "ufs" | "cidades" | "tipos" | "modalidades", v: string) => set(k, p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v]);
 
   return (

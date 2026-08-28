@@ -144,5 +144,7 @@ export const MODALIDADE_LABEL: Record<string, string> = {
 export const FONTE_LABEL: Record<string, string> = {
   caixa: "Caixa", zuk: "Portal Zuk", megaleiloes: "Mega Leilões", superbid: "Superbid", sodresantoro: "Sodré Santoro",
   leilaoimovel: "Leilão Imóvel", frazao: "Frazão", biasi: "Biasi", lancejudicial: "Lance Judicial", santanderimoveis: "Santander",
-  bradesco: "Bradesco", emgea: "Emgea", itau: "Itaú",
+  bradesco: "Bradesco", emgea: "Emgea", itau: "Itaú", resale: "Resale", leiloesjudiciais: "Leilões Judiciais",
+  pestanaleiloes: "Pestana", alfaleiloes: "Alfa Leilões", bomvalor: "Bomvalor", leilaovip: "VIP Leilões", fidalgoleiloes: "Fidalgo",
+  nakakogue: "Nakakogue", freitasleiloeiro: "Freitas", wspleiloes: "WSP Leilões", gestorleiloes: "Gestor Leilões",
 };

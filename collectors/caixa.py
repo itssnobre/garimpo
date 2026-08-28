@@ -1,4 +1,4 @@
-"""Coletor da Caixa Econômica Federal (venda-imoveis.caixa.gov.br).
+"""Coletor da Caixa Econômica Federal (venda-imoveis.caixa.gov.br), Brasil inteiro (27 UFs).
 
 Fonte primária: CSV oficial por UF
     https://venda-imoveis.caixa.gov.br/listaweb/Lista_imoveis_<UF>.csv
@@ -29,18 +29,22 @@ User-Agent: o bot manager (Azion/Radware) devolve 302 (desafio JS) por
   de novo. Por isso este coletor usa UAs sintéticos e rotaciona o UA sempre
   que recebe 302 (ver _rotate_ua / _post).
 """
-import csv, io, re, sys, time, datetime as dt
+import csv, io, re, sys, time, json, os, datetime as dt
 import requests
 from bs4 import BeautifulSoup
 
 sys.path.insert(0, __import__("os").path.dirname(__file__))
-from common import session, now_iso, money, city, tipo, desagio, flags, strip_accents, save_raw
+from common import session, now_iso, money, city, tipo, desagio, flags, strip_accents, save_raw, RAW
 
 BASE = "https://venda-imoveis.caixa.gov.br"
 CSV_URL = BASE + "/listaweb/Lista_imoveis_{uf}.csv"
 DETAIL_URL = BASE + "/sistema/detalhe-imovel.asp"
 SLEEP = 0.5
 RETRIES = 4
+BLOCK_WAIT = 45   # segundos de espera após 302 (cresce por tentativa)
+CSV_SLEEP = 3.0   # pausa entre CSVs de UF
+UFS = ("AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI",
+       "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO")
 _ua_n = [0]
 
 
@@ -83,7 +87,10 @@ def _get(session_, url, **kw):
             r = session_.get(url, timeout=60, allow_redirects=False, **kw)
             if r.status_code == 200: return r
             last = f"HTTP {r.status_code}"
-            if r.status_code == 302: _rotate_ua(session_)
+            if r.status_code == 302:
+                # bloqueio ShieldSquare por IP: esfria bastante antes de tentar de novo
+                _rotate_ua(session_)
+                time.sleep(BLOCK_WAIT * (i + 1))
         except requests.RequestException as e:
             last = repr(e)
         time.sleep(1.5 * (i + 1))
@@ -306,21 +313,57 @@ def enrich(item, session_):
 
 # ---------- pipeline ----------
 
+ENRICH_KEYS = ("matricula", "cartorio", "cep", "datas_leilao", "praca", "data_leilao", "data_fim", "lance_1a_praca",
+               "lance_2a_praca", "edital_num", "edital_url", "matricula_url", "fotos", "leiloeiro", "formas_pagamento",
+               "aceita_fgts", "debitos_regra", "debitos_por_conta_comprador", "descricao_detalhe", "ocupado",
+               "enriquecido_em", "area_total_m2", "inscricao_imobiliaria", "averbacao_leiloes_negativos")
+
+
+def _mesclar_anterior(items, path=None):
+    """Copia o enriquecimento já salvo em data/raw/caixa.json para os itens de mesmo id,
+    para não perder o detalhe (lento) a cada coleta. Devolve quantos herdaram."""
+    path = path or os.path.join(RAW, "caixa.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            old = {it["id"]: it for it in json.load(f) if it.get("enriquecido_em")}
+    except Exception:
+        return 0
+    n = 0
+    for it in items:
+        o = old.get(it["id"])
+        if not o: continue
+        for k in ENRICH_KEYS:
+            if o.get(k) is not None and it.get(k) in (None, [], ""): it[k] = o[k]
+        for k in ("quartos", "area_privativa_m2", "area_terreno_m2", "aceita_financiamento"):
+            if it.get(k) is None and o.get(k) is not None: it[k] = o[k]
+        n += 1
+    print(f"[caixa] {n} itens herdaram enriquecimento anterior", file=sys.stderr)
+    return n
+
+
 def default_filter(it):
     a = it.get("avaliacao") or 0
     return it.get("desagio_pct", 0) >= 0.30 and 100_000 <= a <= 400_000
 
 
-def collect(ufs=("SP",), enrich_filter=None, max_enrich=None):
+def collect(ufs=None, enrich_filter=None, max_enrich=None):
+    """ufs=None -> as 27 UFs (CSV por UF). A UF do item sai da coluna UF do CSV.
+    max_enrich limita quantos itens passam pelo POST de detalhe (0 = nenhum)."""
     s = _session()
     items = []
-    for uf in ufs:
-        rows = parse_csv(fetch_csv(uf, s))
-        got = [row_to_item(r) for r in rows if r.get("UF", "").strip().upper() == uf.upper()]
+    for uf in (ufs or UFS):
+        try:
+            rows = parse_csv(fetch_csv(uf, s))
+        except Exception as e:
+            print(f"[caixa] {uf}: falha no CSV: {e}", file=sys.stderr)
+            continue
+        got = [row_to_item(r) for r in rows if r.get("UF", "").strip()]
         print(f"[caixa] {uf}: {len(got)} linhas no CSV", file=sys.stderr)
         items.extend(got)
+        time.sleep(CSV_SLEEP)
+    _mesclar_anterior(items)
     flt = enrich_filter if enrich_filter is not None else default_filter
-    alvo = [it for it in items if flt(it)]
+    alvo = [it for it in items if flt(it) and not it.get("enriquecido_em")]
     if max_enrich is not None: alvo = alvo[:max_enrich]
     print(f"[caixa] enriquecendo {len(alvo)} itens", file=sys.stderr)
     ok = 0

@@ -1,8 +1,10 @@
-"""Coletor Superbid Exchange (www.superbid.net), categoria Imóveis, estado de SP.
+"""Coletor Superbid Exchange (www.superbid.net), categoria Imóveis, Brasil inteiro.
 
 Método: API JSON pública usada pelo próprio site (Next.js):
-  GET https://offer-query.superbid.net/seo/offers/?...&filter=product.location.state:São Paulo
+  GET https://offer-query.superbid.net/seo/offers/?...  (sem `filter`, vem nacional)
 Pagina com pageNumber/pageSize (até 200 por página). Não exige token.
+UF: product.location.state vem por extenso ("Minas Gerais") -> mapa UF_POR_NOME;
+  quando ausente, usa o sufixo de product.location.city ("Santos - SP").
 
 Limitações conhecidas:
 - A API não expõe "valor de avaliação". Quando o lote traz a propriedade "Deságio" (%),
@@ -19,10 +21,27 @@ BASE = "https://offer-query.superbid.net/seo/offers/"
 PARAMS = {
     "locale": "pt_BR", "portalId": "[2,15]", "requestOrigin": "marketplace", "timeZoneId": "America/Sao_Paulo",
     "preOrderBy": "orderByFirstOpenedOffersAndSecondHasPhoto", "orderBy": "score:desc", "searchType": "opened",
-    "urlSeo": "https://www.superbid.net/categorias/imoveis", "filter": "product.location.state:São Paulo",
+    "urlSeo": "https://www.superbid.net/categorias/imoveis",
     "pageSize": 100,
 }
 PAGE_SIZE = 100
+UF_POR_NOME = {
+    "acre": "AC", "alagoas": "AL", "amazonas": "AM", "amapa": "AP", "bahia": "BA", "ceara": "CE", "distrito federal": "DF",
+    "espirito santo": "ES", "goias": "GO", "maranhao": "MA", "minas gerais": "MG", "mato grosso do sul": "MS", "mato grosso": "MT",
+    "para": "PA", "paraiba": "PB", "pernambuco": "PE", "piaui": "PI", "parana": "PR", "rio de janeiro": "RJ",
+    "rio grande do norte": "RN", "rondonia": "RO", "roraima": "RR", "rio grande do sul": "RS", "santa catarina": "SC",
+    "sergipe": "SE", "sao paulo": "SP", "tocantins": "TO",
+}
+
+def _uf(loc):
+    from common import strip_accents
+    st = strip_accents((loc.get("state") or "").strip().lower())
+    if st in UF_POR_NOME: return UF_POR_NOME[st]
+    cidade = loc.get("city") or ""
+    m = re.search(r"[-/]\s*([A-Z]{2})\s*$", cidade)
+    if m: return m.group(1)
+    # sem state e cidade homônima do estado ("São Paulo", "Rio de Janeiro")
+    return UF_POR_NOME.get(strip_accents(cidade.strip().lower()))
 
 def _get(s, params, tries=3):
     for i in range(tries):
@@ -79,6 +98,12 @@ def _item(o):
     short = (p.get("shortDesc") or "").strip()
     loc = p.get("location") or {}
     cid = (loc.get("city") or "").split(" - ")[0]
+    uf = _uf(loc)
+    if not uf:
+        m = re.search(r"[-/,]\s*([A-Z]{2})\b", props.get("endereço") or props.get("endereco") or "")
+        uf = m.group(1) if m else None
+    if not uf:
+        raise ValueError(f"sem UF (location={loc})")
     desc = _strip_html(p.get("detailedDescription") or (o.get("offerDescription") or {}).get("offerDescription") or "")
 
     lance = od.get("currentMinBid") or od.get("initialBidValue") or o.get("price")
@@ -155,7 +180,7 @@ def _item(o):
         "endereco": endereco,
         "bairro": None,
         "cidade": city(cid),
-        "uf": "SP",
+        "uf": uf,
         "cep": cep,
         "area_privativa_m2": _num(props.get("área privativa") or props.get("área construída") or props.get("área útil")),
         "area_terreno_m2": _num(props.get("área do terreno") or props.get("área total")),

@@ -1,7 +1,8 @@
-"""Coletor Mega Leilões (www.megaleiloes.com.br/imoveis), estado de SP.
+"""Coletor Mega Leilões (www.megaleiloes.com.br/imoveis), Brasil inteiro.
 
 Método: HTML + bs4 (site Yii/pjax, sem API JSON pública).
-  Listagem: https://www.megaleiloes.com.br/imoveis?estado=SP&pagina=N  (48 cards/página, ul.pagination)
+  Listagem: https://www.megaleiloes.com.br/imoveis?estado=UF&pagina=N  (48 cards/página, ul.pagination),
+            iterando as 27 UFs (a UF real sai de .card-locality "Cidade, UF"; dedup por url).
   Detalhe:  página do lote (avaliação, localização, área, descrição, edital, matrícula, fotos, praças).
 
 Cada lote exige 1 request de detalhe (é onde ficam avaliação e descrição). Requests em
@@ -18,6 +19,7 @@ from bs4 import BeautifulSoup
 from common import session, money, city, tipo, desagio, flags, now_iso, save_raw
 
 LIST = "https://www.megaleiloes.com.br/imoveis"
+UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"]
 THREADS = 4
 MAX = int(os.environ.get("GARIMPO_MAX", "0") or 0)
 
@@ -58,10 +60,10 @@ def _parse_card(c):
         "lote": _txt(c.select_one(".card-batch-number")),
     }
 
-def _list_pages(s):
+def _list_uf(s, uf):
     cards, page, last = [], 1, None
     while True:
-        h = _get(s, LIST, {"estado": "SP", "pagina": page})
+        h = _get(s, LIST, {"estado": uf, "pagina": page})
         if not h: break
         sp = BeautifulSoup(h, "html.parser")
         found = [x for x in (_parse_card(c) for c in sp.select("div.card")) if x]
@@ -69,10 +71,17 @@ def _list_pages(s):
         if last is None:
             nums = [int(m.group(1)) for a in sp.select("ul.pagination a[href]") for m in [re.search(r"pagina=(\d+)", a["href"])] if m]
             last = max(nums) if nums else 1
-        print(f"[megaleiloes] listagem página {page}/{last}: {len(found)} cards", file=sys.stderr)
+        print(f"[megaleiloes] {uf} listagem página {page}/{last}: {len(found)} cards", file=sys.stderr)
         if not found or page >= last: break
         page += 1
         time.sleep(0.5)
+    return cards
+
+def _list_pages(s):
+    cards = []
+    for uf in UFS:
+        cards.extend(_list_uf(s, uf))
+        time.sleep(0.3)
     # dedup por url
     seen, out = set(), []
     for c in cards:
@@ -147,8 +156,11 @@ def _build(card, d):
     loc = d.get("localizacao") or ""
     parts = [p.strip() for p in loc.split(",")]
     cid, bairro, endereco = None, None, None
+    uf = None
     m = re.match(r"(.+?),\s*([A-Z]{2})$", card["localidade"])
-    if m: cid = m.group(1)
+    if m: cid, uf = m.group(1), m.group(2)
+    if not uf and len(parts) >= 2 and re.fullmatch(r"[A-Z]{2}", parts[-1]): uf = parts[-1]
+    if not uf: return None
     if len(parts) >= 4:
         endereco = ", ".join(parts[:-3]); bairro = parts[-3]
     elif len(parts) == 3:
@@ -194,7 +206,7 @@ def _build(card, d):
         "endereco": endereco,
         "bairro": bairro,
         "cidade": city(cid or ""),
-        "uf": "SP",
+        "uf": uf,
         "area_privativa_m2": d.get("area") if tt != "terreno" else None,
         "area_terreno_m2": d.get("area") if tt == "terreno" else None,
         "avaliacao": aval,
@@ -227,7 +239,7 @@ def collect():
     skip = ("encerrad", "vendido", "suspens", "cancelad", "retirad")
     cards = [c for c in cards if not any(k in c["status"] for k in skip)]
     if MAX: cards = cards[:MAX]
-    print(f"[megaleiloes] {len(cards)} lotes ativos em SP; buscando detalhes...", file=sys.stderr)
+    print(f"[megaleiloes] {len(cards)} lotes ativos (Brasil); buscando detalhes...", file=sys.stderr)
     items = []
     def work(c):
         try:

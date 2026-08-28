@@ -2,7 +2,8 @@
 
 Método: HTML puro (site Yii2 + jQuery; não há API JSON pública de lotes, o único
 ajax é do auditório de lances). Listagem filtrada por UF em
-`/imoveis/sp?pagina=N` (32 cards por página; `per-page` é ignorado). Cada card
+`/imoveis/<uf>?pagina=N` (32 cards por página; `per-page` é ignorado), iterando
+as 27 UFs; a UF real sai de .card-locality ("Cidade, UF"). Cada card
 já traz título, valor atual, modalidade, cidade, status e as praças (datas +
 valores). A página do lote é aberta para pegar avaliação, descrição, endereço,
 fotos (cdn.grupolance.com.br), edital (PDF) e link da matrícula (data-url em
@@ -20,6 +21,7 @@ from common import session, money, city, tipo, desagio, flags, now_iso, save_raw
 
 BASE = "https://www.grupolance.com.br"
 FONTE = "lancejudicial"
+UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"]
 S = session()
 USE_CURL = False
 
@@ -84,7 +86,6 @@ def parse_card(card):
         "fonte": FONTE,
         "url": BASE + url if url.startswith("/") else url,
         "titulo": a.get_text(" ", strip=True),
-        "uf": "SP",
     }
     price = card.select_one(".card-price")
     item["_valor_atual"] = money(price.get_text()) if price else None
@@ -94,7 +95,11 @@ def parse_card(card):
         item["modalidade"] = "venda_direta"
     loc = card.select_one(".card-locality")
     if loc:
-        item["cidade"] = city(loc.get_text(strip=True).split(",")[0])
+        lt = loc.get_text(" ", strip=True)
+        item["cidade"] = city(lt.split(",")[0])
+        m = re.search(r",\s*([A-Z]{2})\s*$", lt)
+        if m and m.group(1) in UFS: item["uf"] = m.group(1)
+    if not item.get("uf"): return None
     st = card.select_one(".card-status")
     item["_status"] = st.get_text(" ", strip=True) if st else ""
     item["_status_open"] = bool(st and "open" in (st.get("class") or []))
@@ -223,13 +228,12 @@ def enrich_text(item):
     return item
 
 
-def collect():
-    items, seen = [], set()
-    page, last = 1, 1
+def list_uf(uf, seen):
+    items, page, last = [], 1, 1
     while page <= last:
-        html = get(f"{BASE}/imoveis/sp?pagina={page}")
+        html = get(f"{BASE}/imoveis/{uf.lower()}?pagina={page}")
         if not html:
-            print(f"[{FONTE}] falha página {page}, parando"); break
+            print(f"[{FONTE}] falha {uf} página {page}, parando"); break
         s = BeautifulSoup(html, "html.parser")
         for a in s.select(".pagination a[href]"):
             m = re.search(r"pagina=(\d+)", a["href"])
@@ -240,10 +244,18 @@ def collect():
             if not it or it["id"] in seen: continue
             seen.add(it["id"]); novos += 1
             items.append(it)
-        print(f"[{FONTE}] página {page}/{last}: {novos} lotes")
+        print(f"[{FONTE}] {uf} página {page}/{last}: {novos} lotes")
         if novos == 0: break
         page += 1
         time.sleep(0.5)
+    return items
+
+
+def collect():
+    items, seen = [], set()
+    for uf in UFS:
+        items.extend(list_uf(uf, seen))
+        time.sleep(0.3)
 
     out = []
     for it in items:

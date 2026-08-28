@@ -1,9 +1,10 @@
-"""Coletor Biasi Leilões (https://www.biasileiloes.com.br), imóveis em SP.
+"""Coletor Biasi Leilões (https://www.biasileiloes.com.br), imóveis no Brasil inteiro.
 
 Método (descoberto lendo /JS/Sale/LotSearchIndex.min.js):
-  1. GET /Sale/LotListSearch?uf=SP&start=N&limit=48 (retorna HTML parcial com os
-     cards; o div#leilao-lista-lote traz total/index/limit para paginar). O filtro
-     uf=SP já devolve só imóveis (icone fa-house) ativos ("Liberado para Lance").
+  1. GET /Sale/LotListSearch?uf=XX&start=N&limit=48 iterando as 27 UFs (retorna
+     HTML parcial com os cards; o div#leilao-lista-lote traz total/index/limit para
+     paginar). Só entram cards com ícone fa-house (imóvel); a UF real sai do
+     span.lot-subtitle ("..., Cidade/UF") ou do título ("- Cidade/UF").
      Não exige token antiforgery nem cookie.
   2. GET /sale/detail?id=<lote> para cada card (sleep 0.3s) e extrai título,
      endereço (span.lot-subtitle), praças (h4 com class "expired" = praça passada),
@@ -28,6 +29,7 @@ from common import session, money, city, tipo, desagio, flags, now_iso, save_raw
 BASE = "https://www.biasileiloes.com.br"
 FONTE = "biasi"
 PAGE = 48
+UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"]
 SLEEP_PAGE = 0.5
 SLEEP_LOT = 0.3
 RETRY = 3
@@ -55,6 +57,9 @@ def _cards(html):
     total = int(box["total"]) if box and box.has_attr("total") else 0
     out = []
     for a in s.select("a.leilao-lote"):
+        ico = a.select_one(".container-title i")
+        if ico and "fa-house" not in (ico.get("class") or []):
+            continue  # veículo/máquina
         lid = a.get("data-id") or re.search(r"id=(\d+)", a.get("href", "") or "").group(1)
         title = a.select_one(".card-title")
         prices = [x.get_text(" ", strip=True) for x in a.select(".price-leiloes span")]
@@ -68,23 +73,26 @@ def _cards(html):
     return total, out
 
 
-def _list_sp(s):
-    start, total, seen, items = 0, None, set(), []
-    while total is None or start < total:
-        html = _get(s, BASE + "/Sale/LotListSearch",
-                    {"uf": "SP", "categoria": "", "start": start, "limit": PAGE})
-        if not html:
-            break
-        total, cards = _cards(html)
-        if not cards:
-            break
-        for c in cards:
-            if c["id"] not in seen:
-                seen.add(c["id"])
-                items.append(c)
-        print("[biasi] listagem %d/%d" % (len(items), total))
-        start += PAGE
-        time.sleep(SLEEP_PAGE)
+def _list_all(s):
+    seen, items = set(), []
+    for uf in UFS:
+        start, total = 0, None
+        while total is None or start < total:
+            html = _get(s, BASE + "/Sale/LotListSearch",
+                        {"uf": uf, "categoria": "", "start": start, "limit": PAGE})
+            if not html:
+                break
+            total, cards = _cards(html)
+            if not cards:
+                break
+            for c in cards:
+                if c["id"] not in seen:
+                    c["uf_lista"] = uf
+                    seen.add(c["id"])
+                    items.append(c)
+            print("[biasi] %s listagem %d (total fonte %d)" % (uf, len(items), total))
+            start += PAGE
+            time.sleep(SLEEP_PAGE)
     return items
 
 
@@ -112,7 +120,7 @@ def _parse_detail(s, card):
     lid = card["id"]
     url = "%s/sale/detail?id=%s" % (BASE, lid)
     html = _get(s, url)
-    d = {"id": "%s:%s" % (FONTE, lid), "fonte": FONTE, "url": url, "uf": "SP",
+    d = {"id": "%s:%s" % (FONTE, lid), "fonte": FONTE, "url": url,
          "titulo": card["titulo"], "coletado_em": now_iso()}
     if not html:
         return None
@@ -138,9 +146,10 @@ def _parse_detail(s, card):
     sub = sp.select_one("span.lot-subtitle")
     endereco_full = sub.get_text(" ", strip=True) if sub else ""
     parts = [p.strip() for p in endereco_full.split(",") if p.strip()]
-    cid, bairro = None, None
+    cid, bairro, uf = None, None, None
     if parts and "/" in parts[-1]:
-        cid = parts[-1].rsplit("/", 1)[0]
+        cid, uf = parts[-1].rsplit("/", 1)
+        uf = uf.strip().upper()
         parts = parts[:-1]
         if parts:
             bairro = parts[-1]
@@ -148,9 +157,15 @@ def _parse_detail(s, card):
         if parts:
             d["endereco"] = ", ".join(parts)
     if not cid:
-        m = re.search(r"-\s*([^-]+?)/SP\s*$", titulo)
+        m = re.search(r"-\s*([^-/]+?)/([A-Z]{2})\s*$", titulo)
         if m:
-            cid = m.group(1)
+            cid, uf = m.group(1), m.group(2)
+    if uf not in UFS:
+        m = re.search(r"/([A-Z]{2})\b", titulo + " " + endereco_full)
+        uf = m.group(1) if m and m.group(1) in UFS else card.get("uf_lista")
+    if uf not in UFS:
+        return None
+    d["uf"] = uf
     d["cidade"] = city(cid or "")
     if bairro:
         d["bairro"] = bairro
@@ -280,8 +295,8 @@ def _parse_detail(s, card):
 
 def collect():
     s = session()
-    cards = _list_sp(s)
-    print("[biasi] %d lotes SP na listagem" % len(cards))
+    cards = _list_all(s)
+    print("[biasi] %d lotes (imóveis, Brasil) na listagem" % len(cards))
     out = []
     for i, c in enumerate(cards, 1):
         try:
