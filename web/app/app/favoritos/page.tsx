@@ -1,11 +1,12 @@
 "use client";
-import { IMOVEIS } from "@/lib/data";
+import { useLotes } from "@/lib/indice";
 import { avaliar } from "@/lib/motor";
 import { useFavoritos } from "@/lib/favoritos";
 import Card from "@/components/Card";
 import Link from "next/link";
 export default function Favoritos() {
   const { favs, toggle } = useFavoritos();
+  const { imoveis: IMOVEIS } = useLotes([...favs]);
   const itens = IMOVEIS.filter((i) => favs.has(i.id));
   return (<>
     <div className="app-cab"><div><h1>Favoritos</h1><p>{itens.length} lotes guardados neste navegador.</p></div></div>

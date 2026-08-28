@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { IMOVEIS } from "@/lib/data";
+import { useLotes } from "@/lib/indice";
 import { avaliar, brl } from "@/lib/motor";
 import { tituloLimpo } from "@/lib/util";
 import { useFavoritos } from "@/lib/favoritos";
@@ -8,6 +8,7 @@ import { ETAPAS, usePipeline, type Etapa } from "@/lib/pipeline";
 export default function Pipeline() {
   const { favs } = useFavoritos(); const { pipe, mover, tirar } = usePipeline();
   const ids = new Set([...favs, ...Object.keys(pipe)]);
+  const { imoveis: IMOVEIS } = useLotes([...ids]);
   const itens = IMOVEIS.filter((i) => ids.has(i.id));
   const etapaDe = (id: string): Etapa => pipe[id]?.etapa ?? "Analisando";
   return (<>

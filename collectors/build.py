@@ -6,8 +6,10 @@ Uso: python3 collectors/build.py            (só junta o que já existe em data/
 import glob, importlib, json, os, re, sys, traceback, datetime as dt
 from common import ROOT, RAW, now_iso, strip_accents, flags
 
-FONTES = ["caixa", "zuk", "megaleiloes", "superbid", "sodresantoro", "leilaoimovel", "frazao", "biasi", "lancejudicial",
-          "santanderimoveis", "bradesco", "emgea", "itau"]
+# Toda fonte é um módulo collectors/<fonte>.py com collect(); descoberta automática.
+FONTES = sorted(os.path.basename(f)[:-3] for f in glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "*.py"))
+                if os.path.basename(f) not in ("build.py", "common.py"))
+UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
 OBRIG = ["id", "fonte", "url", "tipo", "titulo", "cidade", "uf", "avaliacao", "lance_minimo", "desagio_pct", "modalidade",
          "direitos_fiduciante", "fracao_ideal", "coletado_em"]
 
@@ -35,7 +37,7 @@ def key(it):
 def valid(it):
     faltam = [k for k in OBRIG if it.get(k) is None]
     if faltam: return False
-    return it["avaliacao"] > 0 and it["lance_minimo"] > 0 and it["uf"] == "SP"
+    return it["avaliacao"] > 0 and it["lance_minimo"] > 0 and it["uf"] in UFS
 
 def main():
     if "--collect" in sys.argv: run_collectors()
@@ -83,7 +85,20 @@ def main():
         idx.append(r)
     json.dump(idx, open(os.path.join(ROOT, "web", "data", "indice.json"), "w", encoding="utf-8"), ensure_ascii=False)
     print(f"índice enxuto -> web/data/indice.json")
-    json.dump({"gerado_em": now_iso(), "total": len(out), "fontes": stats},
+    # um arquivo por UF em public/dados/uf/ (o cliente carrega só as UFs que o usuário escolheu)
+    pub = os.path.join(ROOT, "web", "public", "dados", "uf"); os.makedirs(pub, exist_ok=True)
+    for f in glob.glob(os.path.join(pub, "*.json")): os.remove(f)
+    por_uf = {}
+    for r in idx: por_uf.setdefault(r["uf"], []).append(r)
+    for uf, lst in por_uf.items():
+        json.dump(lst, open(os.path.join(pub, f"{uf}.json"), "w", encoding="utf-8"), ensure_ascii=False)
+    print(f"{len(por_uf)} UFs -> web/public/dados/uf/")
+    fontes_meta = {}
+    for it in out: fontes_meta.setdefault(it["fonte"], 0)
+    for it in out: fontes_meta[it["fonte"]] += 1
+    json.dump({"gerado_em": now_iso(), "total": len(out), "fontes": stats,
+               "por_uf": {uf: len(l) for uf, l in sorted(por_uf.items())},
+               "por_fonte": fontes_meta},
               open(os.path.join(ROOT, "web", "data", "meta.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(f"TOTAL {len(out)} imóveis -> web/data/imoveis.json")
 

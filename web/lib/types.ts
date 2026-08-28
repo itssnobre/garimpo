@@ -14,4 +14,4 @@ export interface Imovel {
   tambem_em?: { fonte: string; url: string; lance_minimo: number }[];
 }
 
-export interface Meta { gerado_em: string; total: number; fontes: Record<string, { lidos: number; validos: number }> }
+export interface Meta { gerado_em: string; total: number; fontes: Record<string, { lidos: number; validos: number }>; por_uf?: Record<string, number>; por_fonte?: Record<string, number> }

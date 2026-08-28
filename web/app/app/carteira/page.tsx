@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
-import { IMOVEIS } from "@/lib/data";
+import { useLotes } from "@/lib/indice";
 import { avaliar, brl, pct, calcular, custosPara } from "@/lib/motor";
 import { usePipeline } from "@/lib/pipeline";
 import { tituloLimpo } from "@/lib/util";
 export default function Carteira() {
   const { pipe, mover } = usePipeline();
+  const { imoveis: IMOVEIS } = useLotes(Object.keys(pipe).filter((id) => pipe[id]?.etapa === "Arrematado"));
   const itens = IMOVEIS.filter((i) => pipe[i.id]?.etapa === "Arrematado");
   const linhas = itens.map((i) => { const lance = pipe[i.id].lanceFinal ?? i.lance_minimo; const r = calcular(i.avaliacao, lance, custosPara(i)); return { i, lance, r }; });
   const cap = linhas.reduce((s, x) => s + x.r.total, 0), lucro = linhas.reduce((s, x) => s + x.r.lucro, 0);
