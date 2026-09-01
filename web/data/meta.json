@@ -1,6 +1,6 @@
 {
- "gerado_em": "2026-08-28T17:55:35+00:00",
- "total": 14590,
+ "gerado_em": "2026-09-01T16:27:56+00:00",
+ "total": 31703,
  "fontes": {
   "alfaleiloes": {
    "lidos": 413,
@@ -19,8 +19,8 @@
    "validos": 250
   },
   "caixa": {
-   "lidos": 3199,
-   "validos": 3198
+   "lidos": 17562,
+   "validos": 17550
   },
   "emgea": {
    "lidos": 82,
@@ -28,7 +28,7 @@
   },
   "fidalgoleiloes": {
    "lidos": 490,
-   "validos": 479
+   "validos": 435
   },
   "frazao": {
    "lidos": 374,
@@ -68,7 +68,11 @@
   },
   "pestanaleiloes": {
    "lidos": 711,
-   "validos": 708
+   "validos": 705
+  },
+  "resale": {
+   "lidos": 3425,
+   "validos": 2808
   },
   "santanderimoveis": {
    "lidos": 1133,
@@ -92,54 +96,55 @@
   }
  },
  "por_uf": {
-  "AC": 36,
-  "AL": 48,
-  "AM": 36,
+  "AC": 37,
+  "AL": 51,
+  "AM": 39,
   "AP": 5,
-  "BA": 206,
-  "CE": 207,
-  "DF": 52,
-  "ES": 102,
-  "GO": 472,
-  "MA": 129,
-  "MG": 505,
-  "MS": 218,
-  "MT": 202,
-  "PA": 67,
-  "PB": 57,
-  "PE": 171,
-  "PI": 45,
-  "PR": 673,
-  "RJ": 754,
-  "RN": 72,
-  "RO": 38,
-  "RR": 2,
-  "RS": 650,
-  "SC": 244,
-  "SE": 39,
-  "SP": 9510,
-  "TO": 50
+  "BA": 261,
+  "CE": 256,
+  "DF": 214,
+  "ES": 145,
+  "GO": 608,
+  "MA": 137,
+  "MG": 698,
+  "MS": 236,
+  "MT": 422,
+  "PA": 305,
+  "PB": 864,
+  "PE": 1485,
+  "PI": 48,
+  "PR": 1314,
+  "RJ": 9620,
+  "RN": 815,
+  "RO": 78,
+  "RR": 8,
+  "RS": 1667,
+  "SC": 488,
+  "SE": 547,
+  "SP": 11285,
+  "TO": 70
  },
  "por_fonte": {
   "santanderimoveis": 724,
   "megaleiloes": 831,
   "superbid": 934,
+  "caixa": 17550,
   "zuk": 557,
   "leilaoimovel": 3706,
-  "fidalgoleiloes": 479,
   "leiloesjudiciais": 1064,
+  "resale": 2818,
   "frazao": 366,
   "emgea": 77,
-  "caixa": 3198,
   "bradesco": 245,
-  "alfaleiloes": 343,
+  "alfaleiloes": 339,
   "lancejudicial": 313,
   "sodresantoro": 42,
-  "pestanaleiloes": 708,
+  "pestanaleiloes": 705,
+  "fidalgoleiloes": 435,
   "biasi": 355,
   "leilaovip": 98,
   "nakakogue": 138,
-  "bomvalor": 299,
+  "bomvalor": 293,
   "freitasleiloeiro": 101,
   "wspleiloes": 12
  }
