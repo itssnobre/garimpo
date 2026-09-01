@@ -58,8 +58,11 @@ export function calcular(avaliacao: number, lance: number, c: Custos): Resultado
     lanceMax25: lanceMax(0.25), lanceMax30: lanceMax(0.30), lanceMax35: lanceMax(0.35) };
 }
 
+// Caixa: Compra Direta (Venda Direta Online) e Venda Online não passam por leiloeiro, logo não há comissão de 5%.
+export const semLeiloeiro = (i: Imovel) => i.fonte === "caixa" && (i.modalidade === "venda_direta" || i.modalidade === "venda_online");
+
 export function custosPara(i: Imovel, base: Custos = CUSTOS_PADRAO): Custos {
-  return { ...base, itbi: ITBI_CIDADE[i.cidade] ?? base.itbi, desocupacao: i.ocupado ? 8000 : i.ocupado === false ? 0 : 4000 };
+  return { ...base, itbi: ITBI_CIDADE[i.cidade] ?? base.itbi, leiloeiro: semLeiloeiro(i) ? 0 : base.leiloeiro, desocupacao: i.ocupado ? 8000 : i.ocupado === false ? 0 : 4000 };
 }
 
 export type Nivel = "veto" | "alerta" | "info";
@@ -80,6 +83,8 @@ export function sinais(i: Imovel): Sinal[] {
   if (i.modalidade === "leilao_sfi" && i.debitos_por_conta_comprador !== false)
     s.push({ nivel: "alerta", texto: "Leilão SFI: débitos de condomínio costumam ser 100% do comprador, sem teto. Conferir matrícula por execução condominial." });
   if (i.modalidade === "licitacao_aberta") s.push({ nivel: "info", texto: "Licitação Aberta: Caixa costuma limitar condomínio a 10% da avaliação." });
+  if (i.fonte === "caixa" && i.modalidade === "venda_direta") s.push({ nivel: "info", texto: "Compra Direta da Caixa: sem leiloeiro e sem disputa, o primeiro que pagar o boleto leva. Você tem 2 dias úteis para pagar e pode desistir sem ônus nesse prazo: dá tempo de conferir matrícula e edital com o imóvel reservado." });
+  if (i.fonte === "caixa" && i.modalidade === "venda_online") s.push({ nivel: "info", texto: "Venda Online da Caixa: sem comissão de leiloeiro, proposta pelo site com prazo definido e desistência sem ônus. Ainda pode haver disputa de propostas." });
   if (i.modalidade === "judicial") s.push({ nivel: "alerta", texto: "Judicial: avaliação pode estar inflada. Conferir comparáveis do laudo e a origem do imóvel (doação com retrocessão = veto)." });
   if (i.ocupado) s.push({ nivel: "alerta", texto: "Ocupado: prever desocupação (custo e prazo)." });
   if (i.ocupado === false) s.push({ nivel: "info", texto: "Desocupado." });
@@ -94,9 +99,19 @@ export interface Avaliacao { score: number; classe: "go" | "atencao" | "nogo"; m
 export interface Criterios { faixaMin: number; faixaMax: number; desagioMin: number; margemMin: number; soRegiao: boolean }
 export const CRITERIOS_PADRAO: Criterios = { faixaMin: 200000, faixaMax: 250000, desagioMin: 0.40, margemMin: 0.25, soRegiao: false };
 
-export interface Regras { faixaMin: number; faixaMax: number; lanceMax: number; desagioMin: number; margemMin: number; margemAlvo: number; ufs: string[]; cidades: string[]; tipos: string[]; modalidades: string[]; ocupacao: "qualquer" | "desocupado"; exigeFinanciamento: boolean; vetoFiduciante: boolean; vetoFracao: boolean; vetoEdital: boolean; custos: Custos }
+export interface Regras { faixaMin: number; faixaMax: number; lanceMax: number; desagioMin: number; margemMin: number; margemAlvo: number; ufs: string[]; cidades: string[]; tipos: string[]; modalidades: string[]; ocupacao: "qualquer" | "desocupado"; exigeFinanciamento: boolean; vetoFiduciante: boolean; vetoFracao: boolean; vetoEdital: boolean; custos: Custos;
+  // Perfil do imóvel (0 = não exige). Padrões salvos antes deste campo chegam sem ele, por isso opcional.
+  quartosMin?: number; areaMin?: number; areaMax?: number }
 
-export const REGRAS_BASE: Regras = { faixaMin: 0, faixaMax: 0, lanceMax: 0, desagioMin: 0.3, margemMin: 0.25, margemAlvo: 0.3, ufs: [], cidades: [], tipos: [], modalidades: [], ocupacao: "qualquer", exigeFinanciamento: false, vetoFiduciante: true, vetoFracao: true, vetoEdital: false, custos: CUSTOS_PADRAO };
+export const REGRAS_BASE: Regras = { faixaMin: 0, faixaMax: 0, lanceMax: 0, desagioMin: 0.3, margemMin: 0.25, margemAlvo: 0.3, ufs: [], cidades: [], tipos: [], modalidades: [], ocupacao: "qualquer", exigeFinanciamento: false, vetoFiduciante: true, vetoFracao: true, vetoEdital: false, custos: CUSTOS_PADRAO, quartosMin: 0, areaMin: 0, areaMax: 0 };
+
+// Área que conta para o perfil: privativa em apto/casa/comercial; terreno quando é só terreno ou não há privativa.
+export const areaDe = (i: Imovel) => i.area_privativa_m2 || i.area_terreno_m2 || 0;
+// Perfil do imóvel: quando o usuário exige quartos ou área, lote sem o dado NÃO passa (filtro é filtro).
+export function noPerfil(i: Imovel, r: Pick<Regras, "quartosMin" | "areaMin" | "areaMax">): boolean {
+  const q = r.quartosMin ?? 0, aMin = r.areaMin ?? 0, aMax = r.areaMax ?? 0, a = areaDe(i);
+  return (q <= 0 || (i.quartos ?? 0) >= q) && (aMin <= 0 || a >= aMin) && (aMax <= 0 || (a > 0 && a <= aMax));
+}
 
 // Compatibilidade: avaliar() com os critérios antigos vira avaliarPadrao() com regras equivalentes.
 export function avaliar(i: Imovel, crit: Criterios = CRITERIOS_PADRAO, custos?: Custos): Avaliacao {
@@ -107,7 +122,7 @@ const nrm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCas
 
 // Score de 0 a 100 sobre as regras do usuário. "passa" = cumpre todos os limites duros do padrão.
 export function avaliarPadrao(i: Imovel, r: Regras): Avaliacao {
-  const c = { ...r.custos, itbi: ITBI_CIDADE[i.cidade] ?? r.custos.itbi, desocupacao: r.custos.desocupacao || (i.ocupado ? 8000 : i.ocupado === false ? 0 : 4000) };
+  const c = { ...r.custos, itbi: ITBI_CIDADE[i.cidade] ?? r.custos.itbi, leiloeiro: semLeiloeiro(i) ? 0 : r.custos.leiloeiro, desocupacao: r.custos.desocupacao || (i.ocupado ? 8000 : i.ocupado === false ? 0 : 4000) };
   const res = calcular(i.avaliacao, i.lance_minimo, c);
   const sg = sinais(i).filter((s) => !(s.nivel === "veto" && ((i.direitos_fiduciante && !r.vetoFiduciante) || (i.fracao_ideal && !r.vetoFracao))));
   const regiao = regiaoDe(i.cidade);
@@ -117,7 +132,7 @@ export function avaliarPadrao(i: Imovel, r: Regras): Avaliacao {
   const naFaixa = (r.faixaMin <= 0 || i.avaliacao >= r.faixaMin) && (r.faixaMax <= 0 || i.avaliacao <= r.faixaMax) && (r.lanceMax <= 0 || i.lance_minimo <= r.lanceMax);
   const limites = [naFaixa, i.desagio_pct >= r.desagioMin, res.margem >= r.margemMin, naRegiao,
     r.tipos.length === 0 || r.tipos.includes(i.tipo), r.modalidades.length === 0 || r.modalidades.includes(i.modalidade),
-    r.ocupacao === "qualquer" || i.ocupado === false, !r.exigeFinanciamento || i.aceita_financiamento === true];
+    r.ocupacao === "qualquer" || i.ocupado === false, !r.exigeFinanciamento || i.aceita_financiamento === true, noPerfil(i, r)];
   const passa = limites.every(Boolean);
   let score = 0;
   if (res.margem >= r.margemAlvo + 0.05) score += 45; else if (res.margem >= r.margemAlvo) score += 38; else if (res.margem >= r.margemMin) score += 25; else if (res.margem >= r.margemMin - 0.1) score += 8;
@@ -130,6 +145,8 @@ export function avaliarPadrao(i: Imovel, r: Regras): Avaliacao {
   score += Math.max(0, 15 - alertas * 5);
   if (i.ocupado === false) score += 3;
   if (i.aceita_financiamento) score += 2;
+  // Caixa sem leiloeiro: Compra Direta (1º que paga leva, 2 dias pra decidir, desiste sem ônus) vale mais que Venda Online (ainda há disputa).
+  if (semLeiloeiro(i)) { score += i.modalidade === "venda_direta" ? 5 : 3; motivos.push(i.modalidade === "venda_direta" ? "Compra Direta: sem leiloeiro, 2 dias pra decidir" : "Venda Online: sem leiloeiro"); }
   score = Math.min(100, score);
   const classe = passa && score >= 60 ? "go" : score >= 40 ? "atencao" : "nogo";
   return { score, classe, motivos, res, sinais: sg, regiao, passa };

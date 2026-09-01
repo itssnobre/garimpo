@@ -52,6 +52,13 @@ export default function EditorPadrao({ inicial, onSalvar, onCancelar }: { inicia
             <div className="chips" style={{ flexWrap: "wrap" }}>{TIPOS.map((t) => <button key={t} className={`chip ${p.tipos.includes(t) ? "on" : ""}`} onClick={() => toggle("tipos", t)}>{t}</button>)}</div>
             <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-ink)", margin: "14px 0 6px" }}>Modalidades</h3>
             <div className="chips" style={{ flexWrap: "wrap" }}>{Object.entries(MODALIDADE_LABEL).map(([k, v]) => <button key={k} className={`chip ${p.modalidades.includes(k) ? "on" : ""}`} onClick={() => toggle("modalidades", k)}>{v}</button>)}</div>
+            <h3 style={{ fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-ink)", margin: "14px 0 6px" }}>Perfil do imóvel</h3>
+            <p style={{ color: "var(--mute)", fontSize: 13, margin: "0 0 8px" }}>Quando você exige quartos ou área, lote sem esse dado na fonte fica de fora.</p>
+            <div className="custos">
+              <label className="campo"><span>Quartos, no mínimo</span><select value={p.quartosMin ?? 0} onChange={(e) => set("quartosMin", +e.target.value)}><option value={0}>Qualquer</option>{[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}+</option>)}</select></label>
+              <label className="campo"><span>Área mínima (m², 0 = qualquer)</span><input className="mono" inputMode="numeric" value={p.areaMin ?? 0} onChange={(e) => set("areaMin", num(e.target.value))} /></label>
+              <label className="campo"><span>Área máxima (m², 0 = sem teto)</span><input className="mono" inputMode="numeric" value={p.areaMax ?? 0} onChange={(e) => set("areaMax", num(e.target.value))} /></label>
+            </div>
             <div className="par" style={{ marginTop: 14 }}>
               <label className="campo"><span>Ocupação</span><select value={p.ocupacao} onChange={(e) => set("ocupacao", e.target.value)}><option value="qualquer">Aceito ocupado</option><option value="desocupado">Só desocupado confirmado</option></select></label>
               <label className="toggle" style={{ alignSelf: "end" }}><input type="checkbox" checked={p.exigeFinanciamento} onChange={(e) => set("exigeFinanciamento", e.target.checked)} />Só lotes que aceitam financiamento</label>
@@ -79,6 +86,7 @@ export default function EditorPadrao({ inicial, onSalvar, onCancelar }: { inicia
             <div><dt>Margem</dt><dd>≥ {pct(p.margemMin)} · alvo {pct(p.margemAlvo)}</dd></div>
             <div><dt>Região</dt><dd className={p.ufs.length || p.cidades.length ? "" : "fraco"}>{[...p.ufs, ...p.cidades].join(", ") || "Brasil inteiro"}</dd></div>
             <div><dt>Tipos</dt><dd className={p.tipos.length ? "" : "fraco"}>{p.tipos.join(", ") || "todos"}</dd></div>
+            <div><dt>Perfil</dt><dd className={p.quartosMin || p.areaMin || p.areaMax ? "" : "fraco"}>{[p.quartosMin ? `${p.quartosMin}+ quartos` : "", p.areaMin || p.areaMax ? `${p.areaMin || 0} a ${p.areaMax ? p.areaMax : "∞"} m²` : ""].filter(Boolean).join(" · ") || "qualquer"}</dd></div>
           </dl>
         </div>
         <p style={{ fontSize: 12.5, color: "var(--mute)", margin: 0 }}>A prévia recalcula a cada mudança. O score de cada lote passa a ser sobre estas regras.</p>

@@ -365,6 +365,8 @@ pre.desc { white-space:pre-wrap; overflow-wrap:anywhere; font:13.5px/1.6 var(--f
 body.travado { overflow:hidden; touch-action:none }
 .fpanel-corpo { overscroll-behavior:contain } .folha { overscroll-behavior:contain }
 @media (max-width:899px) { .fpanel { top:auto } }
+/* painel de filtros aberto no mobile: a tabbar some, senão ela cobre o rodapé "Ver N lotes" (a .fbar cria stacking context abaixo dela) */
+@media (max-width:899px) { body.travado .tabbar { visibility:hidden } }
 
 /* Faixa de especificações */
 .specs { display:grid; grid-template-columns:repeat(2, 1fr); background:var(--surface); border:1px solid var(--line); border-radius:var(--r2); overflow:hidden; margin-top:20px; box-shadow:var(--sh1) }
