@@ -7,6 +7,8 @@ import { brl, brlCurto, pct, dataBR } from "@/lib/fmt";
 import { usePadroes } from "@/lib/usePadroes";
 import { urgencia, mapsUrl, tituloLimpo } from "@/lib/util";
 import { useFavoritos } from "@/lib/favoritos";
+import { useConta } from "@/lib/conta";
+import { emSegundoPlano } from "@/lib/nuvem";
 import { contato, MARCA } from "@/lib/marca";
 import Regua from "./Regua";
 import CampoMoeda from "./CampoMoeda";
@@ -40,10 +42,24 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
   const [erro, setErro] = useState(""); const [carregando, setCarregando] = useState(false); const [arrasto, setArrasto] = useState(false);
   const [foto, setFoto] = useState(0); const [zoom, setZoom] = useState(false); const [abrirCustos, setAbrirCustos] = useState(false);
   const { favs, toggle } = useFavoritos(); const fav = favs.has(i.id);
+  const { user, sb } = useConta(); const uid = user?.id;
   const chave = `garimpo:${i.id}`;
 
-  useEffect(() => { try { const s = localStorage.getItem(chave); if (s) { const d = JSON.parse(s); d.custos && setCustos(d.custos); d.lance && setLance(d.lance); d.venda && setVenda(d.venda); d.checks && setChecks(d.checks); d.ia && setIa(d.ia); } } catch {} }, [chave]);
-  useEffect(() => { try { localStorage.setItem(chave, JSON.stringify({ custos, lance, venda, checks, ia })); } catch {} }, [chave, custos, lance, venda, checks, ia]);
+  const aplicar = (d: Partial<{ custos: Custos; lance: number; venda: number; checks: boolean[]; ia: AnaliseIA }>) => { d.custos && setCustos(d.custos); d.lance && setLance(d.lance); d.venda && setVenda(d.venda); d.checks && setChecks(d.checks); d.ia && setIa(d.ia); };
+  useEffect(() => { try { const s = localStorage.getItem(chave); if (s) aplicar(JSON.parse(s)); } catch {} }, [chave]);
+  // Logado: se este navegador não tem nada do lote, usa o que está na nuvem.
+  useEffect(() => {
+    if (!uid || !sb) return; let vivo = true;
+    sb.from("lotwise_lotes").select("dados").eq("lote_id", i.id).maybeSingle().then(({ data }) => { if (vivo && data?.dados && !localStorage.getItem(chave)) aplicar(data.dados as Parameters<typeof aplicar>[0]); });
+    return () => { vivo = false; };
+  }, [uid, sb, i.id, chave]);
+  useEffect(() => {
+    const dados = { custos, lance, venda, checks, ia };
+    try { localStorage.setItem(chave, JSON.stringify(dados)); } catch {}
+    if (!uid || !sb) return;
+    const t = setTimeout(() => emSegundoPlano(sb.from("lotwise_lotes").upsert({ lote_id: i.id, dados })), 900);
+    return () => clearTimeout(t);
+  }, [chave, custos, lance, venda, checks, ia, uid, sb, i.id]);
 
   const fotos = i.fotos ?? [];
   const res = useMemo(() => calcular(venda, lance, custos), [venda, lance, custos]);

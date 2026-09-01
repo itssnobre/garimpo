@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTema } from "@/lib/tema";
+import { useConta } from "@/lib/conta";
 import { MARCA } from "@/lib/marca";
 
 const P = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -25,7 +26,10 @@ const GRUPOS: { titulo?: string; itens: { href: string; label: string; icone: ke
 ];
 
 export default function Sidebar() {
-  const path = usePathname(); const { tema, aplicar } = useTema(); const [aberto, setAberto] = useState(false);
+  const path = usePathname(); const { tema, aplicar } = useTema(); const { user, nuvem, sair } = useConta(); const [aberto, setAberto] = useState(false);
+  const conta = user
+    ? <p className="sb-nota sb-conta"><span title={user.email}>{user.email}</span><button type="button" onClick={sair}>Sair</button></p>
+    : nuvem ? <Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec sb-cta">Entrar</Link> : <p className="sb-nota">Seus favoritos e pipeline ficam neste navegador.</p>;
   useEffect(() => { setAberto(false); }, [path]);
   useEffect(() => { document.body.classList.toggle("travado", aberto); return () => document.body.classList.remove("travado"); }, [aberto]);
   return (
@@ -41,6 +45,7 @@ export default function Sidebar() {
       {aberto && <><div className="folha-fundo" onClick={() => setAberto(false)} /><div className="folha" role="dialog" aria-label="Mais opções">
         <h3>Mais</h3>{[...GRUPOS[0].itens.slice(4), ...GRUPOS[1].itens].map((it) => { const on = path.startsWith(it.href); return <Link key={it.href} href={it.href} className={`sb-item ${on ? "on" : ""}`}><span className="sb-ico">{I[it.icone]}</span><span>{it.label}</span></Link>; })}
         <h3>Tema</h3><div className="tema">{(["light", "dark", "system"] as const).map((t) => <button key={t} aria-pressed={tema === t} onClick={() => aplicar(t)} style={{ fontSize: 12.5, fontWeight: 500 }}>{t === "light" ? "Claro" : t === "dark" ? "Escuro" : "Sistema"}</button>)}</div>
+        <h3>Conta</h3>{conta}
       </div></>}
       <aside className="sidebar">
         <Link href="/" className="sb-logo" aria-label={`${MARCA}, site`}><img className="logo-inv" src="/marca/logo-dark.svg" alt={MARCA} /></Link>
@@ -55,7 +60,7 @@ export default function Sidebar() {
             </button>)}
           </div>
           <Link href="/#contato" className="btn ouro sb-cta">Falar com a equipe</Link>
-          <p className="sb-nota">Seus favoritos e pipeline ficam neste navegador.</p>
+          {conta}
         </div>
       </aside>
     </>
