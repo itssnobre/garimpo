@@ -284,9 +284,12 @@ pre.desc { white-space:pre-wrap; overflow-wrap:anywhere; font:13.5px/1.6 var(--f
 .contato { background:var(--surface); border:1px solid var(--line); border-radius:var(--r3); padding:26px; display:grid; grid-template-columns:1fr; gap:24px; align-items:center; box-shadow:var(--sh2); position:relative; overflow:hidden } @media (min-width:800px) { .contato { grid-template-columns:1.1fr .9fr; padding:36px } }
 .contato::before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:linear-gradient(180deg, var(--accent), var(--info)) }
 .contato h2 { font-family:var(--f-display); font-weight:600; font-size:clamp(25px, 3vw, 36px); letter-spacing:-.035em; margin:0 0 10px } .contato p { margin:0; color:var(--mute); line-height:1.6 } .contato form { display:grid; gap:12px }
-.rodape { margin:72px 0 0; background:var(--ink); color:var(--bg); font-size:13px }
+/* Rodapé é sempre escuro, nos dois temas: cores fixas, não tokens. */
+.rodape { margin:72px 0 0; background:#0B1017; color:#F7F8FA; font-size:13px; border-top:1px solid rgba(255,255,255,.06) }
 .rodape-in { max-width:1280px; margin:0 auto; padding:40px var(--pad) 44px; display:grid; grid-template-columns:1fr; gap:28px } @media (min-width:700px) { .rodape-in { grid-template-columns:1fr 1fr } } @media (min-width:1000px) { .rodape-in { grid-template-columns:1.3fr 1fr 1fr 1.5fr; padding:48px 28px 52px } }
-.rodape b { display:block; letter-spacing:.1em; text-transform:uppercase; font-size:11px; margin-bottom:12px; color:var(--accent) } .rodape a, .rodape span { display:block; color:rgba(247,248,250,.62); margin:6px 0; line-height:1.55 } .rodape a:hover { color:var(--bg) }
+.rodape b { display:block; letter-spacing:.1em; text-transform:uppercase; font-size:11px; margin-bottom:12px; color:#FFAA33 } .rodape a, .rodape span { display:block; color:rgba(247,248,250,.66); margin:6px 0; line-height:1.55 } .rodape a:hover { color:#fff }
+.rodape-marca p { margin:12px 0 0; color:rgba(247,248,250,.66); line-height:1.6; max-width:34ch } .rodape-marca .logo-img { filter:none }
+.rodape-base { max-width:1280px; margin:0 auto; padding:16px var(--pad) 22px; border-top:1px solid rgba(255,255,255,.08); display:flex; flex-wrap:wrap; gap:6px 18px; justify-content:space-between; font-size:12px; color:rgba(247,248,250,.45) } @media (min-width:1000px) { .rodape-base { padding:16px 28px 22px } }
 .reveal { opacity:0; transform:translateY(12px); transition:opacity .55s cubic-bezier(.2,.8,.2,1), transform .55s cubic-bezier(.2,.8,.2,1) } .reveal.vis { opacity:1; transform:none }
 .fordenar-mobile { display:block } @media (min-width:760px) { .fordenar-mobile { display:none } }
 
