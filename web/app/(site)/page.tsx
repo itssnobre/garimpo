@@ -10,7 +10,9 @@ export const dynamic = "force-static";
 export default function Landing() {
   const av = IMOVEIS.map((i) => ({ i, a: avaliar(i, CRITERIOS_PADRAO) }));
   const go = av.filter((x) => x.a.classe === "go");
-  const top = go.filter((x) => x.i.fotos?.length || x.i.foto).sort((x, y) => y.a.score - x.a.score).slice(0, 4);
+  // Vitrine: só lotes com foto e leilão ainda aberto, 3 por linha.
+  const hoje = new Date().toISOString().slice(0, 10);
+  const top = go.filter((x) => (x.i.fotos?.length || x.i.foto) && (!x.i.data_leilao || x.i.data_leilao >= hoje)).sort((x, y) => y.a.score - x.a.score).slice(0, 3);
   const ex = top[0];
   const fontes = Object.keys(META.fontes).length;
   return (
@@ -22,7 +24,7 @@ export default function Landing() {
             <p className="eyebrow">Leilão de imóveis · Brasil</p>
             <h1>Todo leilão do país, <em>com a conta feita</em> antes do lance.</h1>
             <p className="sub">A {MARCA} junta as fontes de leilão num só catálogo, refaz a conta de cada lote com leiloeiro, ITBI, registro, carrego e imposto, e filtra pelo padrão que você define: faixa, deságio, margem, região. Você só vê o que vale a pena.</p>
-            <div className="ctas"><Link href="/app/buscar" className="btn ouro">Abrir a plataforma</Link><Link href="/app/sage" className="btn sec">Conhecer o Sage, nossa IA</Link></div>
+            <div className="ctas"><Link href="/entrar?modo=criar" className="btn ouro">Criar conta grátis</Link><Link href="/app/buscar" className="btn sec">Ver o catálogo</Link></div>
             <div className="prova"><div><b>{IMOVEIS.length.toLocaleString("pt-BR")}</b><span>lotes monitorados</span></div><div><b>{fontes}</b><span>fontes oficiais</span></div><div><b>{go.length}</b><span>passam no padrão</span></div><div><b>{Object.keys(META.fontes).length}</b><span>coletas por dia</span></div></div>
           </div>
           {ex && (
@@ -41,7 +43,7 @@ export default function Landing() {
       <section className="land-sec" id="como-funciona">
         <div className="sec-cab"><p className="eyebrow">Como funciona</p><h2>Três passos entre o catálogo e a escritura.</h2><p>O leilão premia quem chega com a conta pronta e a matrícula lida. Fazemos as duas coisas antes de você levantar a mão.</p></div>
         <div className="passos">
-          <div className="passo"><div className="num">1</div><h3>Garimpo</h3><p>Coletamos todo dia os lotes de Caixa, bancos e leiloeiros judiciais e extrajudiciais de SP. Cada um recebe um score que combina deságio, margem líquida real, região e sinais de risco. Vetos automáticos tiram da frente o que não se compra: direitos de fiduciante, fração ideal.</p></div>
+          <div className="passo"><div className="num">1</div><h3>Garimpo</h3><p>Coletamos todo dia os lotes de Caixa, bancos e leiloeiros judiciais e extrajudiciais do Brasil inteiro. Cada um recebe um score que combina deságio, margem líquida real, região e sinais de risco. Vetos automáticos tiram da frente o que não se compra: direitos de fiduciante, fração ideal.</p></div>
           <div className="passo"><div className="num">2</div><h3>Diligência</h3><p>Lemos matrícula e edital averbação por averbação, com analista e IA: ônus, penhoras, execução condominial, intimação por edital, origem do imóvel. Levantamos débitos reais com síndico e prefeitura e conferimos o valor de venda no entorno.</p></div>
           <div className="passo"><div className="num">3</div><h3>Arremate</h3><p>Definimos juntos o lance máximo que respeita sua margem, cuidamos do cadastro no leiloeiro e acompanhamos o pregão. Depois, orientamos ITBI, registro e desocupação até o imóvel estar no seu nome.</p></div>
         </div>

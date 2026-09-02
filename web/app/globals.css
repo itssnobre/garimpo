@@ -448,3 +448,20 @@ body.travado { overflow:hidden; touch-action:none }
 .vazio.portao{border-color:var(--accent);background:var(--accent-soft)}
 /* Gaveta lateral (admin): mesma folha dos filtros, mas fixa à direita no desktop */
 @media (min-width:900px) { .fpanel.gaveta { position:fixed; top:16px; right:16px; bottom:16px; left:auto; width:460px; max-height:none; border-radius:var(--r2) } .fpanel-fundo.gaveta { background:rgba(11,16,23,.35) } }
+
+/* Telas de conta (entrar, recuperar, senha nova) */
+.auth { display:flex; align-items:flex-start; justify-content:center; padding:40px var(--pad) 56px; background:radial-gradient(900px 420px at 50% -10%, var(--accent-soft), transparent 70%) }
+@media (min-width:700px) { .auth { padding:72px 28px 88px } }
+.auth-in { width:100%; max-width:440px }
+.auth-eyebrow { color:var(--accent-ink); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin:0 0 10px }
+.auth h1 { font-family:var(--f-display); font-weight:600; font-size:clamp(28px, 4vw, 34px); letter-spacing:-.03em; margin:0 0 8px }
+.auth-lede { color:var(--mute); margin:0 0 22px; font-size:14.5px; line-height:1.55 }
+.auth-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r3); padding:22px; box-shadow:var(--sh2); display:flex; flex-direction:column; gap:14px }
+@media (min-width:700px) { .auth-card { padding:26px } }
+.auth-pe { margin:18px 0 0; font-size:13.5px; color:var(--mute); line-height:1.5 } .auth-pe a { color:var(--ink) }
+.site-corpo:has(.auth) + .rodape { margin-top:0 }
+.topo-conta { display:flex; gap:8px; align-items:center }
+@media (max-width:760px) { .topo-cta { padding:8px 12px; font-size:13px } .topo-links { gap:8px } }
+.sb-visitante { display:flex; flex-direction:column; gap:8px } .sb-visitante.alto { padding:0 0 14px; margin-bottom:6px; border-bottom:1px solid var(--line2) }
+.folha .sb-visitante { flex-direction:row } .folha .sb-visitante .btn { flex:1 }
+.site-shell { min-height:100dvh; display:flex; flex-direction:column } .site-corpo { flex:1 }

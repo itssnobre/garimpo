@@ -19,7 +19,7 @@ function Formulario() {
     } catch (err) { setMsg({ ok: false, txt: traduz((err as Error).message) }); } finally { setOcupado(false); }
   };
   return (
-    <form onSubmit={enviar} className="painel" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <form onSubmit={enviar} className="auth-card">
       <label className="campo"><span>E-mail da conta</span><input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@exemplo.com" /></label>
       {msg && <div className={`sinal ${msg.ok ? "info" : "alerta"}`}>{msg.txt}</div>}
       <button className="btn ouro" type="submit" disabled={ocupado || Boolean(msg?.ok)}>{ocupado ? "Aguarde…" : "Enviar link de recuperação"}</button>
@@ -28,12 +28,12 @@ function Formulario() {
 }
 export default function Recuperar() {
   return (
-    <section className="secao" style={{ maxWidth: 460, margin: "0 auto", padding: "48px var(--pad) 72px" }}>
-      <p className="eyebrow">Sua conta</p>
-      <h1 style={{ fontFamily: "var(--f-display)", fontSize: 30, margin: "6px 0 8px" }}>Recuperar a senha</h1>
-      <p style={{ color: "var(--mute)", margin: "0 0 20px", fontSize: 15 }}>Enviamos um link único para o seu e-mail. Ele abre uma tela para você definir a senha nova.</p>
+    <section className="auth"><div className="auth-in">
+      <p className="eyebrow auth-eyebrow">Sua conta</p>
+      <h1>Recuperar a senha</h1>
+      <p className="auth-lede">Enviamos um link único para o seu e-mail. Ele abre uma tela para você definir a senha nova.</p>
       <Suspense fallback={null}><Formulario /></Suspense>
-      <p style={{ marginTop: 18, fontSize: 13.5 }}><Link href="/entrar" style={{ textDecoration: "underline" }}>Voltar para entrar</Link></p>
-    </section>
+      <p className="auth-pe"><Link href="/entrar" style={{ textDecoration: "underline" }}>Voltar para entrar</Link></p>
+    </div></section>
   );
 }

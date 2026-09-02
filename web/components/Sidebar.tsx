@@ -27,18 +27,19 @@ const GRUPOS: { titulo?: string; itens: { href: string; label: string; icone: ke
 ];
 
 export default function Sidebar() {
-  const path = usePathname(); const { tema, aplicar } = useTema(); const { user, perfil, nuvem, sair } = useConta(); const [aberto, setAberto] = useState(false);
+  const path = usePathname(); const { tema, aplicar } = useTema(); const { user, perfil, nuvem, sair, pronto } = useConta(); const [aberto, setAberto] = useState(false);
   const grupos = perfil?.papel === "admin" ? [GRUPOS[0], { itens: [...GRUPOS[1].itens, { href: "/app/admin", label: "Administração", icone: "admin" as const }] }] : GRUPOS;
+  const visitante = nuvem && pronto && !user;
   const conta = user
     ? <p className="sb-nota sb-conta"><span title={user.email}>{perfil?.nome || user.email}</span><button type="button" onClick={sair}>Sair</button></p>
-    : nuvem ? <Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec sb-cta">Entrar</Link> : <p className="sb-nota">Seus favoritos e pipeline ficam neste navegador.</p>;
+    : nuvem ? <div className="sb-visitante"><Link href={`/entrar?modo=criar&next=${encodeURIComponent(path)}`} className="btn ouro sb-cta">Criar conta grátis</Link><Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec sb-cta">Entrar</Link></div> : <p className="sb-nota">Seus favoritos e pipeline ficam neste navegador.</p>;
   useEffect(() => { setAberto(false); }, [path]);
   useEffect(() => { document.body.classList.toggle("travado", aberto); return () => document.body.classList.remove("travado"); }, [aberto]);
   return (
     <>
       <header className="app-topo-mobile">
         <Link href="/app/buscar" aria-label={MARCA}><img className="logo-inv" src="/marca/logo-dark.svg" alt={MARCA} /></Link>
-        <Link href="/#contato" className="btn ouro mini">Assessoria</Link>
+        {visitante ? <span className="topo-conta"><Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec mini">Entrar</Link><Link href={`/entrar?modo=criar&next=${encodeURIComponent(path)}`} className="btn ouro mini">Criar conta</Link></span> : <Link href="/#contato" className="btn ouro mini">Assessoria</Link>}
       </header>
       <nav className="tabbar" aria-label="Navegação principal">
         {GRUPOS[0].itens.slice(0, 4).map((it) => { const on = path.startsWith(it.href); return <Link key={it.href} href={it.href} className={`tab ${on ? "on" : ""}`}>{I[it.icone]}<span>{it.label}</span></Link>; })}
@@ -51,6 +52,7 @@ export default function Sidebar() {
       </div></>}
       <aside className="sidebar">
         <Link href="/" className="sb-logo" aria-label={`${MARCA}, site`}><img className="logo-inv" src="/marca/logo-dark.svg" alt={MARCA} /></Link>
+        {visitante && <div className="sb-visitante alto"><Link href={`/entrar?modo=criar&next=${encodeURIComponent(path)}`} className="btn ouro sb-cta">Criar conta grátis</Link><Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec sb-cta">Entrar</Link></div>}
         <nav className="sb-nav">
           {grupos.map((g, k) => <div key={k} className="sb-grupo">{g.itens.map((it) => { const on = path.startsWith(it.href); return (
             <Link key={it.href} href={it.href} className={`sb-item ${on ? "on" : ""} ${it.ia ? "ia" : ""}`} aria-current={on ? "page" : undefined}><span className="sb-ico">{I[it.icone]}</span><span>{it.label}</span>{it.ia && <span className="sb-tag">IA</span>}</Link>); })}</div>)}
@@ -62,7 +64,7 @@ export default function Sidebar() {
             </button>)}
           </div>
           <Link href="/#contato" className="btn ouro sb-cta">Falar com a equipe</Link>
-          {conta}
+          {!visitante && conta}
         </div>
       </aside>
     </>

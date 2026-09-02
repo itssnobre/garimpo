@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { nuvemConfigurada, supabaseBrowser } from "@/lib/supabase/client";
@@ -15,6 +15,8 @@ function Formulario() {
   const [msg, setMsg] = useState<{ ok: boolean; txt: string } | null>(params.get("erro") === "link" ? { ok: false, txt: "Esse link expirou ou já foi usado. Peça outro." } : null);
   const [ocupado, setOcupado] = useState(false);
   const sb = supabaseBrowser();
+  // Já logado: não faz sentido ver o formulário, segue pro destino.
+  useEffect(() => { sb?.auth.getUser().then(({ data }) => { if (data.user) location.replace(next); }); }, [sb, next]);
   if (!nuvemConfigurada() || !sb) return <div className="sinal alerta">Conta ainda não está ativa neste ambiente.</div>;
   const redirect = `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
@@ -33,7 +35,7 @@ function Formulario() {
   };
 
   return (
-    <form onSubmit={enviar} className="painel" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <form onSubmit={enviar} className="auth-card">
       <div className="chips" role="tablist" aria-label="Modo">
         {([["entrar", "Entrar"], ["criar", "Criar conta"]] as [Modo, string][]).map(([m, l]) => <button key={m} type="button" role="tab" aria-selected={modo === m} className={`chip ${modo === m ? "on" : ""}`} onClick={() => { setModo(m); setMsg(null); }}>{l}</button>)}
       </div>
@@ -50,12 +52,12 @@ function Formulario() {
 
 export default function Entrar() {
   return (
-    <section className="secao" style={{ maxWidth: 460, margin: "0 auto", padding: "48px var(--pad) 72px" }}>
-      <p className="eyebrow">Sua conta</p>
-      <h1 style={{ fontFamily: "var(--f-display)", fontSize: 30, margin: "6px 0 8px" }}>Entrar na {MARCA}</h1>
-      <p style={{ color: "var(--mute)", margin: "0 0 20px", fontSize: 15 }}>Com conta você define o seu padrão, vê o catálogo inteiro com lance máximo e score, guarda favoritos e usa o Sage. Tudo segue você em qualquer aparelho.</p>
+    <section className="auth"><div className="auth-in">
+      <p className="eyebrow auth-eyebrow">Sua conta</p>
+      <h1>Entrar na {MARCA}</h1>
+      <p className="auth-lede">Com conta você define o seu padrão, vê o catálogo inteiro com lance máximo e score, guarda favoritos e usa o Sage. Tudo segue você em qualquer aparelho.</p>
       <Suspense fallback={null}><Formulario /></Suspense>
-      <p style={{ marginTop: 18, fontSize: 13.5 }}><Link href="/app/buscar" style={{ textDecoration: "underline" }}>Só dar uma olhada sem conta</Link> <span style={{ color: "var(--mute)" }}>(amostra de 30 lotes, sem análise)</span></p>
-    </section>
+      <p className="auth-pe"><Link href="/app/buscar" style={{ textDecoration: "underline" }}>Só dar uma olhada sem conta</Link> <span style={{ color: "var(--mute)" }}>(amostra de 30 lotes, sem análise)</span></p>
+    </div></section>
   );
 }
