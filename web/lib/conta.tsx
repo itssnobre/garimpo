@@ -2,7 +2,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { nuvemConfigurada, supabaseBrowser } from "./supabase/client";
-import { PADRAO_LOTWISE } from "./padrao";
 
 export interface Perfil { nome: string; papel: "admin" | "cliente" }
 interface Conta { user: User | null; perfil: Perfil | null; pronto: boolean; sb: SupabaseClient | null; nuvem: boolean; sair: () => Promise<void>; recarregarPerfil: () => Promise<void> }
@@ -18,11 +17,12 @@ export function ContaProvider({ children }: { children: React.ReactNode }) {
     const { data } = await sb.from("lotwise_perfis").select("nome,papel").eq("user_id", u.id).maybeSingle();
     if (data) { setPerfil(data as Perfil); return; }
     const nome = (u.user_metadata?.nome as string | undefined) ?? "";
-    const { data: novo, error } = await sb.from("lotwise_perfis").insert({ user_id: u.id, nome }).select("nome,papel").maybeSingle();
-    // Conta nova ganha o "Padrão Lotwise" já ativo: um ponto de partida com nome próprio, que o cliente edita, renomeia ou apaga.
-    if (!error) { const p = PADRAO_LOTWISE(); await sb.from("lotwise_padroes").upsert({ id: p.id, dados: p, ativo: true }); }
+    // Conta nova NÃO ganha padrão: a lista aparece sem pontuação até a pessoa criar o dela e escolher usar.
+    const { data: novo } = await sb.from("lotwise_perfis").insert({ user_id: u.id, nome }).select("nome,papel").maybeSingle();
     setPerfil((novo as Perfil | null) ?? { nome, papel: "cliente" });
   }, [sb]);
+  // Chaves antigas (sem id de conta) de versões anteriores: apaga uma vez, para nunca mais vazar dado entre contas.
+  useEffect(() => { try { ["garimpo:padroes", "garimpo:padrao-ativo", "garimpo:favoritos", "garimpo:pipeline"].forEach((k) => localStorage.removeItem(k)); } catch {} }, []);
   useEffect(() => {
     if (!sb) return;
     sb.auth.getUser().then(async ({ data }) => { setUser(data.user); await carregarPerfil(data.user); setPronto(true); });

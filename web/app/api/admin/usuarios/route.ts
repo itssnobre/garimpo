@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { exigirAdmin } from "@/lib/supabase/admin";
-import { PADRAO_LOTWISE } from "@/lib/padrao";
 export const runtime = "nodejs";
 
 export interface UsuarioAdmin { id: string; email: string; nome: string; papel: "admin" | "cliente"; criado_em: string; ultimo_login: string | null; confirmado: boolean; bloqueado: boolean; padroes: string[]; favoritos: number; pipeline: number; lotes: number }
@@ -40,7 +39,5 @@ export async function POST(req: Request) {
   if (error || !data.user) return NextResponse.json({ erro: error?.message ?? "Não criou." }, { status: 400 });
   const { error: e2 } = await admin.from("lotwise_perfis").upsert({ user_id: data.user.id, nome: nome?.trim() ?? "", papel: papel === "admin" ? "admin" : "cliente" });
   if (e2) return NextResponse.json({ erro: e2.message }, { status: 500 });
-  // Mesmo ponto de partida de quem se cadastra sozinho: "Padrão Lotwise" ativo, editável pelo cliente.
-  const p = PADRAO_LOTWISE(); await admin.from("lotwise_padroes").upsert({ user_id: data.user.id, id: p.id, dados: p, ativo: true });
   return NextResponse.json({ id: data.user.id });
 }

@@ -27,6 +27,7 @@ export function novoPadrao(p: Partial<Padrao> = {}): Padrao {
 }
 
 export const PRESETS: { nome: string; desc: string; p: Partial<Padrao> }[] = [
+  { nome: "Padrão Lotwise", desc: "Brasil inteiro, deságio 30%+, margem 25%+ (alvo 30%), vetos de diligência ligados. Bom primeiro padrão.", p: { desagioMin: 0.3, margemMin: 0.25, margemAlvo: 0.3, vetoFiduciante: true, vetoFracao: true } },
   { nome: "Conservador", desc: "Deságio 40%+, margem 30%+, só desocupado, vetos todos ligados.", p: { desagioMin: 0.4, margemMin: 0.3, margemAlvo: 0.35, ocupacao: "desocupado", vetoEdital: true } },
   { nome: "Revenda rápida", desc: "Apartamentos e casas até R$ 400 mil, deságio 35%+, margem 25%+.", p: { faixaMax: 400000, tipos: ["apartamento", "casa"], desagioMin: 0.35, margemMin: 0.25, margemAlvo: 0.3 } },
   { nome: "Apartamento 2+ quartos", desc: "Só apartamentos com 2 quartos ou mais e área informada, deságio 40%+, margem 25%+.", p: { tipos: ["apartamento"], quartosMin: 2, areaMin: 40, desagioMin: 0.4, margemMin: 0.25, margemAlvo: 0.3 } },
@@ -34,5 +35,3 @@ export const PRESETS: { nome: string; desc: string; p: Partial<Padrao> }[] = [
   { nome: "Em branco", desc: "Comece do zero e defina cada regra.", p: {} },
 ];
 
-/** Padrão inicial de toda conta nova: Brasil inteiro, deságio 30%+, margem 25% (alvo 30%), vetos de diligência ligados. Nome e regras são do cliente a partir daí. */
-export const PADRAO_LOTWISE = (): Padrao => novoPadrao({ id: "p-lotwise", nome: "Padrão Lotwise", desagioMin: 0.3, margemMin: 0.25, margemAlvo: 0.3, vetoFiduciante: true, vetoFracao: true });

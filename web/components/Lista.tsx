@@ -179,7 +179,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
 
       <div className="contagem">
         <div><b>{(visitante ? Math.min(lista.length, LIMITE_VISITANTE) : lista.length).toLocaleString("pt-BR")}</b> <span>{soPassam && ativo ? `lotes no padrão ${ativo.nome}` : "lotes"}</span></div>
-        <span style={{ color: "var(--mute)", fontSize: 13 }}>de {imoveis.length.toLocaleString("pt-BR")} coletados</span>
+        <span style={{ color: "var(--mute)", fontSize: 13 }} title="Encerrados, vetados e lotes com valor a conferir ficam ocultos por padrão. Mude em Filtros.">{imoveis.length.toLocaleString("pt-BR")} carregados{imoveis.length - lista.length > 0 ? ` · ${(imoveis.length - lista.length).toLocaleString("pt-BR")} fora pelos filtros` : ""}</span>
       </div>
 
       {lista.length === 0 ? (
