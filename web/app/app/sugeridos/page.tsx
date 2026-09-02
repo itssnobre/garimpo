@@ -2,17 +2,23 @@
 import Link from "next/link";
 import { useIndice } from "@/lib/indice";
 import SeletorUF, { useUFs } from "@/components/SeletorUF";
-import { avaliarPadrao, REGRAS_BASE } from "@/lib/motor";
+import { avaliarPadrao } from "@/lib/motor";
 import { usePadroes } from "@/lib/usePadroes";
 import Destaques from "@/components/Destaques";
-export default function Sugeridos() {
-  const { ativo, pronto } = usePadroes(); const regras = ativo ?? REGRAS_BASE;
+import Portao from "@/components/Portao";
+function Conteudo() {
+  const { ativo, pronto } = usePadroes();
   const { ufs, pronto: ufsProntas, definir } = useUFs(ativo?.ufs);
-  const { imoveis: IMOVEIS, carregando } = useIndice(ufs);
-  const go = IMOVEIS.map((i) => ({ i, a: avaliarPadrao(i, regras) })).filter((x) => x.a.passa).sort((x, y) => y.a.score - x.a.score);
+  const { imoveis: IMOVEIS, carregando } = useIndice(ativo ? ufs : []);
+  if (!pronto) return null;
+  if (!ativo) return (<>
+    <div className="app-cab"><div><h1>Sugeridos</h1><p>Os lotes que passam nas suas regras, ordenados por score.</p></div></div>
+    <div className="vazio"><b>Sugeridos precisam do seu padrão</b>Faixa, deságio, margem, região e vetos são seus. Sem eles não há o que sugerir.<p style={{ margin: "14px 0 0" }}><Link href="/app/padrao?novo=1" className="btn ouro">Criar meu padrão</Link></p></div>
+  </>);
+  const go = IMOVEIS.map((i) => ({ i, a: avaliarPadrao(i, ativo) })).filter((x) => x.a.passa).sort((x, y) => y.a.score - x.a.score);
   return (<>
-    <div className="app-cab"><div><h1>Sugeridos</h1><p>{go.length.toLocaleString("pt-BR")} lotes passam no {ativo ? `padrão "${ativo.nome}"` : "padrão neutro"} hoje, ordenados por score.</p></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{ufsProntas && <SeletorUF ufs={ufs} onChange={definir} />}<Link href="/app/padrao" className="btn sec">{ativo ? "Ajustar padrão" : "Criar meu padrão"}</Link></div></div>
-    {pronto && !ativo && <div className="sinal info" style={{ marginBottom: 12 }}>Sem padrão definido, os sugeridos usam uma base neutra. <Link href="/app/padrao?novo=1" style={{ textDecoration: "underline" }}>Criar o meu</Link>.</div>}
+    <div className="app-cab"><div><h1>Sugeridos</h1><p>{go.length.toLocaleString("pt-BR")} lotes passam no padrão "{ativo.nome}" hoje, ordenados por score.</p></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{ufsProntas && <SeletorUF ufs={ufs} onChange={definir} />}<Link href="/app/padrao" className="btn sec">Ajustar padrão</Link></div></div>
     {carregando && IMOVEIS.length === 0 ? <div className="vazio"><b>Carregando lotes…</b></div> : go.length === 0 ? <div className="vazio"><b>Nada passa no seu padrão hoje</b>Afrouxe alguma regra ou espere a próxima coleta.</div> : <Destaques itens={go.slice(0, 48)} />}
   </>);
 }
+export default function Sugeridos() { return <Portao titulo="Sugeridos"><Conteudo /></Portao>; }

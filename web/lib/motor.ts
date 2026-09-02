@@ -1,6 +1,6 @@
 import { brl } from "./fmt";
-// Motor de cálculo e score no padrão do sogro:
-// margem líquida mínima 25% (alvo 30 a 35%), deságio >= 40%, faixa 200 a 250k, região Sorocaba/ABC, vetos de diligência.
+// Motor de cálculo e score. As regras (faixa, deságio, margem, região, vetos, custos) são SEMPRE do padrão do usuário:
+// não existe padrão neutro. Sem padrão, o app não pontua.
 import type { Imovel } from "./types";
 
 export interface Custos {
@@ -103,7 +103,6 @@ export interface Regras { faixaMin: number; faixaMax: number; lanceMax: number; 
   // Perfil do imóvel (0 = não exige). Padrões salvos antes deste campo chegam sem ele, por isso opcional.
   quartosMin?: number; areaMin?: number; areaMax?: number }
 
-export const REGRAS_BASE: Regras = { faixaMin: 0, faixaMax: 0, lanceMax: 0, desagioMin: 0.3, margemMin: 0.25, margemAlvo: 0.3, ufs: [], cidades: [], tipos: [], modalidades: [], ocupacao: "qualquer", exigeFinanciamento: false, vetoFiduciante: true, vetoFracao: true, vetoEdital: false, custos: CUSTOS_PADRAO, quartosMin: 0, areaMin: 0, areaMax: 0 };
 
 // Área que conta para o perfil: privativa em apto/casa/comercial; terreno quando é só terreno ou não há privativa.
 export const areaDe = (i: Imovel) => i.area_privativa_m2 || i.area_terreno_m2 || 0;
@@ -113,9 +112,9 @@ export function noPerfil(i: Imovel, r: Pick<Regras, "quartosMin" | "areaMin" | "
   return (q <= 0 || (i.quartos ?? 0) >= q) && (aMin <= 0 || a >= aMin) && (aMax <= 0 || (a > 0 && a <= aMax));
 }
 
-// Compatibilidade: avaliar() com os critérios antigos vira avaliarPadrao() com regras equivalentes.
+// Só para a vitrine pública (landing): critérios de exemplo viram regras completas. Dentro do app, use o padrão do usuário.
 export function avaliar(i: Imovel, crit: Criterios = CRITERIOS_PADRAO, custos?: Custos): Avaliacao {
-  return avaliarPadrao(i, { ...REGRAS_BASE, faixaMin: crit.faixaMin, faixaMax: crit.faixaMax, desagioMin: crit.desagioMin, margemMin: crit.margemMin, custos: custos ?? CUSTOS_PADRAO });
+  return avaliarPadrao(i, { faixaMin: crit.faixaMin, faixaMax: crit.faixaMax, lanceMax: 0, desagioMin: crit.desagioMin, margemMin: crit.margemMin, margemAlvo: 0.3, ufs: [], cidades: [], tipos: [], modalidades: [], ocupacao: "qualquer", exigeFinanciamento: false, vetoFiduciante: true, vetoFracao: true, vetoEdital: false, custos: custos ?? CUSTOS_PADRAO, quartosMin: 0, areaMin: 0, areaMax: 0 });
 }
 
 const nrm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();

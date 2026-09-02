@@ -6,9 +6,14 @@ import { emSegundoPlano, gravar, ler } from "./nuvem";
 const K = "garimpo:padroes", KA = "garimpo:padrao-ativo", T = "lotwise_padroes";
 const lerAtivo = () => { try { return localStorage.getItem(KA) || ""; } catch { return ""; } };
 export function usePadroes() {
-  const { user, sb } = useConta(); const uid = user?.id;
+  const { user, sb, nuvem, pronto: contaPronta } = useConta(); const uid = user?.id;
   const [lista, setLista] = useState<Padrao[]>([]); const [ativoId, setAtivoId] = useState<string>(""); const [pronto, setPronto] = useState(false);
-  useEffect(() => { const l = ler<Padrao[]>(K, []); setLista(l); setAtivoId(lerAtivo() || l[0]?.id || ""); setPronto(true); }, []);
+  // Visitante não tem padrão (a conta é o dono das regras); sem nuvem configurada, vale o navegador. "pronto" só depois da nuvem responder quando há login.
+  useEffect(() => {
+    if (!contaPronta) return;
+    if (nuvem && !uid) { setLista([]); setAtivoId(""); setPronto(true); return; }
+    const l = ler<Padrao[]>(K, []); setLista(l); setAtivoId(lerAtivo() || l[0]?.id || ""); if (!uid) setPronto(true);
+  }, [contaPronta, nuvem, uid]);
   // Logado: padrões da nuvem mandam; os que só existem neste navegador sobem.
   useEffect(() => {
     if (!uid || !sb) return; let vivo = true;
@@ -19,6 +24,7 @@ export function usePadroes() {
       const a = (data.find((d) => d.ativo)?.id as string | undefined) ?? lerAtivo() ?? l[0]?.id ?? "";
       if (faltam.length) emSegundoPlano(sb.from(T).upsert(faltam.map((p) => ({ id: p.id, dados: p, ativo: p.id === a }))));
       setLista(l); setAtivoId(a); gravar(K, l); try { localStorage.setItem(KA, a); } catch {}
+      setPronto(true);
     });
     return () => { vivo = false; };
   }, [uid, sb]);
