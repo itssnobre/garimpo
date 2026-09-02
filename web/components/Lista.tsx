@@ -41,6 +41,8 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
   const toggle = (id: string) => { if (visitante) { router.push(`/entrar?next=${encodeURIComponent("/app/buscar")}`); return; } toggleFav(id); };
 
   const avaliados = useMemo(() => imoveis.map((i) => ({ i, a: regras ? avaliarPadrao(i, regras) : null as Avaliacao | null })), [imoveis, regras]);
+  // Mesmo critério do chip de estados: leilão aberto, sem veto, sem valor suspeito.
+  const disponiveis = useMemo(() => imoveis.filter((i) => (!i.data_leilao || i.data_leilao >= hoje) && !(i.direitos_fiduciante || i.fracao_ideal) && !(i.valor_suspeito || i.desagio_pct >= 0.85)).length, [imoveis, hoje]);
   const cidades = useMemo(() => Array.from(new Set(imoveis.map((i) => i.cidade))).sort((a, b) => a.localeCompare(b, "pt-BR")), [imoveis]);
   const fontes = useMemo(() => Array.from(new Set(imoveis.map((i) => i.fonte))).sort(), [imoveis]);
 
@@ -179,7 +181,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
 
       <div className="contagem">
         <div><b>{(visitante ? Math.min(lista.length, LIMITE_VISITANTE) : lista.length).toLocaleString("pt-BR")}</b> <span>{soPassam && ativo ? `lotes no padrão ${ativo.nome}` : "lotes"}</span></div>
-        <span style={{ color: "var(--mute)", fontSize: 13 }} title="Encerrados, vetados e lotes com valor a conferir ficam ocultos por padrão. Mude em Filtros.">{imoveis.length.toLocaleString("pt-BR")} carregados{imoveis.length - lista.length > 0 ? ` · ${(imoveis.length - lista.length).toLocaleString("pt-BR")} fora pelos filtros` : ""}</span>
+        <span style={{ color: "var(--mute)", fontSize: 13 }} title="Disponíveis = leilão aberto, sem veto e sem valor suspeito. Encerrados, vetados e valor a conferir podem ser exibidos em Filtros.">{disponiveis.toLocaleString("pt-BR")} disponíveis{lista.length < disponiveis && nFiltros + (busca ? 1 : 0) + (soPassam && ativo ? 1 : 0) > 0 ? ` · ${(disponiveis - lista.length).toLocaleString("pt-BR")} fora pelos filtros` : ""}</span>
       </div>
 
       {lista.length === 0 ? (

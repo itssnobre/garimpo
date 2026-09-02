@@ -240,8 +240,13 @@ def main():
     fontes_meta = {}
     for it in out: fontes_meta.setdefault(it["fonte"], 0)
     for it in out: fontes_meta[it["fonte"]] += 1
+    # "Disponíveis" = o que a lista mostra por padrão: leilão ainda aberto (ou sem data), sem veto e sem valor suspeito.
+    hoje = dt.date.today().isoformat()
+    disp = lambda r: (not r.get("data_leilao") or r["data_leilao"] >= hoje) and not r.get("direitos_fiduciante") and not r.get("fracao_ideal") and not r.get("valor_suspeito")
     json.dump({"gerado_em": now_iso(), "total": len(out), "fontes": stats,
                "por_uf": {uf: len(l) for uf, l in sorted(por_uf.items())},
+               "disponiveis_total": sum(1 for r in idx if disp(r)),
+               "disponiveis_por_uf": {uf: sum(1 for r in l if disp(r)) for uf, l in sorted(por_uf.items())},
                "por_fonte": fontes_meta},
               open(os.path.join(ROOT, "web", "data", "meta.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     if "-v" in sys.argv or "--stats" in sys.argv:
