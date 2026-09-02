@@ -9,8 +9,8 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], variable: "--f-mono", weight: [
 
 export const metadata: Metadata = {
   title: { default: `${MARCA} · ${TAGLINE}`, template: `%s · ${MARCA}` },
-  description: "Todos os imóveis em leilão de São Paulo, recalculados com leiloeiro, ITBI, registro e carrego. Só o que paga a margem, com lance máximo e análise de matrícula.",
-  openGraph: { title: `${MARCA} · ${TAGLINE}`, description: "Imóveis em leilão em SP com margem líquida real, régua de lance e assessoria de arremate.", type: "website", locale: "pt_BR" },
+  description: "Imóveis em leilão do Brasil inteiro, recalculados com leiloeiro, ITBI, registro e carrego. Só o que paga a margem, com lance máximo e análise de matrícula.",
+  openGraph: { title: `${MARCA} · ${TAGLINE}`, description: "Imóveis em leilão em todo o Brasil com margem líquida real, régua de lance e assessoria de arremate.", type: "website", locale: "pt_BR" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
