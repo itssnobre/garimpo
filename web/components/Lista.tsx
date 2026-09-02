@@ -2,12 +2,16 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Imovel } from "@/lib/types";
-import { avaliarPadrao, REGRAS_BASE, FONTE_LABEL, MODALIDADE_LABEL, noPerfil } from "@/lib/motor";
+import { avaliarPadrao, FONTE_LABEL, MODALIDADE_LABEL, noPerfil, type Avaliacao } from "@/lib/motor";
 import { brl } from "@/lib/fmt";
 import { usePadroes } from "@/lib/usePadroes";
 import Card from "./Card";
 import CampoMoeda from "./CampoMoeda";
 import { useFavoritos } from "@/lib/favoritos";
+import { useConta } from "@/lib/conta";
+import { useRouter } from "next/navigation";
+
+const LIMITE_VISITANTE = 30;
 
 type Ordem = "score" | "margem" | "desagio" | "lance" | "data";
 const ORDENS: [Ordem, string][] = [["score", "Melhor score"], ["margem", "Maior margem"], ["desagio", "Maior deságio"], ["lance", "Menor lance"], ["data", "Leilão mais próximo"]];
@@ -21,16 +25,20 @@ const Seta = () => <svg {...S} width={13} height={13}><path d="M6 9l6 6 6-6" /><
 
 export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
   const { ativo, lista: padroes, ativar, pronto } = usePadroes();
-  const regras = ativo ?? REGRAS_BASE;
+  const { user, pronto: contaPronta } = useConta(); const router = useRouter();
+  const visitante = contaPronta && !user;
+  // Sem padrão não há pontuação: a lista mostra o catálogo cru até o usuário criar as regras dele.
+  const regras = ativo ?? null;
   const [busca, setBusca] = useState(""); const [cidade, setCidade] = useState(""); const [tipo, setTipo] = useState(""); const [fonte, setFonte] = useState(""); const [modalidade, setModalidade] = useState("");
   const [soPassam, setSoPassam] = useState(true); const [ocultarVeto, setOcultarVeto] = useState(true); const [soFoto, setSoFoto] = useState(false); const [soFavs, setSoFavs] = useState(false);
   const [precoMin, setPrecoMin] = useState(0); const [precoMax, setPrecoMax] = useState(0);
   const [quartosMin, setQuartosMin] = useState(0); const [areaMin, setAreaMin] = useState(0); const [areaMax, setAreaMax] = useState(0);
   const perfil = { quartosMin, areaMin, areaMax }; const temPerfil = quartosMin > 0 || areaMin > 0 || areaMax > 0;
   const [ordem, setOrdem] = useState<Ordem>("score"); const [limite, setLimite] = useState(48); const [painel, setPainel] = useState(false);
-  const { favs, toggle } = useFavoritos();
+  const { favs, toggle: toggleFav } = useFavoritos();
+  const toggle = (id: string) => { if (visitante) { router.push(`/entrar?next=${encodeURIComponent("/app/buscar")}`); return; } toggleFav(id); };
 
-  const avaliados = useMemo(() => imoveis.map((i) => ({ i, a: avaliarPadrao(i, regras) })), [imoveis, regras]);
+  const avaliados = useMemo(() => imoveis.map((i) => ({ i, a: regras ? avaliarPadrao(i, regras) : null as Avaliacao | null })), [imoveis, regras]);
   const cidades = useMemo(() => Array.from(new Set(imoveis.map((i) => i.cidade))).sort((a, b) => a.localeCompare(b, "pt-BR")), [imoveis]);
   const fontes = useMemo(() => Array.from(new Set(imoveis.map((i) => i.fonte))).sort(), [imoveis]);
 
@@ -40,14 +48,14 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
       (!cidade || i.cidade === cidade) && (!tipo || i.tipo === tipo) && (!fonte || i.fonte === fonte) && (!modalidade || i.modalidade === modalidade) &&
       (precoMin <= 0 || i.lance_minimo >= precoMin) && (precoMax <= 0 || i.lance_minimo <= precoMax) && (!temPerfil || noPerfil(i, perfil)) &&
       (!ocultarVeto || !(i.direitos_fiduciante || i.fracao_ideal)) && (!soFoto || Boolean(i.fotos?.length || i.foto)) && (!soFavs || favs.has(i.id)) &&
-      (!soPassam || a.passa) &&
+      (!soPassam || !a || a.passa) &&
       (!q || `${i.titulo} ${i.endereco ?? ""} ${i.bairro ?? ""} ${i.cidade} ${i.uf} ${i.matricula ?? ""}`.toLowerCase().includes(q)));
-    const k: Record<Ordem, (x: (typeof l)[number]) => number | string> = { score: (x) => -x.a.score, margem: (x) => -x.a.res.margem, desagio: (x) => -x.i.desagio_pct, lance: (x) => x.i.lance_minimo, data: (x) => x.i.data_leilao ?? "9999" };
+    const k: Record<Ordem, (x: (typeof l)[number]) => number | string> = { score: (x) => (x.a ? -x.a.score : -x.i.desagio_pct), margem: (x) => (x.a ? -x.a.res.margem : -x.i.desagio_pct), desagio: (x) => -x.i.desagio_pct, lance: (x) => x.i.lance_minimo, data: (x) => x.i.data_leilao ?? "9999" };
     return l.sort((x, y) => { const a = k[ordem](x), b = k[ordem](y); return a < b ? -1 : a > b ? 1 : 0; });
   }, [avaliados, cidade, tipo, fonte, modalidade, busca, soPassam, ocultarVeto, soFoto, soFavs, favs, ordem, precoMin, precoMax, quartosMin, areaMin, areaMax]);
 
   const pills = [
-    soPassam && { k: "padrao", txt: ativo ? `Padrão: ${ativo.nome}` : "Padrão neutro", off: () => setSoPassam(false), destaque: true },
+    soPassam && ativo && { k: "padrao", txt: `Padrão: ${ativo.nome}`, off: () => setSoPassam(false), destaque: true },
     (precoMin > 0 || precoMax > 0) && { k: "preco", txt: precoMin > 0 && precoMax > 0 ? `Lance ${brl(precoMin)} a ${brl(precoMax)}` : precoMin > 0 ? `Lance a partir de ${brl(precoMin)}` : `Lance até ${brl(precoMax)}`, off: () => { setPrecoMin(0); setPrecoMax(0); } },
     quartosMin > 0 && { k: "quartos", txt: `${quartosMin}+ quartos`, off: () => setQuartosMin(0) },
     (areaMin > 0 || areaMax > 0) && { k: "area", txt: areaMin > 0 && areaMax > 0 ? `${areaMin} a ${areaMax} m²` : areaMin > 0 ? `A partir de ${areaMin} m²` : `Até ${areaMax} m²`, off: () => { setAreaMin(0); setAreaMax(0); } },
@@ -83,12 +91,13 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
             <div className="fpanel" role="dialog" aria-label="Filtros">
               <div className="fpanel-cab"><b>Filtros</b><button className="btn ghost mini" onClick={() => setPainel(false)} aria-label="Fechar"><Xis s={18} /></button></div>
               <div className="fpanel-corpo">
-                <div className="fgrupo">
+                {!visitante && <div className="fgrupo">
                   <h4>Meu padrão</h4>
-                  <label className="toggle"><input type="checkbox" checked={soPassam} onChange={(e) => setSoPassam(e.target.checked)} />Mostrar só o que passa {ativo ? `no padrão "${ativo.nome}"` : "no padrão neutro"}</label>
+                  {ativo ? <label className="toggle"><input type="checkbox" checked={soPassam} onChange={(e) => setSoPassam(e.target.checked)} />Mostrar só o que passa no padrão "{ativo.nome}"</label>
+                    : <p style={{ margin: 0, fontSize: 13, color: "var(--mute)" }}>Você ainda não tem padrão. Sem ele a lista não é pontuada.</p>}
                   {padroes.length > 1 && <select className="fseletor" style={{ marginTop: 8 }} value={ativo?.id ?? ""} onChange={(e) => ativar(e.target.value)} aria-label="Padrão ativo">{padroes.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select>}
-                  <p style={{ margin: "10px 0 0", fontSize: 13 }}><Link href="/app/padrao" style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{ativo ? "Ajustar minhas regras →" : "Criar meu padrão →"}</Link></p>
-                </div>
+                  <p style={{ margin: "10px 0 0", fontSize: 13 }}><Link href={ativo ? "/app/padrao" : "/app/padrao?novo=1"} style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{ativo ? "Ajustar minhas regras →" : "Criar meu padrão →"}</Link></p>
+                </div>}
                 <div className="fgrupo">
                   <h4>Lance mínimo do leilão</h4>
                   <div className="par">
@@ -154,19 +163,22 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
           </div>)}
       </div>
 
-      {pronto && !ativo && (
-        <div className="sinal info" style={{ margin: "0 0 16px" }}>Você ainda não definiu o seu padrão. A lista usa uma base neutra (deságio 30%, margem 25%, Brasil inteiro). <Link href="/app/padrao?novo=1" style={{ fontWeight: 600, textDecoration: "underline" }}>Criar meu padrão</Link> leva 2 minutos.</div>)}
+      {visitante && (
+        <div className="sinal info" style={{ margin: "0 0 16px" }}>Você está vendo uma amostra de {LIMITE_VISITANTE} lotes. <Link href="/entrar?modo=criar&next=/app/buscar" style={{ fontWeight: 600, textDecoration: "underline" }}>Crie sua conta grátis</Link> para ver os {imoveis.length.toLocaleString("pt-BR")} lotes, definir o seu padrão e guardar favoritos.</div>)}
+      {!visitante && pronto && contaPronta && !ativo && (
+        <div className="sinal info" style={{ margin: "0 0 16px" }}>Você ainda não definiu o seu padrão, então a lista aparece sem pontuação. <Link href="/app/padrao?novo=1" style={{ fontWeight: 600, textDecoration: "underline" }}>Criar meu padrão</Link> leva 2 minutos.</div>)}
 
       <div className="contagem">
-        <div><b>{lista.length.toLocaleString("pt-BR")}</b> <span>{soPassam ? (ativo ? `lotes no padrão ${ativo.nome}` : "lotes no padrão neutro") : "lotes"}</span></div>
+        <div><b>{(visitante ? Math.min(lista.length, LIMITE_VISITANTE) : lista.length).toLocaleString("pt-BR")}</b> <span>{soPassam && ativo ? `lotes no padrão ${ativo.nome}` : "lotes"}</span></div>
         <span style={{ color: "var(--mute)", fontSize: 13 }}>de {imoveis.length.toLocaleString("pt-BR")} coletados</span>
       </div>
 
       {lista.length === 0 ? (
         <div className="vazio"><b>Nada encontrado</b>{soFavs ? "Você ainda não marcou favoritos. Toque na estrela de um lote para guardar aqui." : "Afrouxe o seu padrão (faixa, deságio, margem ou região) ou remova algum filtro."}</div>
       ) : (<>
-        <div className="grade">{lista.slice(0, limite).map(({ i, a }) => <Card key={i.id} i={i} a={a} fav={favs.has(i.id)} toggle={toggle} />)}</div>
-        {lista.length > limite && <p style={{ textAlign: "center", margin: 28 }}><button className="btn sec" onClick={() => setLimite(limite + 48)}>Mostrar mais {Math.min(48, lista.length - limite)} de {(lista.length - limite).toLocaleString("pt-BR")}</button></p>}
+        <div className="grade">{lista.slice(0, visitante ? LIMITE_VISITANTE : limite).map(({ i, a }) => <Card key={i.id} i={i} a={a} fav={favs.has(i.id)} toggle={toggle} />)}</div>
+        {visitante && lista.length > LIMITE_VISITANTE && <div className="vazio" style={{ marginTop: 20 }}><b>Mais {(lista.length - LIMITE_VISITANTE).toLocaleString("pt-BR")} lotes esperando</b>Crie sua conta grátis para ver tudo, com o seu padrão e a sua conta de lance.<p style={{ margin: "14px 0 0" }}><Link href="/entrar?modo=criar&next=/app/buscar" className="btn ouro">Criar conta grátis</Link></p></div>}
+        {!visitante && lista.length > limite && <p style={{ textAlign: "center", margin: 28 }}><button className="btn sec" onClick={() => setLimite(limite + 48)}>Mostrar mais {Math.min(48, lista.length - limite)} de {(lista.length - limite).toLocaleString("pt-BR")}</button></p>}
       </>)}
     </>
   );

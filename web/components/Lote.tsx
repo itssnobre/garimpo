@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Imovel } from "@/lib/types";
-import { avaliarPadrao, REGRAS_BASE, calcular, custosPara, CUSTOS_PADRAO, FONTE_LABEL, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
+import { avaliarPadrao, calcular, custosPara, CUSTOS_PADRAO, FONTE_LABEL, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
 import { brl, brlCurto, pct, dataBR } from "@/lib/fmt";
 import { usePadroes } from "@/lib/usePadroes";
 import { urgencia, mapsUrl, tituloLimpo } from "@/lib/util";
@@ -30,11 +30,28 @@ const CHECKLIST = [
 interface AnaliseIA { resumo: string; risco_geral: "baixo" | "medio" | "alto" | "veto"; proprietario?: string; onus: string[]; alertas: string[]; ok: string[]; perguntas: string[]; custos_previstos?: string[] }
 const CAMPOS: [keyof Custos, string][] = [["leiloeiro", "Leiloeiro %"], ["itbi", "ITBI %"], ["registro", "Registro %"], ["advogado", "Advogado R$"], ["certidoes", "Certidões R$"], ["debitos", "Débitos R$"], ["desocupacao", "Desocupação R$"], ["reforma", "Reforma R$"], ["meses", "Meses até vender"], ["mensal", "Custo mensal R$"], ["corretagem", "Corretagem %"], ["ir", "IR ganho capital %"], ["descontoVenda", "Vender abaixo da aval. %"]];
 
+function PainelSemPadrao({ visitante }: { visitante: boolean }) {
+  const volta = typeof location !== "undefined" ? location.pathname : "/app/buscar";
+  return (
+    <section className="secao" id="valores">
+      <div className="vazio portao">
+        <b>{visitante ? "A análise completa é para quem tem conta" : "A análise usa as suas regras"}</b>
+        {visitante ? "Conta grátis: você define o seu padrão (faixa, deságio, margem, região, vetos e custos) e cada lote ganha lance máximo, margem líquida, score e sinais de risco."
+          : "Crie o seu padrão para ver o lance máximo, a margem líquida, o score e os sinais de risco deste lote. Leva 2 minutos e vale para o catálogo inteiro."}
+        <p style={{ margin: "16px 0 0", display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+          {visitante ? <><Link href={`/entrar?modo=criar&next=${encodeURIComponent(volta)}`} className="btn ouro">Criar conta grátis</Link><Link href={`/entrar?next=${encodeURIComponent(volta)}`} className="btn sec">Já tenho conta</Link></>
+            : <Link href="/app/padrao?novo=1" className="btn ouro">Criar meu padrão</Link>}
+        </p>
+      </div>
+    </section>);
+}
+
 export default function Lote({ imovel: i }: { imovel: Imovel }) {
   const ex = i as Imovel & { lance_1a_praca?: number; lance_2a_praca?: number; datas_leilao?: Record<string, string>; formas_pagamento?: string; edital_num?: string; inscricao_imobiliaria?: string; descricao_detalhe?: string };
-  const { ativo } = usePadroes();
-  const regras = ativo ?? REGRAS_BASE;
-  const [custos, setCustos] = useState<Custos>(() => custosPara(i, regras.custos ?? CUSTOS_PADRAO));
+  const { ativo, pronto: padroesProntos } = usePadroes();
+  // Sem padrão não há análise: a página mostra o lote e pede as regras do usuário (ou a conta, se for visitante).
+  const regras = ativo;
+  const [custos, setCustos] = useState<Custos>(() => custosPara(i, ativo?.custos ?? CUSTOS_PADRAO));
   const [lance, setLance] = useState(i.lance_minimo);
   const [venda, setVenda] = useState(i.avaliacao);
   const [checks, setChecks] = useState<boolean[]>(CHECKLIST.map(() => false));
@@ -42,7 +59,8 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
   const [erro, setErro] = useState(""); const [carregando, setCarregando] = useState(false); const [arrasto, setArrasto] = useState(false);
   const [foto, setFoto] = useState(0); const [zoom, setZoom] = useState(false); const [abrirCustos, setAbrirCustos] = useState(false);
   const { favs, toggle } = useFavoritos(); const fav = favs.has(i.id);
-  const { user, sb } = useConta(); const uid = user?.id;
+  const { user, sb, pronto: contaPronta } = useConta(); const uid = user?.id;
+  const visitante = contaPronta && !user; const semPadrao = padroesProntos && contaPronta && !regras;
   const chave = `garimpo:${i.id}`;
 
   const aplicar = (d: Partial<{ custos: Custos; lance: number; venda: number; checks: boolean[]; ia: AnaliseIA }>) => { d.custos && setCustos(d.custos); d.lance && setLance(d.lance); d.venda && setVenda(d.venda); d.checks && setChecks(d.checks); d.ia && setIa(d.ia); };
@@ -63,14 +81,15 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
 
   const fotos = i.fotos ?? [];
   const res = useMemo(() => calcular(venda, lance, custos), [venda, lance, custos]);
-  const av = useMemo(() => avaliarPadrao(i, regras), [i, regras]);
+  const av = useMemo(() => (regras ? avaliarPadrao(i, regras) : null), [i, regras]);
   const u = urgencia(i.data_leilao);
-  const veto = av.sinais.some((s) => s.nivel === "veto") || ia?.risco_geral === "veto";
-  const classe = veto ? "nogo" : res.lucro <= 0 || res.margem < regras.margemMin ? "nogo" : res.margem < regras.margemAlvo ? "atencao" : "go";
+  const veto = (av?.sinais.some((s) => s.nivel === "veto") ?? false) || ia?.risco_geral === "veto";
+  const margemMin = regras?.margemMin ?? 0, margemAlvo = regras?.margemAlvo ?? 0.3;
+  const classe = veto ? "nogo" : res.lucro <= 0 || res.margem < margemMin ? "nogo" : res.margem < margemAlvo ? "atencao" : "go";
   const feitos = checks.filter(Boolean).length;
   const endCompleto = [i.endereco, i.bairro, i.cidade, i.uf, i.cep].filter(Boolean).join(", ");
-  const alvoPct = pct(regras.margemAlvo);
-  const lanceAlvo = regras.margemAlvo >= 0.35 ? res.lanceMax35 : regras.margemAlvo >= 0.3 ? res.lanceMax30 : res.lanceMax25;
+  const alvoPct = pct(margemAlvo);
+  const lanceAlvo = margemAlvo >= 0.35 ? res.lanceMax35 : margemAlvo >= 0.3 ? res.lanceMax30 : res.lanceMax25;
 
   const irFoto = useCallback((d: number) => setFoto((f) => (fotos.length ? (f + d + fotos.length) % fotos.length : 0)), [fotos.length]);
   useEffect(() => {
@@ -110,7 +129,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
       <div className="lote-barra">
         <Link href="/app/buscar" className="volta">← Voltar à busca</Link>
         <div className="lote-acoes">
-          <button className={`btn sec ${fav ? "favon" : ""}`} onClick={() => toggle(i.id)} aria-pressed={fav}><IEstrela cheia={fav} />{fav ? "Guardado" : "Guardar"}</button>
+          <button className={`btn sec ${fav ? "favon" : ""}`} onClick={() => (visitante ? (location.href = `/entrar?next=${encodeURIComponent(location.pathname)}`) : toggle(i.id))} aria-pressed={fav}><IEstrela cheia={fav} />{fav ? "Guardado" : "Guardar"}</button>
           {endCompleto && <a className="btn sec" href={mapsUrl(endCompleto)} target="_blank" rel="noreferrer"><IMapa />Ver no mapa</a>}
           {i.matricula_url && <a className="btn sec" href={i.matricula_url} target="_blank" rel="noreferrer"><IDoc />Matrícula</a>}
           {i.edital_url && <a className="btn sec" href={i.edital_url} target="_blank" rel="noreferrer"><IDoc />Edital</a>}
@@ -163,10 +182,12 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               </div>))}
           </div>
 
-          <nav className="ancoras" aria-label="Seções"><a href="#valores">Valores</a><a href="#riscos">Riscos</a><a href="#diligencia">Diligência</a><a href="#documentos">Documentos</a><a href="#descricao">Descrição</a></nav>
+          <nav className="ancoras" aria-label="Seções">{!semPadrao && <><a href="#valores">Valores</a><a href="#riscos">Riscos</a></>}<a href="#diligencia">Diligência</a><a href="#documentos">Documentos</a><a href="#descricao">Descrição</a></nav>
+
+          {semPadrao && <PainelSemPadrao visitante={visitante} />}
 
           {/* Parte 1 · Valores */}
-          <section className="secao" id="valores">
+          {!semPadrao && <section className="secao" id="valores">
             <h2><span className="parte">Parte 1</span>Valores</h2>
             <p className="lede">Refizemos a conta com todos os custos. O número que importa é o teto: até quanto dá para dar lance mantendo a sua margem.</p>
 
@@ -177,7 +198,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
                 <small>{lance <= lanceAlvo ? `Seu lance atual está ${brl(lanceAlvo - lance)} abaixo do teto.` : `Atenção: seu lance passa ${brl(lance - lanceAlvo)} do teto.`}</small>
               </div>
               <div className="teto-outros">
-                {([[0.25, res.lanceMax25], [0.30, res.lanceMax30], [0.35, res.lanceMax35]] as const).filter(([m]) => Math.abs(m - regras.margemAlvo) > 0.001).map(([m, v]) => (
+                {([[0.25, res.lanceMax25], [0.30, res.lanceMax30], [0.35, res.lanceMax35]] as const).filter(([m]) => Math.abs(m - margemAlvo) > 0.001).map(([m, v]) => (
                   <div key={m}><span>Teto para {pct(m)}</span><b className="num" title={brl(v)}>{brlCurto(v)}</b></div>))}
               </div>
             </div>
@@ -207,16 +228,16 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               <div className="custos">{CAMPOS.map(([k, l]) => l.endsWith("R$")
                 ? <div className="campo" key={k}><span>{l.replace(" R$", "")}</span><CampoMoeda valor={custos[k]} onChange={(v) => setCustos({ ...custos, [k]: v })} /></div>
                 : <label className="campo" key={k}><span>{l}</span><input className="num" type="number" step="0.1" value={custos[k]} onChange={(e) => setCustos({ ...custos, [k]: +e.target.value || 0 })} /></label>)}</div>
-              <p style={{ margin: "12px 0 0" }}><button className="btn sec mini" onClick={() => { setCustos(custosPara(i, regras.custos ?? CUSTOS_PADRAO)); setLance(i.lance_minimo); setVenda(i.avaliacao); }}>Restaurar</button></p>
+              <p style={{ margin: "12px 0 0" }}><button className="btn sec mini" onClick={() => { setCustos(custosPara(i, regras?.custos ?? CUSTOS_PADRAO)); setLance(i.lance_minimo); setVenda(i.avaliacao); }}>Restaurar</button></p>
             </details>
-          </section>
+          </section>}
 
           {/* Parte 2 · Riscos */}
-          <section className="secao" id="riscos">
+          {!semPadrao && <section className="secao" id="riscos">
             <h2><span className="parte">Parte 2</span>Riscos</h2>
             <p className="lede">O que a fonte e as suas regras já apontam. A leitura da matrícula fecha o resto.</p>
-            {av.sinais.length === 0 && <div className="sinal">Nenhum sinal automático neste lote. A diligência manual continua obrigatória.</div>}
-            {av.sinais.map((s, k) => <div key={k} className={`sinal ${s.nivel}`}>{s.texto}</div>)}
+            {av && av.sinais.length === 0 && <div className="sinal">Nenhum sinal automático neste lote. A diligência manual continua obrigatória.</div>}
+            {av?.sinais.map((s, k) => <div key={k} className={`sinal ${s.nivel}`}>{s.texto}</div>)}
 
             <div className={`upload ${arrasto ? "ativo" : ""}`} onDragOver={(e) => { e.preventDefault(); setArrasto(true); }} onDragLeave={() => setArrasto(false)} onDrop={(e) => { e.preventDefault(); setArrasto(false); const f = e.dataTransfer.files?.[0]; if (f) analisar(f); }}>
               <p><b>Análise da matrícula por IA.</b> Arraste o PDF aqui ou <label className="link-arquivo">escolha o arquivo<input type="file" accept="application/pdf" hidden disabled={carregando} onChange={(e) => e.target.files?.[0] && analisar(e.target.files[0])} /></label>.</p>
@@ -233,7 +254,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
                 {ia.ok.length > 0 && <><h4>Pontos positivos</h4><ul>{ia.ok.map((x, k) => <li key={k}>{x}</li>)}</ul></>}
                 {ia.perguntas.length > 0 && <><h4>Perguntar antes do lance</h4><ul>{ia.perguntas.map((x, k) => <li key={k}>{x}</li>)}</ul></>}
               </div>)}
-          </section>
+          </section>}
 
           {/* Diligência */}
           <section className="secao" id="diligencia">
@@ -266,10 +287,14 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
 
         {/* Lateral */}
         <aside className="lateral">
-          <div className="cart destaque">
+          {semPadrao && <div className="cart destaque"><div className="cart-corpo"><div className="valores-lote" style={{ marginTop: 0 }}>
+              <div><span>Lance inicial do leilão</span><b className="num">{brl(i.lance_minimo)}</b></div>
+              <div><span>Quanto o imóvel vale (avaliação da fonte)</span><b className="num">{brl(i.avaliacao)}</b><small>{pct(i.desagio_pct)} abaixo do lance</small></div>
+            </div></div></div>}
+          {!semPadrao && <div className="cart destaque">
             <div className={`sit ${classe}`}>
               <span className="sit-pill">{veto ? "Não comprar" : classe === "go" ? "Vale a pena" : classe === "atencao" ? "Atenção" : "Não vale a pena"}</span>
-              <span className="sit-score">{av.score}<small> de 100</small></span>
+              <span className="sit-score">{av?.score ?? 0}<small> de 100</small></span>
             </div>
             <div className="cart-corpo">
               {veto ? <p className="v-nota" style={{ color: "var(--bad)" }}>Este lote é vetado pelas suas regras. Não avance.</p> : (<>
@@ -284,10 +309,10 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               <div><span>Lance inicial do leilão</span><b className="num">{brl(i.lance_minimo)}</b></div>
               <div><span>Quanto o imóvel vale (avaliação da fonte)</span><b className="num">{brl(i.avaliacao)}</b><small>{pct(i.desagio_pct)} abaixo do lance</small></div>
             </div>
-          </div>
+          </div>}
 
           <div className="cart">
-            <div className="cart-cab"><span>Até quanto pagar</span></div>
+            {!semPadrao && <><div className="cart-cab"><span>Até quanto pagar</span></div>
             <div className="cart-corpo">
               <div className="heroi">
                 <span>Pague no máximo</span>
@@ -296,10 +321,10 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               </div>
               <Regua grande minimo={i.lance_minimo} avaliacao={i.avaliacao} lance={lance} max25={res.lanceMax25} max30={res.lanceMax30} max35={res.lanceMax35} />
               <div className="teto-alt">
-                {([[0.25, res.lanceMax25], [0.30, res.lanceMax30], [0.35, res.lanceMax35]] as const).filter(([m]) => Math.abs(m - regras.margemAlvo) > 0.001).map(([m, v]) => (
+                {([[0.25, res.lanceMax25], [0.30, res.lanceMax30], [0.35, res.lanceMax35]] as const).filter(([m]) => Math.abs(m - margemAlvo) > 0.001).map(([m, v]) => (
                   <div key={m}><span>Se aceitar {pct(m)} de retorno</span><b className="num" title={brl(v)}>{brl(v)}</b></div>))}
               </div>
-            </div>
+            </div></>}
             {(() => {
               const p1 = ex.lance_1a_praca ?? (i.praca === 1 ? i.lance_minimo : undefined);
               const p2 = ex.lance_2a_praca ?? (i.praca === 2 || !i.praca ? i.lance_minimo : undefined);

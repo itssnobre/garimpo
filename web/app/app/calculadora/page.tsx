@@ -3,8 +3,9 @@ import { useState } from "react";
 import { brl, pct, calcular, CUSTOS_PADRAO, ITBI_CIDADE, type Custos } from "@/lib/motor";
 import Regua from "@/components/Regua";
 import CampoMoeda from "@/components/CampoMoeda";
+import Portao from "@/components/Portao";
 const CAMPOS: [keyof Custos, string][] = [["leiloeiro", "Leiloeiro %"], ["itbi", "ITBI %"], ["registro", "Registro %"], ["advogado", "Advogado R$"], ["certidoes", "Certidões R$"], ["debitos", "Débitos R$"], ["desocupacao", "Desocupação R$"], ["reforma", "Reforma R$"], ["meses", "Meses até vender"], ["mensal", "Custo mensal R$"], ["corretagem", "Corretagem %"], ["ir", "IR ganho capital %"], ["descontoVenda", "Vender abaixo da aval. %"]];
-export default function Calculadora() {
+function Conteudo() {
   const [venda, setVenda] = useState(220000); const [lance, setLance] = useState(120000); const [c, setC] = useState<Custos>(CUSTOS_PADRAO);
   const r = calcular(venda, lance, c); const classe = r.lucro <= 0 || r.margem < 0.25 ? "nogo" : r.margem < 0.3 ? "atencao" : "go";
   return (<>
@@ -26,3 +27,4 @@ export default function Calculadora() {
     </div>
   </>);
 }
+export default function Calculadora() { return <Portao titulo="Calculadora"><Conteudo /></Portao>; }

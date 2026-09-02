@@ -15,8 +15,17 @@ export async function proxy(request: NextRequest) {
       if (headers) Object.entries(headers).forEach(([k, v]) => { if (typeof v === "string") res.headers.set(k, v); });
     },
   } });
-  await sb.auth.getClaims();
+  const { data } = await sb.auth.getClaims();
+  const logado = Boolean(data?.claims);
+  const { pathname, search } = request.nextUrl;
+  // Áreas que exigem conta: sem sessão, API responde 401 e página vai pro login (o Portao no cliente cobre o resto).
+  if (!logado) {
+    if (API_PRIVADA.some((p) => pathname.startsWith(p))) return NextResponse.json({ erro: "Entre na sua conta." }, { status: 401 });
+    if (PRIVADAS.some((p) => pathname.startsWith(p))) return NextResponse.redirect(new URL(`/entrar?next=${encodeURIComponent(pathname + search)}`, request.url));
+  }
   return res;
 }
+const PRIVADAS = ["/app/sugeridos", "/app/sage", "/app/pipeline", "/app/carteira", "/app/favoritos", "/app/padrao", "/app/calculadora", "/app/admin"];
+const API_PRIVADA = ["/api/sage", "/api/matricula", "/api/admin", "/api/conta"];
 
 export const config = { matcher: ["/app/:path*", "/entrar", "/auth/:path*", "/api/:path*"] };

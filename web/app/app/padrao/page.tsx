@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePadroes } from "@/lib/usePadroes";
 import EditorPadrao from "@/components/EditorPadrao";
 import { pct } from "@/lib/fmt";
+import Portao from "@/components/Portao";
 function Conteudo() {
   const { lista, ativo, ativoId, pronto, salvar, remover, ativar } = usePadroes();
   const sp = useSearchParams(); const router = useRouter();
@@ -25,4 +26,4 @@ function Conteudo() {
   </>);
 }
 
-export default function PadraoPage() { return <Suspense fallback={null}><Conteudo /></Suspense>; }
+export default function PadraoPage() { return <Portao titulo="Meu padrão"><Suspense fallback={null}><Conteudo /></Suspense></Portao>; }
