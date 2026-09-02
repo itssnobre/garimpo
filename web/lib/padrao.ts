@@ -33,3 +33,6 @@ export const PRESETS: { nome: string; desc: string; p: Partial<Padrao> }[] = [
   { nome: "Renda (aluguel)", desc: "Apartamentos, aceita ocupado, deságio 30%+, margem 20%+.", p: { tipos: ["apartamento"], desagioMin: 0.3, margemMin: 0.2, margemAlvo: 0.25 } },
   { nome: "Em branco", desc: "Comece do zero e defina cada regra.", p: {} },
 ];
+
+/** Padrão inicial de toda conta nova: Brasil inteiro, deságio 30%+, margem 25% (alvo 30%), vetos de diligência ligados. Nome e regras são do cliente a partir daí. */
+export const PADRAO_LOTWISE = (): Padrao => novoPadrao({ id: "p-lotwise", nome: "Padrão Lotwise", desagioMin: 0.3, margemMin: 0.25, margemAlvo: 0.3, vetoFiduciante: true, vetoFracao: true });

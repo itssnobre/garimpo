@@ -24,7 +24,7 @@ const Ajustes = () => <svg {...S}><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><cir
 const Seta = () => <svg {...S} width={13} height={13}><path d="M6 9l6 6 6-6" /></svg>;
 
 export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
-  const { ativo, lista: padroes, ativar, pronto } = usePadroes();
+  const { ativo, lista: padroes, ativar, desativar, pronto } = usePadroes();
   const { user, pronto: contaPronta } = useConta(); const router = useRouter();
   const visitante = contaPronta && !user;
   // Sem padrão não há pontuação: a lista mostra o catálogo cru até o usuário criar as regras dele.
@@ -32,6 +32,8 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
   const [busca, setBusca] = useState(""); const [cidade, setCidade] = useState(""); const [tipo, setTipo] = useState(""); const [fonte, setFonte] = useState(""); const [modalidade, setModalidade] = useState("");
   const [soPassam, setSoPassam] = useState(true); const [ocultarVeto, setOcultarVeto] = useState(true); const [soFoto, setSoFoto] = useState(false); const [soFavs, setSoFavs] = useState(false);
   const [precoMin, setPrecoMin] = useState(0); const [precoMax, setPrecoMax] = useState(0);
+  const [ocultarEncerrados, setOcultarEncerrados] = useState(true); const [soComData, setSoComData] = useState(false); const [ocultarSuspeitos, setOcultarSuspeitos] = useState(true);
+  const hoje = new Date().toISOString().slice(0, 10);
   const [quartosMin, setQuartosMin] = useState(0); const [areaMin, setAreaMin] = useState(0); const [areaMax, setAreaMax] = useState(0);
   const perfil = { quartosMin, areaMin, areaMax }; const temPerfil = quartosMin > 0 || areaMin > 0 || areaMax > 0;
   const [ordem, setOrdem] = useState<Ordem>("score"); const [limite, setLimite] = useState(48); const [painel, setPainel] = useState(false);
@@ -48,11 +50,12 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
       (!cidade || i.cidade === cidade) && (!tipo || i.tipo === tipo) && (!fonte || i.fonte === fonte) && (!modalidade || i.modalidade === modalidade) &&
       (precoMin <= 0 || i.lance_minimo >= precoMin) && (precoMax <= 0 || i.lance_minimo <= precoMax) && (!temPerfil || noPerfil(i, perfil)) &&
       (!ocultarVeto || !(i.direitos_fiduciante || i.fracao_ideal)) && (!soFoto || Boolean(i.fotos?.length || i.foto)) && (!soFavs || favs.has(i.id)) &&
+      (!ocultarEncerrados || !i.data_leilao || i.data_leilao >= hoje) && (!soComData || Boolean(i.data_leilao)) && (!ocultarSuspeitos || !(i.valor_suspeito || i.desagio_pct >= 0.85)) &&
       (!soPassam || !a || a.passa) &&
       (!q || `${i.titulo} ${i.endereco ?? ""} ${i.bairro ?? ""} ${i.cidade} ${i.uf} ${i.matricula ?? ""}`.toLowerCase().includes(q)));
     const k: Record<Ordem, (x: (typeof l)[number]) => number | string> = { score: (x) => (x.a ? -x.a.score : -x.i.desagio_pct), margem: (x) => (x.a ? -x.a.res.margem : -x.i.desagio_pct), desagio: (x) => -x.i.desagio_pct, lance: (x) => x.i.lance_minimo, data: (x) => x.i.data_leilao ?? "9999" };
     return l.sort((x, y) => { const a = k[ordem](x), b = k[ordem](y); return a < b ? -1 : a > b ? 1 : 0; });
-  }, [avaliados, cidade, tipo, fonte, modalidade, busca, soPassam, ocultarVeto, soFoto, soFavs, favs, ordem, precoMin, precoMax, quartosMin, areaMin, areaMax]);
+  }, [avaliados, cidade, tipo, fonte, modalidade, busca, soPassam, ocultarVeto, soFoto, soFavs, favs, ordem, precoMin, precoMax, quartosMin, areaMin, areaMax, ocultarEncerrados, soComData, ocultarSuspeitos, hoje]);
 
   const pills = [
     soPassam && ativo && { k: "padrao", txt: `Padrão: ${ativo.nome}`, off: () => setSoPassam(false), destaque: true },
@@ -66,11 +69,14 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
     soFoto && { k: "foto", txt: "Com foto", off: () => setSoFoto(false) },
     soFavs && { k: "favs", txt: "Favoritos", off: () => setSoFavs(false) },
     !ocultarVeto && { k: "veto", txt: "Mostrando vetados", off: () => setOcultarVeto(true) },
+    !ocultarEncerrados && { k: "enc", txt: "Mostrando encerrados", off: () => setOcultarEncerrados(true) },
+    soComData && { k: "data", txt: "Só com data", off: () => setSoComData(false) },
+    !ocultarSuspeitos && { k: "susp", txt: "Mostrando valor a conferir", off: () => setOcultarSuspeitos(true) },
     busca && { k: "busca", txt: `"${busca}"`, off: () => setBusca("") },
   ].filter(Boolean) as { k: string; txt: string; off: () => void; destaque?: boolean }[];
   const nFiltros = pills.filter((p) => p.k !== "padrao" && p.k !== "busca").length;
   useEffect(() => { document.body.classList.toggle("travado", painel); return () => document.body.classList.remove("travado"); }, [painel]);
-  const limpar = () => { setPrecoMin(0); setPrecoMax(0); setQuartosMin(0); setAreaMin(0); setAreaMax(0); setCidade(""); setTipo(""); setFonte(""); setModalidade(""); setBusca(""); setSoFoto(false); setSoFavs(false); setOcultarVeto(true); setSoPassam(true); };
+  const limpar = () => { setPrecoMin(0); setPrecoMax(0); setQuartosMin(0); setAreaMin(0); setAreaMax(0); setCidade(""); setTipo(""); setFonte(""); setModalidade(""); setBusca(""); setSoFoto(false); setSoFavs(false); setOcultarVeto(true); setSoPassam(true); setOcultarEncerrados(true); setSoComData(false); setOcultarSuspeitos(true); };
 
   return (
     <>
@@ -94,12 +100,38 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
                 {!visitante && <div className="fgrupo">
                   <h4>Meu padrão</h4>
                   {ativo ? <label className="toggle"><input type="checkbox" checked={soPassam} onChange={(e) => setSoPassam(e.target.checked)} />Mostrar só o que passa no padrão "{ativo.nome}"</label>
-                    : <p style={{ margin: 0, fontSize: 13, color: "var(--mute)" }}>Você ainda não tem padrão. Sem ele a lista não é pontuada.</p>}
-                  {padroes.length > 1 && <select className="fseletor" style={{ marginTop: 8 }} value={ativo?.id ?? ""} onChange={(e) => ativar(e.target.value)} aria-label="Padrão ativo">{padroes.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select>}
+                    : <p style={{ margin: 0, fontSize: 13, color: "var(--mute)" }}>Nenhum padrão ativo. Sem ele a lista não é pontuada.</p>}
+                  {padroes.length > 0 && <select className="fseletor" style={{ marginTop: 8 }} value={ativo?.id ?? ""} onChange={(e) => (e.target.value ? ativar(e.target.value) : desativar())} aria-label="Padrão ativo"><option value="">Sem padrão</option>{padroes.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select>}
                   <p style={{ margin: "10px 0 0", fontSize: 13 }}><Link href={ativo ? "/app/padrao" : "/app/padrao?novo=1"} style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{ativo ? "Ajustar minhas regras →" : "Criar meu padrão →"}</Link></p>
                 </div>}
+
                 <div className="fgrupo">
-                  <h4>Lance mínimo do leilão</h4>
+                  <h4>Onde</h4>
+                  <select className="fseletor" value={cidade} onChange={(e) => setCidade(e.target.value)} aria-label="Cidade"><option value="">Todas as cidades ({cidades.length})</option>{cidades.map((c) => <option key={c}>{c}</option>)}</select>
+                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--mute)" }}>Os estados você escolhe no botão do topo da página.</p>
+                </div>
+
+                <div className="fgrupo">
+                  <h4>O imóvel</h4>
+                  <div className="fopcoes"><button className={`fopcao ${!tipo ? "on" : ""}`} onClick={() => setTipo("")}>Todos</button>{TIPOS.map((t) => <button key={t} className={`fopcao ${tipo === t ? "on" : ""}`} onClick={() => setTipo(tipo === t ? "" : t)}>{t}</button>)}</div>
+                  <div className="fopcoes" style={{ marginTop: 10 }}>
+                    <button className={`fopcao ${!quartosMin ? "on" : ""}`} onClick={() => setQuartosMin(0)}>Qualquer nº de quartos</button>
+                    {[1, 2, 3, 4].map((n) => <button key={n} className={`fopcao ${quartosMin === n ? "on" : ""}`} onClick={() => setQuartosMin(quartosMin === n ? 0 : n)}>{n}+ quartos</button>)}
+                  </div>
+                  <div className="fopcoes" style={{ marginTop: 10 }}>
+                    {([[0, 50, "até 50 m²"], [50, 80, "50 a 80 m²"], [80, 120, "80 a 120 m²"], [120, 0, "acima de 120 m²"]] as const).map(([a, b2, l]) => (
+                      <button key={l} className={`fopcao ${areaMin === a && areaMax === b2 ? "on" : ""}`} onClick={() => { const on = areaMin === a && areaMax === b2; setAreaMin(on ? 0 : a); setAreaMax(on ? 0 : b2); }}>{l}</button>))}
+                  </div>
+                  <div className="par" style={{ marginTop: 10 }}>
+                    <label className="campo"><span>Área de (m²)</span><input className="num" inputMode="numeric" value={areaMin || ""} placeholder="0" onChange={(e) => setAreaMin(Number(e.target.value.replace(/\D/g, "")) || 0)} /></label>
+                    <label className="campo"><span>Área até (m²)</span><input className="num" inputMode="numeric" value={areaMax || ""} placeholder="sem teto" onChange={(e) => setAreaMax(Number(e.target.value.replace(/\D/g, "")) || 0)} /></label>
+                  </div>
+                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--mute)" }}>Quartos e área como a fonte informou. Lote sem o dado fica de fora quando você exige.</p>
+                </div>
+
+                <div className="fgrupo">
+                  <h4>O leilão</h4>
+                  <p style={{ margin: "0 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>Lance mínimo</p>
                   <div className="par">
                     <div className="campo"><span>De (0 = sem mínimo)</span><CampoMoeda valor={precoMin} onChange={setPrecoMin} /></div>
                     <div className="campo"><span>Até (0 = sem teto)</span><CampoMoeda valor={precoMax} onChange={setPrecoMax} /></div>
@@ -108,45 +140,22 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
                     {([[0, 150000, "até 150 mil"], [150000, 300000, "150 a 300 mil"], [300000, 600000, "300 a 600 mil"], [600000, 0, "acima de 600 mil"]] as const).map(([a, b2, l]) => (
                       <button key={l} className={`fopcao ${precoMin === a && precoMax === b2 ? "on" : ""}`} onClick={() => { setPrecoMin(precoMin === a && precoMax === b2 ? 0 : a); setPrecoMax(precoMin === a && precoMax === b2 ? 0 : b2); }}>{l}</button>))}
                   </div>
-                </div>
-                <div className="fgrupo">
-                  <h4>Localização</h4>
-                  <select className="fseletor" value={cidade} onChange={(e) => setCidade(e.target.value)} aria-label="Cidade"><option value="">Todas as cidades ({cidades.length})</option>{cidades.map((c) => <option key={c}>{c}</option>)}</select>
-                </div>
-                <div className="fgrupo">
-                  <h4>Tipo de imóvel</h4>
-                  <div className="fopcoes"><button className={`fopcao ${!tipo ? "on" : ""}`} onClick={() => setTipo("")}>Todos</button>{TIPOS.map((t) => <button key={t} className={`fopcao ${tipo === t ? "on" : ""}`} onClick={() => setTipo(tipo === t ? "" : t)}>{t}</button>)}</div>
-                </div>
-                <div className="fgrupo">
-                  <h4>Perfil do imóvel</h4>
-                  <p style={{ margin: "0 0 8px", fontSize: 12.5, color: "var(--mute)" }}>Quartos e área como a fonte informou. Lote sem o dado fica de fora quando você exige.</p>
-                  <div className="fopcoes">
-                    <button className={`fopcao ${!quartosMin ? "on" : ""}`} onClick={() => setQuartosMin(0)}>Qualquer</button>
-                    {[1, 2, 3, 4].map((n) => <button key={n} className={`fopcao ${quartosMin === n ? "on" : ""}`} onClick={() => setQuartosMin(quartosMin === n ? 0 : n)}>{n}+ quartos</button>)}
-                  </div>
-                  <div className="fopcoes" style={{ marginTop: 10 }}>
-                    {([[0, 50, "até 50 m²"], [50, 80, "50 a 80 m²"], [80, 120, "80 a 120 m²"], [120, 0, "acima de 120 m²"]] as const).map(([a, b2, l]) => (
-                      <button key={l} className={`fopcao ${areaMin === a && areaMax === b2 ? "on" : ""}`} onClick={() => { const on = areaMin === a && areaMax === b2; setAreaMin(on ? 0 : a); setAreaMax(on ? 0 : b2); }}>{l}</button>))}
-                  </div>
-                  <div className="par" style={{ marginTop: 10 }}>
-                    <label className="campo"><span>Área de (m²)</span><input className="mono" inputMode="numeric" value={areaMin || ""} placeholder="0" onChange={(e) => setAreaMin(Number(e.target.value.replace(/\D/g, "")) || 0)} /></label>
-                    <label className="campo"><span>Área até (m²)</span><input className="mono" inputMode="numeric" value={areaMax || ""} placeholder="sem teto" onChange={(e) => setAreaMax(Number(e.target.value.replace(/\D/g, "")) || 0)} /></label>
-                  </div>
-                </div>
-                <div className="fgrupo">
-                  <h4>Modalidade</h4>
+                  <p style={{ margin: "14px 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>Modalidade</p>
                   <div className="fopcoes"><button className={`fopcao ${!modalidade ? "on" : ""}`} onClick={() => setModalidade("")}>Todas</button>{Object.entries(MODALIDADE_LABEL).map(([k, v]) => <button key={k} className={`fopcao ${modalidade === k ? "on" : ""}`} onClick={() => setModalidade(modalidade === k ? "" : k)}>{v}</button>)}</div>
                   <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--mute)" }}>Na Caixa: Venda Direta = Compra Direta (Venda Direta Online), Leilão SFI = Edital Único. Nas duas primeiras não há comissão de leiloeiro.</p>
-                </div>
-                <div className="fgrupo">
-                  <h4>Fonte</h4>
+                  <p style={{ margin: "14px 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>Fonte</p>
                   <div className="fopcoes"><button className={`fopcao ${!fonte ? "on" : ""}`} onClick={() => setFonte("")}>Todas</button>{fontes.map((f) => <button key={f} className={`fopcao ${fonte === f ? "on" : ""}`} onClick={() => setFonte(fonte === f ? "" : f)}>{FONTE_LABEL[f] ?? f}</button>)}</div>
+                  <p style={{ margin: "14px 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>Situação</p>
+                  <label className="toggle"><input type="checkbox" checked={ocultarEncerrados} onChange={(e) => setOcultarEncerrados(e.target.checked)} />Ocultar leilões já encerrados</label>
+                  <label className="toggle"><input type="checkbox" checked={soComData} onChange={(e) => setSoComData(e.target.checked)} />Só lotes com data de leilão informada</label>
                 </div>
+
                 <div className="fgrupo">
                   <h4>Exibição</h4>
                   <label className="toggle"><input type="checkbox" checked={soFoto} onChange={(e) => setSoFoto(e.target.checked)} />Só lotes com foto</label>
                   <label className="toggle"><input type="checkbox" checked={soFavs} onChange={(e) => setSoFavs(e.target.checked)} />Só meus favoritos{favs.size ? ` (${favs.size})` : ""}</label>
                   <label className="toggle"><input type="checkbox" checked={!ocultarVeto} onChange={(e) => setOcultarVeto(!e.target.checked)} />Mostrar lotes vetados</label>
+                  <label className="toggle"><input type="checkbox" checked={!ocultarSuspeitos} onChange={(e) => setOcultarSuspeitos(!e.target.checked)} />Mostrar lotes com valor a conferir (deságio acima de 85%)</label>
                   <div style={{ marginTop: 10 }} className="fordenar-mobile">
                     <label className="campo"><span>Ordenar por</span><select value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)}>{ORDENS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
                   </div>

@@ -1,38 +1,38 @@
 {
- "gerado_em": "2026-09-01T16:27:56+00:00",
- "total": 31703,
+ "gerado_em": "2026-09-02T19:35:19+00:00",
+ "total": 29918,
  "fontes": {
   "alfaleiloes": {
    "lidos": 413,
-   "validos": 343
+   "validos": 378
   },
   "biasi": {
    "lidos": 358,
-   "validos": 357
+   "validos": 358
   },
   "bomvalor": {
    "lidos": 300,
-   "validos": 300
+   "validos": 297
   },
   "bradesco": {
    "lidos": 253,
-   "validos": 250
+   "validos": 253
   },
   "caixa": {
    "lidos": 17562,
-   "validos": 17550
+   "validos": 17552
   },
   "emgea": {
    "lidos": 82,
-   "validos": 76
+   "validos": 70
   },
   "fidalgoleiloes": {
    "lidos": 490,
-   "validos": 435
+   "validos": 320
   },
   "frazao": {
    "lidos": 374,
-   "validos": 365
+   "validos": 374
   },
   "freitasleiloeiro": {
    "lidos": 101,
@@ -44,23 +44,23 @@
   },
   "lancejudicial": {
    "lidos": 353,
-   "validos": 314
+   "validos": 303
   },
   "leilaoimovel": {
    "lidos": 9275,
-   "validos": 3707
+   "validos": 2499
   },
   "leilaovip": {
    "lidos": 116,
-   "validos": 93
+   "validos": 86
   },
   "leiloesjudiciais": {
    "lidos": 1445,
-   "validos": 1064
+   "validos": 1215
   },
   "megaleiloes": {
    "lidos": 851,
-   "validos": 830
+   "validos": 799
   },
   "nakakogue": {
    "lidos": 138,
@@ -68,15 +68,15 @@
   },
   "pestanaleiloes": {
    "lidos": 711,
-   "validos": 705
+   "validos": 402
   },
   "resale": {
    "lidos": 3425,
-   "validos": 2808
+   "validos": 2872
   },
   "santanderimoveis": {
    "lidos": 1133,
-   "validos": 723
+   "validos": 535
   },
   "sodresantoro": {
    "lidos": 47,
@@ -84,68 +84,68 @@
   },
   "superbid": {
    "lidos": 1283,
-   "validos": 933
+   "validos": 1035
   },
   "wspleiloes": {
    "lidos": 16,
-   "validos": 12
+   "validos": 13
   },
   "zuk": {
    "lidos": 560,
-   "validos": 557
+   "validos": 276
   }
  },
  "por_uf": {
-  "AC": 37,
-  "AL": 51,
-  "AM": 39,
+  "AC": 32,
+  "AL": 48,
+  "AM": 37,
   "AP": 5,
-  "BA": 261,
-  "CE": 256,
-  "DF": 214,
-  "ES": 145,
-  "GO": 608,
-  "MA": 137,
-  "MG": 698,
-  "MS": 236,
-  "MT": 422,
-  "PA": 305,
-  "PB": 864,
-  "PE": 1485,
-  "PI": 48,
-  "PR": 1314,
-  "RJ": 9620,
-  "RN": 815,
-  "RO": 78,
+  "BA": 255,
+  "CE": 244,
+  "DF": 213,
+  "ES": 241,
+  "GO": 600,
+  "MA": 128,
+  "MG": 678,
+  "MS": 227,
+  "MT": 415,
+  "PA": 299,
+  "PB": 851,
+  "PE": 1456,
+  "PI": 45,
+  "PR": 1304,
+  "RJ": 9488,
+  "RN": 801,
+  "RO": 75,
   "RR": 8,
-  "RS": 1667,
-  "SC": 488,
-  "SE": 547,
-  "SP": 11285,
-  "TO": 70
+  "RS": 1583,
+  "SC": 471,
+  "SE": 537,
+  "SP": 9800,
+  "TO": 77
  },
  "por_fonte": {
-  "santanderimoveis": 724,
-  "megaleiloes": 831,
-  "superbid": 934,
-  "caixa": 17550,
-  "zuk": 557,
-  "leilaoimovel": 3706,
-  "leiloesjudiciais": 1064,
-  "resale": 2818,
-  "frazao": 366,
-  "emgea": 77,
-  "bradesco": 245,
-  "alfaleiloes": 339,
-  "lancejudicial": 313,
+  "bradesco": 240,
+  "santanderimoveis": 916,
+  "leilaoimovel": 3289,
+  "megaleiloes": 769,
+  "superbid": 1042,
+  "caixa": 16328,
+  "resale": 2890,
+  "leiloesjudiciais": 1219,
+  "fidalgoleiloes": 363,
+  "zuk": 335,
+  "lancejudicial": 333,
+  "emgea": 72,
+  "alfaleiloes": 378,
   "sodresantoro": 42,
-  "pestanaleiloes": 705,
-  "fidalgoleiloes": 435,
-  "biasi": 355,
-  "leilaovip": 98,
+  "pestanaleiloes": 711,
+  "frazao": 240,
+  "biasi": 155,
+  "leilaovip": 104,
   "nakakogue": 138,
-  "bomvalor": 293,
-  "freitasleiloeiro": 101,
-  "wspleiloes": 12
+  "bomvalor": 257,
+  "wspleiloes": 14,
+  "freitasleiloeiro": 83
  }
 }

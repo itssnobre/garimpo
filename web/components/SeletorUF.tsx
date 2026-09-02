@@ -10,7 +10,8 @@ const Xis = () => <svg {...S} width={13} height={13}><path d="M6 6l12 12M18 6L6 
 /** Escolha de UFs (vazio = Brasil inteiro). Persiste no navegador. */
 export function useUFs(padrao: string[] | undefined) {
   const [ufs, setUfs] = useState<string[] | null>(null);
-  useEffect(() => { setUfs(lerUFsSalvas() ?? (padrao?.length ? padrao : ["SP"])); }, [padrao]);
+  // Escolha salva > estados do padrão ativo > Brasil inteiro.
+  useEffect(() => { setUfs(lerUFsSalvas() ?? (padrao?.length ? padrao : [])); }, [padrao]);
   const definir = (n: string[]) => { setUfs(n); salvarUFs(n); };
   return { ufs: ufs ?? [], pronto: ufs !== null, definir };
 }

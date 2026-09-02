@@ -1,0 +1,38 @@
+name: coleta diária
+# Recoleta todas as fontes, reconstrói o índice, comita os dados e publica em produção na Vercel.
+on:
+  schedule: [{ cron: "0 9 * * *" }]   # 06:00 BRT
+  workflow_dispatch:
+permissions: { contents: write }
+concurrency: { group: coleta, cancel-in-progress: false }
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      # data/raw não vai pro git: o cache guarda a última coleta boa de cada fonte, então uma fonte que falhar hoje não some do site.
+      - uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: raw-${{ github.run_id }}
+          restore-keys: raw-
+      - run: pip install requests beautifulsoup4 lxml
+      - name: Coletar e construir
+        run: python collectors/build.py --collect
+      - name: Comitar dados
+        run: |
+          git config user.name "lotwise-bot" && git config user.email "bot@lotwise"
+          git add web/data/imoveis.json web/data/indice.json web/data/meta.json web/public/dados
+          git diff --cached --quiet || (git commit -m "coleta $(date -u +%F)" && git pull --rebase && git push)
+      - name: Publicar na Vercel
+        working-directory: web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"

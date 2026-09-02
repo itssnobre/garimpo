@@ -6,7 +6,7 @@ import EditorPadrao from "@/components/EditorPadrao";
 import { pct } from "@/lib/fmt";
 import Portao from "@/components/Portao";
 function Conteudo() {
-  const { lista, ativo, ativoId, pronto, salvar, remover, ativar } = usePadroes();
+  const { lista, ativo, ativoId, pronto, salvar, remover, ativar, desativar } = usePadroes();
   const sp = useSearchParams(); const router = useRouter();
   const [editando, setEditando] = useState<string | "novo" | null>(sp.get("novo") ? "novo" : null);
   if (!pronto) return null;
@@ -22,7 +22,7 @@ function Conteudo() {
       <dl className="kv"><dt>Deságio</dt><dd>≥ {pct(p.desagioMin)}</dd><dt>Margem</dt><dd>≥ {pct(p.margemMin)}</dd><dt>Região</dt><dd style={{ fontFamily: "var(--f-body)", whiteSpace: "normal" }}>{[...p.ufs, ...p.cidades].join(", ") || "Brasil"}</dd><dt>Tipos</dt><dd style={{ fontFamily: "var(--f-body)", whiteSpace: "normal" }}>{p.tipos.join(", ") || "todos"}</dd></dl>
       <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>{p.id !== ativoId && <button className="btn mini" onClick={() => ativar(p.id)}>Usar</button>}<button className="btn sec mini" onClick={() => setEditando(p.id)}>Editar</button><button className="btn sec mini" style={{ color: "var(--bad)" }} onClick={() => { if (confirm(`Apagar "${p.nome}"?`)) remover(p.id); }}>Apagar</button></div>
     </div>)}</div>
-    {ativo && <p style={{ marginTop: 16, color: "var(--mute)", fontSize: 13.5 }}>Ativo: <b style={{ color: "var(--ink)" }}>{ativo.nome}</b>.</p>}
+    <p style={{ marginTop: 16, color: "var(--mute)", fontSize: 13.5 }}>{ativo ? <>Ativo: <b style={{ color: "var(--ink)" }}>{ativo.nome}</b>. <button className="btn ghost mini" onClick={desativar}>Navegar sem padrão</button></> : "Nenhum padrão ativo: a lista aparece sem pontuação. Toque em \"Usar\" para ativar um."}</p>
   </>);
 }
 

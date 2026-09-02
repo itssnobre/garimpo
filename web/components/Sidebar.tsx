@@ -13,6 +13,7 @@ const I = {
   sugeridos: <svg {...P}><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z" /><path d="M19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z" /></svg>,
   sage: <svg {...P}><path d="M4 12a8 8 0 1 1 4.2 7L4 20l1-4.2A8 8 0 0 1 4 12z" /><path d="M9 11h6M9 14h4" /></svg>,
   pipeline: <svg {...P}><path d="M5 4v16M12 4v10M19 4v13" /><circle cx="5" cy="20" r="1" fill="currentColor" /><circle cx="12" cy="14" r="1" fill="currentColor" /><circle cx="19" cy="17" r="1" fill="currentColor" /></svg>,
+  acompanhar: <svg {...P}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3" /></svg>,
   carteira: <svg {...P}><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18" /></svg>,
   calculadora: <svg {...P}><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2M16 16h0" /></svg>,
   favoritos: <svg {...P}><path d="M12 3l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.3 6.3 20.5l1.2-6.4L2.8 9.7l6.4-.8z" /></svg>,
@@ -22,7 +23,7 @@ const I = {
   config: <svg {...P}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>,
 };
 const GRUPOS: { titulo?: string; itens: { href: string; label: string; icone: keyof typeof I; ia?: boolean }[] }[] = [
-  { itens: [{ href: "/app/buscar", label: "Buscar", icone: "buscar" }, { href: "/app/sugeridos", label: "Sugeridos", icone: "sugeridos" }, { href: "/app/sage", label: "Sage", icone: "sage", ia: true }, { href: "/app/pipeline", label: "Pipeline", icone: "pipeline" }, { href: "/app/carteira", label: "Carteira", icone: "carteira" }] },
+  { itens: [{ href: "/app/buscar", label: "Buscar", icone: "buscar" }, { href: "/app/sugeridos", label: "Sugeridos", icone: "sugeridos" }, { href: "/app/sage", label: "Sage", icone: "sage", ia: true }, { href: "/app/pipeline", label: "Pipeline", icone: "pipeline" }, { href: "/app/acompanhar", label: "Acompanhar", icone: "acompanhar" }, { href: "/app/carteira", label: "Carteira", icone: "carteira" }] },
   { itens: [{ href: "/app/padrao", label: "Meu padrão", icone: "padrao" }, { href: "/app/calculadora", label: "Calculadora", icone: "calculadora" }, { href: "/app/favoritos", label: "Favoritos", icone: "favoritos" }, { href: "/app/juridico", label: "Jurídico", icone: "juridico" }, { href: "/app/cobertura", label: "Cobertura", icone: "cobertura" }, { href: "/app/configuracoes", label: "Configurações", icone: "config" }] },
 ];
 

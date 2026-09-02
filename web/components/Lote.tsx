@@ -7,8 +7,9 @@ import { brl, brlCurto, pct, dataBR } from "@/lib/fmt";
 import { usePadroes } from "@/lib/usePadroes";
 import { urgencia, mapsUrl, tituloLimpo } from "@/lib/util";
 import { useFavoritos } from "@/lib/favoritos";
+import { useAcompanhar } from "@/lib/acompanhar";
 import { useConta } from "@/lib/conta";
-import { emSegundoPlano } from "@/lib/nuvem";
+import { chaveDe, emSegundoPlano } from "@/lib/nuvem";
 import { contato, MARCA } from "@/lib/marca";
 import Regua from "./Regua";
 import CampoMoeda from "./CampoMoeda";
@@ -59,9 +60,10 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
   const [erro, setErro] = useState(""); const [carregando, setCarregando] = useState(false); const [arrasto, setArrasto] = useState(false);
   const [foto, setFoto] = useState(0); const [zoom, setZoom] = useState(false); const [abrirCustos, setAbrirCustos] = useState(false);
   const { favs, toggle } = useFavoritos(); const fav = favs.has(i.id);
+  const { segue, toggle: toggleAcomp } = useAcompanhar(); const acomp = segue(i.id);
   const { user, sb, pronto: contaPronta } = useConta(); const uid = user?.id;
   const visitante = contaPronta && !user; const semPadrao = padroesProntos && contaPronta && !regras;
-  const chave = `garimpo:${i.id}`;
+  const chave = chaveDe(`garimpo:${i.id}`, uid);
 
   const aplicar = (d: Partial<{ custos: Custos; lance: number; venda: number; checks: boolean[]; ia: AnaliseIA }>) => { d.custos && setCustos(d.custos); d.lance && setLance(d.lance); d.venda && setVenda(d.venda); d.checks && setChecks(d.checks); d.ia && setIa(d.ia); };
   useEffect(() => { try { const s = localStorage.getItem(chave); if (s) aplicar(JSON.parse(s)); } catch {} }, [chave]);
@@ -130,6 +132,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
         <Link href="/app/buscar" className="volta">← Voltar à busca</Link>
         <div className="lote-acoes">
           <button className={`btn sec ${fav ? "favon" : ""}`} onClick={() => (visitante ? (location.href = `/entrar?next=${encodeURIComponent(location.pathname)}`) : toggle(i.id))} aria-pressed={fav}><IEstrela cheia={fav} />{fav ? "Guardado" : "Guardar"}</button>
+          <button className={`btn sec ${acomp ? "favon" : ""}`} onClick={() => (visitante ? (location.href = `/entrar?next=${encodeURIComponent(location.pathname)}`) : toggleAcomp(i.id))} aria-pressed={acomp} title="Conferir lance, data e situação direto na fonte"><IRelogio />{acomp ? "Acompanhando" : "Acompanhar"}</button>
           {endCompleto && <a className="btn sec" href={mapsUrl(endCompleto)} target="_blank" rel="noreferrer"><IMapa />Ver no mapa</a>}
           {i.matricula_url && <a className="btn sec" href={i.matricula_url} target="_blank" rel="noreferrer"><IDoc />Matrícula</a>}
           {i.edital_url && <a className="btn sec" href={i.edital_url} target="_blank" rel="noreferrer"><IDoc />Edital</a>}
@@ -173,7 +176,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               { ic: <ICama />, r: "Dormitórios", v: i.quartos ?? null },
               { ic: <ICarro />, r: "Vagas", v: i.vagas ?? null },
               { ic: <IChave />, r: "Ocupação", v: i.ocupado === true ? "Ocupado" : i.ocupado === false ? "Desocupado" : null },
-              { ic: <IRelogio />, r: i.praca ? `${i.praca}ª praça` : "Leilão", v: u ? u.txt[0].toUpperCase() + u.txt.slice(1) : null },
+              { ic: <IRelogio />, r: i.praca ? `${i.praca}ª praça` : "Leilão", v: i.data_leilao ? dataBR(i.data_leilao) : null },
             ]).map((x) => (
               <div className={`spec ${x.v === null ? "vazio" : ""}`} key={x.r}>
                 <span className="spec-ic">{x.ic}</span>
