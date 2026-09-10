@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { nuvemConfigurada, supabaseBrowser } from "./supabase/client";
 
-export interface Perfil { nome: string; papel: "admin" | "cliente" }
+export interface Perfil { nome: string; papel: "admin" | "cliente"; telefone?: string }
 interface Conta { user: User | null; perfil: Perfil | null; pronto: boolean; sb: SupabaseClient | null; nuvem: boolean; sair: () => Promise<void>; recarregarPerfil: () => Promise<void> }
 const Ctx = createContext<Conta>({ user: null, perfil: null, pronto: true, sb: null, nuvem: false, sair: async () => {}, recarregarPerfil: async () => {} });
 
@@ -20,7 +20,10 @@ export function ContaProvider({ children }: { children: React.ReactNode }) {
     const m = u.user_metadata ?? {};
     const nome = ((m.nome ?? m.full_name ?? m.name) as string | undefined)?.trim() ?? "";
     // Conta nova NÃO ganha padrão: a lista aparece sem pontuação até a pessoa criar o dela e escolher usar.
-    const { data: novo } = await sb.from("lotwise_perfis").insert({ user_id: u.id, nome }).select("nome,papel").maybeSingle();
+    const telefone = String(m.telefone ?? "").replace(/\D/g, "");
+    // Com telefone (cadastro por e-mail); se a coluna ainda não existir no banco, grava sem ele.
+    let { data: novo } = await sb.from("lotwise_perfis").insert({ user_id: u.id, nome, telefone }).select("nome,papel").maybeSingle();
+    if (!novo) ({ data: novo } = await sb.from("lotwise_perfis").insert({ user_id: u.id, nome }).select("nome,papel").maybeSingle());
     setPerfil((novo as Perfil | null) ?? { nome, papel: "cliente" });
   }, [sb]);
   // Chaves antigas (sem id de conta) de versões anteriores: apaga uma vez, para nunca mais vazar dado entre contas.

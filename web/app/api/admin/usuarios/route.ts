@@ -19,7 +19,7 @@ async function todosUsuarios(admin: SupabaseClient) {
   }
 }
 
-export interface UsuarioAdmin { id: string; email: string; nome: string; papel: "admin" | "cliente"; criado_em: string; ultimo_login: string | null; confirmado: boolean; bloqueado: boolean; padroes: string[]; favoritos: number; pipeline: number; lotes: number }
+export interface UsuarioAdmin { id: string; email: string; nome: string; telefone: string; papel: "admin" | "cliente"; criado_em: string; ultimo_login: string | null; confirmado: boolean; bloqueado: boolean; padroes: string[]; favoritos: number; pipeline: number; lotes: number }
 
 /** Lista de contas da Lotwise (só quem tem perfil lotwise_perfis: o projeto Supabase é compartilhado com outros apps). */
 export async function GET() {
@@ -27,7 +27,7 @@ export async function GET() {
   const g = await exigirAdmin(); if ("erro" in g) return NextResponse.json({ erro: t(g.erro) }, { status: g.status });
   const { admin } = g;
   const [{ data: perfis }, { data: padroes }, { data: favs }, { data: pipe }, { data: lotes }, usuarios] = await Promise.all([
-    admin.from("lotwise_perfis").select("user_id,nome,papel,criado_em"),
+    admin.from("lotwise_perfis").select("user_id,nome,telefone,papel,criado_em"),
     admin.from("lotwise_padroes").select("user_id,dados->nome"),
     admin.from("lotwise_favoritos").select("user_id"),
     admin.from("lotwise_pipeline").select("user_id"),
@@ -40,7 +40,7 @@ export async function GET() {
   const nomesPadrao = new Map<string, string[]>(); (padroes as { user_id: string; nome: string }[] | null)?.forEach((p) => nomesPadrao.set(p.user_id, [...(nomesPadrao.get(p.user_id) ?? []), p.nome ?? "(sem nome)"]));
   const perfilDe = new Map((perfis ?? []).map((p) => [p.user_id as string, p]));
   const lista: UsuarioAdmin[] = usuarios.users.filter((u) => perfilDe.has(u.id)).map((u) => { const p = perfilDe.get(u.id)!; return {
-    id: u.id, email: u.email ?? "", nome: (p.nome as string) ?? "", papel: p.papel as "admin" | "cliente", criado_em: u.created_at, ultimo_login: u.last_sign_in_at ?? null,
+    id: u.id, email: u.email ?? "", nome: (p.nome as string) ?? "", telefone: (p.telefone as string) ?? "", papel: p.papel as "admin" | "cliente", criado_em: u.created_at, ultimo_login: u.last_sign_in_at ?? null,
     confirmado: Boolean(u.email_confirmed_at), bloqueado: Boolean((u as { banned_until?: string | null }).banned_until && new Date((u as { banned_until?: string }).banned_until!) > new Date()),
     padroes: nomesPadrao.get(u.id) ?? [], favoritos: nFav.get(u.id) ?? 0, pipeline: nPipe.get(u.id) ?? 0, lotes: nLotes.get(u.id) ?? 0 }; })
     .sort((a, b) => (a.papel === b.papel ? b.criado_em.localeCompare(a.criado_em) : a.papel === "admin" ? -1 : 1));

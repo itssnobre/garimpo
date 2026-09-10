@@ -26,7 +26,7 @@ function Conteudo() {
   const recarregar = useCallback(async () => { setCarregando(true); try { const d = await api<{ usuarios: UsuarioAdmin[]; outrosNoProjeto: number }>("/api/admin/usuarios", undefined, t); setLista(d.usuarios); setOutros(d.outrosNoProjeto); setErro(""); } catch (e) { setErro((e as Error).message); } finally { setCarregando(false); } }, [t]);
   useEffect(() => { recarregar(); }, [recarregar]);
   const q = busca.trim().toLowerCase();
-  const filtrados = lista.filter((u) => !q || `${u.email} ${u.nome}`.toLowerCase().includes(q));
+  const filtrados = lista.filter((u) => !q || `${u.email} ${u.nome} ${u.telefone}`.toLowerCase().includes(q));
   const semana = new Date(Date.now() - 7 * 864e5).toISOString();
   const gerado = new Date(META.gerado_em).toLocaleString(loc(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
   return (<>
@@ -52,7 +52,7 @@ function Conteudo() {
         <table className="tabela"><thead><tr><th>{t("Conta")}</th><th>{t("Papel")}</th><th>{t("Padrões")}</th><th className="num">{t("Favoritos")}</th><th className="num">{t("Pipeline")}</th><th>{t("Último acesso")}</th><th>{t("Estado")}</th><th></th></tr></thead>
           <tbody>{filtrados.map((u) => (
             <tr key={u.id} style={{ opacity: u.bloqueado ? 0.6 : 1 }}>
-              <td><b>{u.nome || t("(sem nome)")}</b>{u.id === user?.id && <span className="badge" style={{ marginLeft: 6 }}>{t("você")}</span>}<br /><span className="sub">{u.email}</span></td>
+              <td><b>{u.nome || t("(sem nome)")}</b>{u.id === user?.id && <span className="badge" style={{ marginLeft: 6 }}>{t("você")}</span>}<br /><span className="sub">{u.email}{u.telefone ? ` · ${u.telefone}` : ""}</span></td>
               <td>{u.papel === "admin" ? <span className="badge go">{t("admin")}</span> : <span className="badge">{t("cliente")}</span>}</td>
               <td style={{ maxWidth: 220, whiteSpace: "normal", fontSize: 13 }}>{u.padroes.length ? u.padroes.join(", ") : <span className="sub">{t("nenhum")}</span>}</td>
               <td className="num">{u.favoritos}</td><td className="num">{u.pipeline}</td>

@@ -1,5 +1,10 @@
 // PT → EN (grupo site). Chave = texto em português exatamente como está no código.
 export const site: Record<string, string> = {
+  "Criar sua conta": "Create your account",
+  "Celular (com DDD)": "Mobile phone (with area code)",
+  "Informe um celular com DDD.": "Enter a mobile number with area code.",
+  "Ainda não tem conta?": "Don't have an account yet?",
+  "Já tem conta?": "Already have an account?",
   "ou": "or",
   "Login com Google ainda não está ativado neste ambiente.": "Google sign-in is not enabled in this environment yet.",
   "Entrar com Google": "Sign in with Google",
