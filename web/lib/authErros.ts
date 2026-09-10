@@ -1,5 +1,6 @@
 // Mensagens do Supabase Auth em português.
 const ERROS: Record<string, string> = {
+  "Unsupported provider: provider is not enabled": "Login com Google ainda não está ativado neste ambiente.",
   "Invalid login credentials": "E-mail ou senha não conferem.",
   "Email not confirmed": "Confirme o e-mail pelo link que enviamos antes de entrar.",
   "User already registered": "Já existe conta com este e-mail. Entre com a senha ou recupere a senha.",

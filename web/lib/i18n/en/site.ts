@@ -1,5 +1,9 @@
 // PT → EN (grupo site). Chave = texto em português exatamente como está no código.
 export const site: Record<string, string> = {
+  "ou": "or",
+  "Login com Google ainda não está ativado neste ambiente.": "Google sign-in is not enabled in this environment yet.",
+  "Entrar com Google": "Sign in with Google",
+  "Criar conta com Google": "Sign up with Google",
   "última coleta": "last collection",
   // app/(site)/layout.tsx
   "{marca}, início": "{marca}, home",

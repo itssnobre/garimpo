@@ -16,7 +16,9 @@ export function ContaProvider({ children }: { children: React.ReactNode }) {
     if (!sb || !u) { setPerfil(null); return; }
     const { data } = await sb.from("lotwise_perfis").select("nome,papel").eq("user_id", u.id).maybeSingle();
     if (data) { setPerfil(data as Perfil); return; }
-    const nome = (u.user_metadata?.nome as string | undefined) ?? "";
+    // Cadastro por e-mail grava "nome"; login com Google traz full_name/name.
+    const m = u.user_metadata ?? {};
+    const nome = ((m.nome ?? m.full_name ?? m.name) as string | undefined)?.trim() ?? "";
     // Conta nova NÃO ganha padrão: a lista aparece sem pontuação até a pessoa criar o dela e escolher usar.
     const { data: novo } = await sb.from("lotwise_perfis").insert({ user_id: u.id, nome }).select("nome,papel").maybeSingle();
     setPerfil((novo as Perfil | null) ?? { nome, papel: "cliente" });
