@@ -2,6 +2,7 @@ import { brl } from "./fmt";
 // Motor de cálculo e score. As regras (faixa, deságio, margem, região, vetos, custos) são SEMPRE do padrão do usuário:
 // não existe padrão neutro. Sem padrão, o app não pontua.
 import type { Imovel } from "./types";
+import type { T } from "./i18n";
 
 export interface Custos {
   leiloeiro: number; itbi: number; registro: number;   // % sobre o lance
@@ -68,29 +69,29 @@ export function custosPara(i: Imovel, base: Custos = CUSTOS_PADRAO): Custos {
 export type Nivel = "veto" | "alerta" | "info";
 export interface Sinal { nivel: Nivel; texto: string }
 
-export function sinais(i: Imovel): Sinal[] {
+export function sinais(i: Imovel, t: T = (s) => s): Sinal[] {
   const s: Sinal[] = [];
-  if (i.direitos_fiduciante) s.push({ nivel: "veto", texto: "Vende direitos de devedor fiduciante (dívida embutida). Nunca comprar." });
-  if (i.fracao_ideal) s.push({ nivel: "veto", texto: "Fração ideal do imóvel (copropriedade). Nunca comprar." });
-  if (!i.direitos_fiduciante && /\bdireitos\b/i.test(i.titulo)) s.push({ nivel: "alerta", texto: "Vende direitos sobre o imóvel (compromisso/posse), não a propriedade plena. Conferir na matrícula se há como registrar e quais ônus vêm junto." });
-  if (i.onus_averbado) s.push({ nivel: "alerta", texto: "A fonte avisa que existe gravame, penhora ou indisponibilidade ainda averbada na matrícula, e a regularização fica por sua conta. Cancelar isso exige advogado e petição no processo que gerou o ônus: conte de 3 a 12 meses e alguns milhares de reais. Enquanto o ônus estiver lá, nenhum banco financia o imóvel, o que trava também a sua revenda." });
-  if (i.aceita_financiamento === false && i.aceita_fgts === false) s.push({ nivel: "alerta", texto: "Não aceita financiamento nem FGTS: é pagamento à vista com recursos próprios. Quando a fonte fecha as duas portas, em geral é porque há pendência na matrícula. Confira o que impede antes de comprometer o caixa." });
-  if (i.debitos_teto10 || /10% (em rela..o a|do valor de) avalia/i.test(i.debitos_regra ?? "")) s.push({ nivel: "alerta", texto: `Regra da Caixa: o condomínio atrasado é seu até 10% da avaliação, ou seja, até ${brl(i.avaliacao * 0.1)} neste lote. Acima disso a Caixa paga. Levante o saldo real com o síndico e jogue no campo de débitos antes de decidir o lance.` });
-  if (i.direitos_aquisitivos && !i.direitos_fiduciante) s.push({ nivel: "alerta", texto: "Vende direitos sobre o imóvel (aquisitivos, do compromissário ou possessórios), não a propriedade registrada. Você entra no lugar de quem comprou e ainda não recebeu a escritura: confira na matrícula se dá para registrar em seu nome e o que falta pagar ao vendedor original." });
-  if (i.dominio_util) s.push({ nivel: "alerta", texto: "Vende o domínio útil, não a propriedade (enfiteuse). O terreno é de outro dono, em geral a União: há foro anual, laudêmio de 5% sobre a avaliação da SPU na hora de revender, e a transferência depende de autorização. Financiamento é difícil e a revenda é mais lenta." });
-  if (i.massa_falida) s.push({ nivel: "alerta", texto: "Bem de massa falida. A venda pelo juízo da falência costuma ser livre de ônus e sem sucessão de dívidas (art. 141, II da Lei 11.101/2005), o que é bom, mas confirme isso no edital. O rito é longo: conte meses até a carta de arrematação." });
-  if (i.desagio_pct >= 0.85) s.push({ nivel: "alerta", texto: `Deságio de ${(i.desagio_pct * 100).toFixed(0)}%. Desconto desse tamanho quase nunca é oportunidade escondida: em geral o mercado já olhou o lote e recusou. Procure o motivo no edital e na matrícula antes de qualquer coisa.` });
+  if (i.direitos_fiduciante) s.push({ nivel: "veto", texto: t("Vende direitos de devedor fiduciante (dívida embutida). Nunca comprar.") });
+  if (i.fracao_ideal) s.push({ nivel: "veto", texto: t("Fração ideal do imóvel (copropriedade). Nunca comprar.") });
+  if (!i.direitos_fiduciante && /\bdireitos\b/i.test(i.titulo)) s.push({ nivel: "alerta", texto: t("Vende direitos sobre o imóvel (compromisso/posse), não a propriedade plena. Conferir na matrícula se há como registrar e quais ônus vêm junto.") });
+  if (i.onus_averbado) s.push({ nivel: "alerta", texto: t("A fonte avisa que existe gravame, penhora ou indisponibilidade ainda averbada na matrícula, e a regularização fica por sua conta. Cancelar isso exige advogado e petição no processo que gerou o ônus: conte de 3 a 12 meses e alguns milhares de reais. Enquanto o ônus estiver lá, nenhum banco financia o imóvel, o que trava também a sua revenda.") });
+  if (i.aceita_financiamento === false && i.aceita_fgts === false) s.push({ nivel: "alerta", texto: t("Não aceita financiamento nem FGTS: é pagamento à vista com recursos próprios. Quando a fonte fecha as duas portas, em geral é porque há pendência na matrícula. Confira o que impede antes de comprometer o caixa.") });
+  if (i.debitos_teto10 || /10% (em rela..o a|do valor de) avalia/i.test(i.debitos_regra ?? "")) s.push({ nivel: "alerta", texto: t("Regra da Caixa: o condomínio atrasado é seu até 10% da avaliação, ou seja, até {v} neste lote. Acima disso a Caixa paga. Levante o saldo real com o síndico e jogue no campo de débitos antes de decidir o lance.", { v: brl(i.avaliacao * 0.1) }) });
+  if (i.direitos_aquisitivos && !i.direitos_fiduciante) s.push({ nivel: "alerta", texto: t("Vende direitos sobre o imóvel (aquisitivos, do compromissário ou possessórios), não a propriedade registrada. Você entra no lugar de quem comprou e ainda não recebeu a escritura: confira na matrícula se dá para registrar em seu nome e o que falta pagar ao vendedor original.") });
+  if (i.dominio_util) s.push({ nivel: "alerta", texto: t("Vende o domínio útil, não a propriedade (enfiteuse). O terreno é de outro dono, em geral a União: há foro anual, laudêmio de 5% sobre a avaliação da SPU na hora de revender, e a transferência depende de autorização. Financiamento é difícil e a revenda é mais lenta.") });
+  if (i.massa_falida) s.push({ nivel: "alerta", texto: t("Bem de massa falida. A venda pelo juízo da falência costuma ser livre de ônus e sem sucessão de dívidas (art. 141, II da Lei 11.101/2005), o que é bom, mas confirme isso no edital. O rito é longo: conte meses até a carta de arrematação.") });
+  if (i.desagio_pct >= 0.85) s.push({ nivel: "alerta", texto: t("Deságio de {pct}%. Desconto desse tamanho quase nunca é oportunidade escondida: em geral o mercado já olhou o lote e recusou. Procure o motivo no edital e na matrícula antes de qualquer coisa.", { pct: (i.desagio_pct * 100).toFixed(0) }) });
   if (i.modalidade === "leilao_sfi" && i.debitos_por_conta_comprador !== false)
-    s.push({ nivel: "alerta", texto: "Leilão SFI: débitos de condomínio costumam ser 100% do comprador, sem teto. Conferir matrícula por execução condominial." });
-  if (i.modalidade === "licitacao_aberta") s.push({ nivel: "info", texto: "Licitação Aberta: Caixa costuma limitar condomínio a 10% da avaliação." });
-  if (i.fonte === "caixa" && i.modalidade === "venda_direta") s.push({ nivel: "info", texto: "Compra Direta da Caixa: sem leiloeiro e sem disputa, o primeiro que pagar o boleto leva. Você tem 2 dias úteis para pagar e pode desistir sem ônus nesse prazo: dá tempo de conferir matrícula e edital com o imóvel reservado." });
-  if (i.fonte === "caixa" && i.modalidade === "venda_online") s.push({ nivel: "info", texto: "Venda Online da Caixa: sem comissão de leiloeiro, proposta pelo site com prazo definido e desistência sem ônus. Ainda pode haver disputa de propostas." });
-  if (i.modalidade === "judicial") s.push({ nivel: "alerta", texto: "Judicial: avaliação pode estar inflada. Conferir comparáveis do laudo e a origem do imóvel (doação com retrocessão = veto)." });
-  if (i.ocupado) s.push({ nivel: "alerta", texto: "Ocupado: prever desocupação (custo e prazo)." });
-  if (i.ocupado === false) s.push({ nivel: "info", texto: "Desocupado." });
-  if (i.debitos_por_conta_comprador) s.push({ nivel: "alerta", texto: "Regra da fonte: débitos por conta do comprador." });
-  if (i.praca === 1) s.push({ nivel: "info", texto: "1ª praça: lance pode cair na 2ª." });
-  if (i.aceita_financiamento) s.push({ nivel: "info", texto: "Aceita financiamento (não descapitaliza, liquidez maior)." });
+    s.push({ nivel: "alerta", texto: t("Leilão SFI: débitos de condomínio costumam ser 100% do comprador, sem teto. Conferir matrícula por execução condominial.") });
+  if (i.modalidade === "licitacao_aberta") s.push({ nivel: "info", texto: t("Licitação Aberta: Caixa costuma limitar condomínio a 10% da avaliação.") });
+  if (i.fonte === "caixa" && i.modalidade === "venda_direta") s.push({ nivel: "info", texto: t("Compra Direta da Caixa: sem leiloeiro e sem disputa, o primeiro que pagar o boleto leva. Você tem 2 dias úteis para pagar e pode desistir sem ônus nesse prazo: dá tempo de conferir matrícula e edital com o imóvel reservado.") });
+  if (i.fonte === "caixa" && i.modalidade === "venda_online") s.push({ nivel: "info", texto: t("Venda Online da Caixa: sem comissão de leiloeiro, proposta pelo site com prazo definido e desistência sem ônus. Ainda pode haver disputa de propostas.") });
+  if (i.modalidade === "judicial") s.push({ nivel: "alerta", texto: t("Judicial: avaliação pode estar inflada. Conferir comparáveis do laudo e a origem do imóvel (doação com retrocessão = veto).") });
+  if (i.ocupado) s.push({ nivel: "alerta", texto: t("Ocupado: prever desocupação (custo e prazo).") });
+  if (i.ocupado === false) s.push({ nivel: "info", texto: t("Desocupado.") });
+  if (i.debitos_por_conta_comprador) s.push({ nivel: "alerta", texto: t("Regra da fonte: débitos por conta do comprador.") });
+  if (i.praca === 1) s.push({ nivel: "info", texto: t("1ª praça: lance pode cair na 2ª.") });
+  if (i.aceita_financiamento) s.push({ nivel: "info", texto: t("Aceita financiamento (não descapitaliza, liquidez maior).") });
   return s;
 }
 
@@ -113,21 +114,21 @@ export function noPerfil(i: Imovel, r: Pick<Regras, "quartosMin" | "areaMin" | "
 }
 
 // Só para a vitrine pública (landing): critérios de exemplo viram regras completas. Dentro do app, use o padrão do usuário.
-export function avaliar(i: Imovel, crit: Criterios = CRITERIOS_PADRAO, custos?: Custos): Avaliacao {
-  return avaliarPadrao(i, { faixaMin: crit.faixaMin, faixaMax: crit.faixaMax, lanceMax: 0, desagioMin: crit.desagioMin, margemMin: crit.margemMin, margemAlvo: 0.3, ufs: [], cidades: [], tipos: [], modalidades: [], ocupacao: "qualquer", exigeFinanciamento: false, vetoFiduciante: true, vetoFracao: true, vetoEdital: false, custos: custos ?? CUSTOS_PADRAO, quartosMin: 0, areaMin: 0, areaMax: 0 });
+export function avaliar(i: Imovel, crit: Criterios = CRITERIOS_PADRAO, custos?: Custos, t: T = (s) => s): Avaliacao {
+  return avaliarPadrao(i, { faixaMin: crit.faixaMin, faixaMax: crit.faixaMax, lanceMax: 0, desagioMin: crit.desagioMin, margemMin: crit.margemMin, margemAlvo: 0.3, ufs: [], cidades: [], tipos: [], modalidades: [], ocupacao: "qualquer", exigeFinanciamento: false, vetoFiduciante: true, vetoFracao: true, vetoEdital: false, custos: custos ?? CUSTOS_PADRAO, quartosMin: 0, areaMin: 0, areaMax: 0 }, t);
 }
 
 const nrm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 // Score de 0 a 100 sobre as regras do usuário. "passa" = cumpre todos os limites duros do padrão.
-export function avaliarPadrao(i: Imovel, r: Regras): Avaliacao {
+export function avaliarPadrao(i: Imovel, r: Regras, t: T = (s) => s): Avaliacao {
   const c = { ...r.custos, itbi: ITBI_CIDADE[i.cidade] ?? r.custos.itbi, leiloeiro: semLeiloeiro(i) ? 0 : r.custos.leiloeiro, desocupacao: r.custos.desocupacao || (i.ocupado ? 8000 : i.ocupado === false ? 0 : 4000) };
   const res = calcular(i.avaliacao, i.lance_minimo, c);
-  const sg = sinais(i).filter((s) => !(s.nivel === "veto" && ((i.direitos_fiduciante && !r.vetoFiduciante) || (i.fracao_ideal && !r.vetoFracao))));
+  const sg = sinais(i, t).filter((s) => !(s.nivel === "veto" && ((i.direitos_fiduciante && !r.vetoFiduciante) || (i.fracao_ideal && !r.vetoFracao))));
   const regiao = regiaoDe(i.cidade);
   const naRegiao = (r.ufs.length === 0 || r.ufs.includes(i.uf)) && (r.cidades.length === 0 || r.cidades.some((cd) => nrm(cd) === nrm(i.cidade)));
   const motivos: string[] = [];
-  if (sg.some((x) => x.nivel === "veto")) return { score: 0, classe: "nogo", motivos: ["Veto do seu padrão"], res, sinais: sg, regiao, passa: false };
+  if (sg.some((x) => x.nivel === "veto")) return { score: 0, classe: "nogo", motivos: [t("Veto do seu padrão")], res, sinais: sg, regiao, passa: false };
   const naFaixa = (r.faixaMin <= 0 || i.avaliacao >= r.faixaMin) && (r.faixaMax <= 0 || i.avaliacao <= r.faixaMax) && (r.lanceMax <= 0 || i.lance_minimo <= r.lanceMax);
   const limites = [naFaixa, i.desagio_pct >= r.desagioMin, res.margem >= r.margemMin, naRegiao,
     r.tipos.length === 0 || r.tipos.includes(i.tipo), r.modalidades.length === 0 || r.modalidades.includes(i.modalidade),
@@ -135,17 +136,17 @@ export function avaliarPadrao(i: Imovel, r: Regras): Avaliacao {
   const passa = limites.every(Boolean);
   let score = 0;
   if (res.margem >= r.margemAlvo + 0.05) score += 45; else if (res.margem >= r.margemAlvo) score += 38; else if (res.margem >= r.margemMin) score += 25; else if (res.margem >= r.margemMin - 0.1) score += 8;
-  motivos.push(`Margem líquida ${(res.margem * 100).toFixed(0)}%`);
+  motivos.push(t("Margem líquida {pct}%", { pct: (res.margem * 100).toFixed(0) }));
   if (i.desagio_pct >= r.desagioMin + 0.1) score += 20; else if (i.desagio_pct >= r.desagioMin) score += 15; else if (i.desagio_pct >= r.desagioMin - 0.1) score += 5;
-  motivos.push(`Deságio ${(i.desagio_pct * 100).toFixed(0)}%`);
-  if (naFaixa) { score += 10; if (r.faixaMin > 0 || r.faixaMax > 0 || r.lanceMax > 0) motivos.push("Na faixa"); }
-  if (naRegiao) { score += 10; if (r.ufs.length || r.cidades.length) motivos.push("Na região"); }
+  motivos.push(t("Deságio {pct}%", { pct: (i.desagio_pct * 100).toFixed(0) }));
+  if (naFaixa) { score += 10; if (r.faixaMin > 0 || r.faixaMax > 0 || r.lanceMax > 0) motivos.push(t("Na faixa")); }
+  if (naRegiao) { score += 10; if (r.ufs.length || r.cidades.length) motivos.push(t("Na região")); }
   const alertas = sg.filter((x) => x.nivel === "alerta").length;
   score += Math.max(0, 15 - alertas * 5);
   if (i.ocupado === false) score += 3;
   if (i.aceita_financiamento) score += 2;
   // Caixa sem leiloeiro: Compra Direta (1º que paga leva, 2 dias pra decidir, desiste sem ônus) vale mais que Venda Online (ainda há disputa).
-  if (semLeiloeiro(i)) { score += i.modalidade === "venda_direta" ? 5 : 3; motivos.push(i.modalidade === "venda_direta" ? "Compra Direta: sem leiloeiro, 2 dias pra decidir" : "Venda Online: sem leiloeiro"); }
+  if (semLeiloeiro(i)) { score += i.modalidade === "venda_direta" ? 5 : 3; motivos.push(t(i.modalidade === "venda_direta" ? "Compra Direta: sem leiloeiro, 2 dias pra decidir" : "Venda Online: sem leiloeiro")); }
   score = Math.min(100, score);
   const classe = passa && score >= 60 ? "go" : score >= 40 ? "atencao" : "nogo";
   return { score, classe, motivos, res, sinais: sg, regiao, passa };

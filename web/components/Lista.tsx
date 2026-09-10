@@ -10,6 +10,7 @@ import CampoMoeda from "./CampoMoeda";
 import { useFavoritos } from "@/lib/favoritos";
 import { useConta } from "@/lib/conta";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n/client";
 
 const LIMITE_VISITANTE = 30;
 
@@ -24,6 +25,8 @@ const Ajustes = () => <svg {...S}><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><cir
 const Seta = () => <svg {...S} width={13} height={13}><path d="M6 9l6 6 6-6" /></svg>;
 
 export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
+  const { t, lang } = useT();
+  const loc = lang === "en" ? "en-US" : "pt-BR";
   const { ativo, lista: padroes, ativar, desativar, pronto } = usePadroes();
   const { user, pronto: contaPronta } = useConta(); const router = useRouter();
   const visitante = contaPronta && !user;
@@ -43,7 +46,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
   const avaliados = useMemo(() => imoveis.map((i) => ({ i, a: regras ? avaliarPadrao(i, regras) : null as Avaliacao | null })), [imoveis, regras]);
   // Mesmo critério do chip de estados: leilão aberto, sem veto, sem valor suspeito.
   const disponiveis = useMemo(() => imoveis.filter((i) => (!i.data_leilao || i.data_leilao >= hoje) && !(i.direitos_fiduciante || i.fracao_ideal) && !(i.valor_suspeito || i.desagio_pct >= 0.85)).length, [imoveis, hoje]);
-  const cidades = useMemo(() => Array.from(new Set(imoveis.map((i) => i.cidade))).sort((a, b) => a.localeCompare(b, "pt-BR")), [imoveis]);
+  const cidades = useMemo(() => Array.from(new Set(imoveis.map((i) => i.cidade))).sort((a, b) => a.localeCompare(b, loc)), [imoveis, loc]);
   const fontes = useMemo(() => Array.from(new Set(imoveis.map((i) => i.fonte))).sort(), [imoveis]);
 
   const lista = useMemo(() => {
@@ -60,20 +63,20 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
   }, [avaliados, cidade, tipo, fonte, modalidade, busca, soPassam, ocultarVeto, soFoto, soFavs, favs, ordem, precoMin, precoMax, quartosMin, areaMin, areaMax, ocultarEncerrados, soComData, ocultarSuspeitos, hoje]);
 
   const pills = [
-    soPassam && ativo && { k: "padrao", txt: `Padrão: ${ativo.nome}`, off: () => setSoPassam(false), destaque: true },
-    (precoMin > 0 || precoMax > 0) && { k: "preco", txt: precoMin > 0 && precoMax > 0 ? `Lance ${brl(precoMin)} a ${brl(precoMax)}` : precoMin > 0 ? `Lance a partir de ${brl(precoMin)}` : `Lance até ${brl(precoMax)}`, off: () => { setPrecoMin(0); setPrecoMax(0); } },
-    quartosMin > 0 && { k: "quartos", txt: `${quartosMin}+ quartos`, off: () => setQuartosMin(0) },
-    (areaMin > 0 || areaMax > 0) && { k: "area", txt: areaMin > 0 && areaMax > 0 ? `${areaMin} a ${areaMax} m²` : areaMin > 0 ? `A partir de ${areaMin} m²` : `Até ${areaMax} m²`, off: () => { setAreaMin(0); setAreaMax(0); } },
+    soPassam && ativo && { k: "padrao", txt: t("Padrão: {nome}", { nome: ativo.nome }), off: () => setSoPassam(false), destaque: true },
+    (precoMin > 0 || precoMax > 0) && { k: "preco", txt: precoMin > 0 && precoMax > 0 ? t("Lance {min} a {max}", { min: brl(precoMin), max: brl(precoMax) }) : precoMin > 0 ? t("Lance a partir de {min}", { min: brl(precoMin) }) : t("Lance até {max}", { max: brl(precoMax) }), off: () => { setPrecoMin(0); setPrecoMax(0); } },
+    quartosMin > 0 && { k: "quartos", txt: t("{n}+ quartos", { n: quartosMin }), off: () => setQuartosMin(0) },
+    (areaMin > 0 || areaMax > 0) && { k: "area", txt: areaMin > 0 && areaMax > 0 ? t("{min} a {max} m²", { min: areaMin, max: areaMax }) : areaMin > 0 ? t("A partir de {min} m²", { min: areaMin }) : t("Até {max} m²", { max: areaMax }), off: () => { setAreaMin(0); setAreaMax(0); } },
     cidade && { k: "cidade", txt: cidade, off: () => setCidade("") },
     tipo && { k: "tipo", txt: tipo, off: () => setTipo("") },
     modalidade && { k: "mod", txt: MODALIDADE_LABEL[modalidade], off: () => setModalidade("") },
     fonte && { k: "fonte", txt: FONTE_LABEL[fonte] ?? fonte, off: () => setFonte("") },
-    soFoto && { k: "foto", txt: "Com foto", off: () => setSoFoto(false) },
-    soFavs && { k: "favs", txt: "Favoritos", off: () => setSoFavs(false) },
-    !ocultarVeto && { k: "veto", txt: "Mostrando vetados", off: () => setOcultarVeto(true) },
-    !ocultarEncerrados && { k: "enc", txt: "Mostrando encerrados", off: () => setOcultarEncerrados(true) },
-    soComData && { k: "data", txt: "Só com data", off: () => setSoComData(false) },
-    !ocultarSuspeitos && { k: "susp", txt: "Mostrando valor a conferir", off: () => setOcultarSuspeitos(true) },
+    soFoto && { k: "foto", txt: t("Com foto"), off: () => setSoFoto(false) },
+    soFavs && { k: "favs", txt: t("Favoritos"), off: () => setSoFavs(false) },
+    !ocultarVeto && { k: "veto", txt: t("Mostrando vetados"), off: () => setOcultarVeto(true) },
+    !ocultarEncerrados && { k: "enc", txt: t("Mostrando encerrados"), off: () => setOcultarEncerrados(true) },
+    soComData && { k: "data", txt: t("Só com data"), off: () => setSoComData(false) },
+    !ocultarSuspeitos && { k: "susp", txt: t("Mostrando valor a conferir"), off: () => setOcultarSuspeitos(true) },
     busca && { k: "busca", txt: `"${busca}"`, off: () => setBusca("") },
   ].filter(Boolean) as { k: string; txt: string; off: () => void; destaque?: boolean }[];
   const nFiltros = pills.filter((p) => p.k !== "padrao" && p.k !== "busca").length;
@@ -86,110 +89,110 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
         <div className="fbar-linha">
           <div className="fbusca">
             <Lupa />
-            <input value={busca} onChange={(e) => { setBusca(e.target.value); setLimite(48); }} placeholder="Buscar cidade, bairro, rua ou matrícula" aria-label="Buscar" />
-            {busca && <button className="limpar" onClick={() => setBusca("")} aria-label="Limpar busca"><Xis /></button>}
+            <input value={busca} onChange={(e) => { setBusca(e.target.value); setLimite(48); }} placeholder={t("Buscar cidade, bairro, rua ou matrícula")} aria-label={t("Buscar")} />
+            {busca && <button className="limpar" onClick={() => setBusca("")} aria-label={t("Limpar busca")}><Xis /></button>}
           </div>
-          <button className={`fbtn so-icone ${nFiltros ? "on" : ""}`} onClick={() => setPainel(true)} aria-expanded={painel}><Ajustes /><span>Filtros</span>{nFiltros > 0 && <i className="conta">{nFiltros}</i>}</button>
+          <button className={`fbtn so-icone ${nFiltros ? "on" : ""}`} onClick={() => setPainel(true)} aria-expanded={painel}><Ajustes /><span>{t("Filtros")}</span>{nFiltros > 0 && <i className="conta">{nFiltros}</i>}</button>
           <div className="fordenar">
-            <select value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)} aria-label="Ordenar">{ORDENS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+            <select value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)} aria-label={t("Ordenar")}>{ORDENS.map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}</select>
             <Seta />
           </div>
           {painel && (<>
             <div className="fpanel-fundo" onClick={() => setPainel(false)} />
-            <div className="fpanel" role="dialog" aria-label="Filtros">
-              <div className="fpanel-cab"><b>Filtros</b><button className="btn ghost mini" onClick={() => setPainel(false)} aria-label="Fechar"><Xis s={18} /></button></div>
+            <div className="fpanel" role="dialog" aria-label={t("Filtros")}>
+              <div className="fpanel-cab"><b>{t("Filtros")}</b><button className="btn ghost mini" onClick={() => setPainel(false)} aria-label={t("Fechar")}><Xis s={18} /></button></div>
               <div className="fpanel-corpo">
                 {!visitante && <div className="fgrupo">
-                  <h4>Meu padrão</h4>
-                  {ativo ? <label className="toggle"><input type="checkbox" checked={soPassam} onChange={(e) => setSoPassam(e.target.checked)} />Mostrar só o que passa no padrão "{ativo.nome}"</label>
-                    : <p style={{ margin: 0, fontSize: 13, color: "var(--mute)" }}>Nenhum padrão ativo. Sem ele a lista não é pontuada.</p>}
-                  {padroes.length > 0 && <select className="fseletor" style={{ marginTop: 8 }} value={ativo?.id ?? ""} onChange={(e) => (e.target.value ? ativar(e.target.value) : desativar())} aria-label="Padrão ativo"><option value="">Sem padrão</option>{padroes.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select>}
-                  <p style={{ margin: "10px 0 0", fontSize: 13 }}><Link href={ativo ? "/app/padrao" : "/app/padrao?novo=1"} style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{ativo ? "Ajustar minhas regras →" : "Criar meu padrão →"}</Link></p>
+                  <h4>{t("Meu padrão")}</h4>
+                  {ativo ? <label className="toggle"><input type="checkbox" checked={soPassam} onChange={(e) => setSoPassam(e.target.checked)} />{t('Mostrar só o que passa no padrão "{nome}"', { nome: ativo.nome })}</label>
+                    : <p style={{ margin: 0, fontSize: 13, color: "var(--mute)" }}>{t("Nenhum padrão ativo. Sem ele a lista não é pontuada.")}</p>}
+                  {padroes.length > 0 && <select className="fseletor" style={{ marginTop: 8 }} value={ativo?.id ?? ""} onChange={(e) => (e.target.value ? ativar(e.target.value) : desativar())} aria-label={t("Padrão ativo")}><option value="">{t("Sem padrão")}</option>{padroes.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select>}
+                  <p style={{ margin: "10px 0 0", fontSize: 13 }}><Link href={ativo ? "/app/padrao" : "/app/padrao?novo=1"} style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{ativo ? t("Ajustar minhas regras →") : t("Criar meu padrão →")}</Link></p>
                 </div>}
 
                 <div className="fgrupo">
-                  <h4>Onde</h4>
-                  <select className="fseletor" value={cidade} onChange={(e) => setCidade(e.target.value)} aria-label="Cidade"><option value="">Todas as cidades ({cidades.length})</option>{cidades.map((c) => <option key={c}>{c}</option>)}</select>
-                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--mute)" }}>Os estados você escolhe no botão do topo da página.</p>
+                  <h4>{t("Onde")}</h4>
+                  <select className="fseletor" value={cidade} onChange={(e) => setCidade(e.target.value)} aria-label={t("Cidade")}><option value="">{t("Todas as cidades ({n})", { n: cidades.length })}</option>{cidades.map((c) => <option key={c}>{c}</option>)}</select>
+                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--mute)" }}>{t("Os estados você escolhe no botão do topo da página.")}</p>
                 </div>
 
                 <div className="fgrupo">
-                  <h4>O imóvel</h4>
-                  <div className="fopcoes"><button className={`fopcao ${!tipo ? "on" : ""}`} onClick={() => setTipo("")}>Todos</button>{TIPOS.map((t) => <button key={t} className={`fopcao ${tipo === t ? "on" : ""}`} onClick={() => setTipo(tipo === t ? "" : t)}>{t}</button>)}</div>
+                  <h4>{t("O imóvel")}</h4>
+                  <div className="fopcoes"><button className={`fopcao ${!tipo ? "on" : ""}`} onClick={() => setTipo("")}>{t("Todos")}</button>{TIPOS.map((t2) => <button key={t2} className={`fopcao ${tipo === t2 ? "on" : ""}`} onClick={() => setTipo(tipo === t2 ? "" : t2)}>{t(t2)}</button>)}</div>
                   <div className="fopcoes" style={{ marginTop: 10 }}>
-                    <button className={`fopcao ${!quartosMin ? "on" : ""}`} onClick={() => setQuartosMin(0)}>Qualquer nº de quartos</button>
-                    {[1, 2, 3, 4].map((n) => <button key={n} className={`fopcao ${quartosMin === n ? "on" : ""}`} onClick={() => setQuartosMin(quartosMin === n ? 0 : n)}>{n}+ quartos</button>)}
+                    <button className={`fopcao ${!quartosMin ? "on" : ""}`} onClick={() => setQuartosMin(0)}>{t("Qualquer nº de quartos")}</button>
+                    {[1, 2, 3, 4].map((n) => <button key={n} className={`fopcao ${quartosMin === n ? "on" : ""}`} onClick={() => setQuartosMin(quartosMin === n ? 0 : n)}>{t("{n}+ quartos", { n })}</button>)}
                   </div>
                   <div className="fopcoes" style={{ marginTop: 10 }}>
                     {([[0, 50, "até 50 m²"], [50, 80, "50 a 80 m²"], [80, 120, "80 a 120 m²"], [120, 0, "acima de 120 m²"]] as const).map(([a, b2, l]) => (
-                      <button key={l} className={`fopcao ${areaMin === a && areaMax === b2 ? "on" : ""}`} onClick={() => { const on = areaMin === a && areaMax === b2; setAreaMin(on ? 0 : a); setAreaMax(on ? 0 : b2); }}>{l}</button>))}
+                      <button key={l} className={`fopcao ${areaMin === a && areaMax === b2 ? "on" : ""}`} onClick={() => { const on = areaMin === a && areaMax === b2; setAreaMin(on ? 0 : a); setAreaMax(on ? 0 : b2); }}>{t(l)}</button>))}
                   </div>
                   <div className="par" style={{ marginTop: 10 }}>
-                    <label className="campo"><span>Área de (m²)</span><input className="num" inputMode="numeric" value={areaMin || ""} placeholder="0" onChange={(e) => setAreaMin(Number(e.target.value.replace(/\D/g, "")) || 0)} /></label>
-                    <label className="campo"><span>Área até (m²)</span><input className="num" inputMode="numeric" value={areaMax || ""} placeholder="sem teto" onChange={(e) => setAreaMax(Number(e.target.value.replace(/\D/g, "")) || 0)} /></label>
+                    <label className="campo"><span>{t("Área de (m²)")}</span><input className="num" inputMode="numeric" value={areaMin || ""} placeholder="0" onChange={(e) => setAreaMin(Number(e.target.value.replace(/\D/g, "")) || 0)} /></label>
+                    <label className="campo"><span>{t("Área até (m²)")}</span><input className="num" inputMode="numeric" value={areaMax || ""} placeholder={t("sem teto")} onChange={(e) => setAreaMax(Number(e.target.value.replace(/\D/g, "")) || 0)} /></label>
                   </div>
-                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--mute)" }}>Quartos e área como a fonte informou. Lote sem o dado fica de fora quando você exige.</p>
+                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--mute)" }}>{t("Quartos e área como a fonte informou. Lote sem o dado fica de fora quando você exige.")}</p>
                 </div>
 
                 <div className="fgrupo">
-                  <h4>O leilão</h4>
-                  <p style={{ margin: "0 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>Lance mínimo</p>
+                  <h4>{t("O leilão")}</h4>
+                  <p style={{ margin: "0 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>{t("Lance mínimo")}</p>
                   <div className="par">
-                    <div className="campo"><span>De (0 = sem mínimo)</span><CampoMoeda valor={precoMin} onChange={setPrecoMin} /></div>
-                    <div className="campo"><span>Até (0 = sem teto)</span><CampoMoeda valor={precoMax} onChange={setPrecoMax} /></div>
+                    <div className="campo"><span>{t("De (0 = sem mínimo)")}</span><CampoMoeda valor={precoMin} onChange={setPrecoMin} /></div>
+                    <div className="campo"><span>{t("Até (0 = sem teto)")}</span><CampoMoeda valor={precoMax} onChange={setPrecoMax} /></div>
                   </div>
                   <div className="fopcoes" style={{ marginTop: 10 }}>
                     {([[0, 150000, "até 150 mil"], [150000, 300000, "150 a 300 mil"], [300000, 600000, "300 a 600 mil"], [600000, 0, "acima de 600 mil"]] as const).map(([a, b2, l]) => (
-                      <button key={l} className={`fopcao ${precoMin === a && precoMax === b2 ? "on" : ""}`} onClick={() => { setPrecoMin(precoMin === a && precoMax === b2 ? 0 : a); setPrecoMax(precoMin === a && precoMax === b2 ? 0 : b2); }}>{l}</button>))}
+                      <button key={l} className={`fopcao ${precoMin === a && precoMax === b2 ? "on" : ""}`} onClick={() => { setPrecoMin(precoMin === a && precoMax === b2 ? 0 : a); setPrecoMax(precoMin === a && precoMax === b2 ? 0 : b2); }}>{t(l)}</button>))}
                   </div>
-                  <p style={{ margin: "14px 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>Modalidade</p>
-                  <div className="fopcoes"><button className={`fopcao ${!modalidade ? "on" : ""}`} onClick={() => setModalidade("")}>Todas</button>{Object.entries(MODALIDADE_LABEL).map(([k, v]) => <button key={k} className={`fopcao ${modalidade === k ? "on" : ""}`} onClick={() => setModalidade(modalidade === k ? "" : k)}>{v}</button>)}</div>
-                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--mute)" }}>Na Caixa: Venda Direta = Compra Direta (Venda Direta Online), Leilão SFI = Edital Único. Nas duas primeiras não há comissão de leiloeiro.</p>
-                  <p style={{ margin: "14px 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>Fonte</p>
-                  <div className="fopcoes"><button className={`fopcao ${!fonte ? "on" : ""}`} onClick={() => setFonte("")}>Todas</button>{fontes.map((f) => <button key={f} className={`fopcao ${fonte === f ? "on" : ""}`} onClick={() => setFonte(fonte === f ? "" : f)}>{FONTE_LABEL[f] ?? f}</button>)}</div>
-                  <p style={{ margin: "14px 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>Situação</p>
-                  <label className="toggle"><input type="checkbox" checked={ocultarEncerrados} onChange={(e) => setOcultarEncerrados(e.target.checked)} />Ocultar leilões já encerrados</label>
-                  <label className="toggle"><input type="checkbox" checked={soComData} onChange={(e) => setSoComData(e.target.checked)} />Só lotes com data de leilão informada</label>
+                  <p style={{ margin: "14px 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>{t("Modalidade")}</p>
+                  <div className="fopcoes"><button className={`fopcao ${!modalidade ? "on" : ""}`} onClick={() => setModalidade("")}>{t("Todas")}</button>{Object.entries(MODALIDADE_LABEL).map(([k, v]) => <button key={k} className={`fopcao ${modalidade === k ? "on" : ""}`} onClick={() => setModalidade(modalidade === k ? "" : k)}>{v}</button>)}</div>
+                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--mute)" }}>{t("Na Caixa: Venda Direta = Compra Direta (Venda Direta Online), Leilão SFI = Edital Único. Nas duas primeiras não há comissão de leiloeiro.")}</p>
+                  <p style={{ margin: "14px 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>{t("Fonte")}</p>
+                  <div className="fopcoes"><button className={`fopcao ${!fonte ? "on" : ""}`} onClick={() => setFonte("")}>{t("Todas")}</button>{fontes.map((f) => <button key={f} className={`fopcao ${fonte === f ? "on" : ""}`} onClick={() => setFonte(fonte === f ? "" : f)}>{FONTE_LABEL[f] ?? f}</button>)}</div>
+                  <p style={{ margin: "14px 0 6px", fontSize: 12, color: "var(--mute)", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>{t("Situação")}</p>
+                  <label className="toggle"><input type="checkbox" checked={ocultarEncerrados} onChange={(e) => setOcultarEncerrados(e.target.checked)} />{t("Ocultar leilões já encerrados")}</label>
+                  <label className="toggle"><input type="checkbox" checked={soComData} onChange={(e) => setSoComData(e.target.checked)} />{t("Só lotes com data de leilão informada")}</label>
                 </div>
 
                 <div className="fgrupo">
-                  <h4>Exibição</h4>
-                  <label className="toggle"><input type="checkbox" checked={soFoto} onChange={(e) => setSoFoto(e.target.checked)} />Só lotes com foto</label>
-                  <label className="toggle"><input type="checkbox" checked={soFavs} onChange={(e) => setSoFavs(e.target.checked)} />Só meus favoritos{favs.size ? ` (${favs.size})` : ""}</label>
-                  <label className="toggle"><input type="checkbox" checked={!ocultarVeto} onChange={(e) => setOcultarVeto(!e.target.checked)} />Mostrar lotes vetados</label>
-                  <label className="toggle"><input type="checkbox" checked={!ocultarSuspeitos} onChange={(e) => setOcultarSuspeitos(!e.target.checked)} />Mostrar lotes com valor a conferir (deságio acima de 85%)</label>
+                  <h4>{t("Exibição")}</h4>
+                  <label className="toggle"><input type="checkbox" checked={soFoto} onChange={(e) => setSoFoto(e.target.checked)} />{t("Só lotes com foto")}</label>
+                  <label className="toggle"><input type="checkbox" checked={soFavs} onChange={(e) => setSoFavs(e.target.checked)} />{t("Só meus favoritos{n}", { n: favs.size ? ` (${favs.size})` : "" })}</label>
+                  <label className="toggle"><input type="checkbox" checked={!ocultarVeto} onChange={(e) => setOcultarVeto(!e.target.checked)} />{t("Mostrar lotes vetados")}</label>
+                  <label className="toggle"><input type="checkbox" checked={!ocultarSuspeitos} onChange={(e) => setOcultarSuspeitos(!e.target.checked)} />{t("Mostrar lotes com valor a conferir (deságio acima de 85%)")}</label>
                   <div style={{ marginTop: 10 }} className="fordenar-mobile">
-                    <label className="campo"><span>Ordenar por</span><select value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)}>{ORDENS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+                    <label className="campo"><span>{t("Ordenar por")}</span><select value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)}>{ORDENS.map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}</select></label>
                   </div>
                 </div>
               </div>
-              <div className="fpanel-pe"><button className="btn sec" onClick={limpar}>Limpar</button><button className="btn ouro" onClick={() => setPainel(false)}>Ver {lista.length.toLocaleString("pt-BR")} lotes</button></div>
+              <div className="fpanel-pe"><button className="btn sec" onClick={limpar}>{t("Limpar")}</button><button className="btn ouro" onClick={() => setPainel(false)}>{t("Ver {n} lotes", { n: lista.length.toLocaleString(loc) })}</button></div>
             </div>
           </>)}
         </div>
         {pills.length > 0 && (
           <div className="fpills">
-            {pills.map((p) => <span key={p.k} className={`fpill ${p.destaque ? "padrao" : ""}`}>{p.txt}<button onClick={p.off} aria-label={`Remover ${p.txt}`}><Xis s={13} /></button></span>)}
-            {pills.length > 1 && <button className="limpar-tudo" onClick={limpar}>Limpar tudo</button>}
+            {pills.map((p) => <span key={p.k} className={`fpill ${p.destaque ? "padrao" : ""}`}>{p.txt}<button onClick={p.off} aria-label={t("Remover {txt}", { txt: p.txt })}><Xis s={13} /></button></span>)}
+            {pills.length > 1 && <button className="limpar-tudo" onClick={limpar}>{t("Limpar tudo")}</button>}
           </div>)}
       </div>
 
       {visitante && (
-        <div className="sinal info" style={{ margin: "0 0 16px" }}>Você está vendo uma amostra de {LIMITE_VISITANTE} lotes. <Link href="/entrar?modo=criar&next=/app/buscar" style={{ fontWeight: 600, textDecoration: "underline" }}>Crie sua conta grátis</Link> para ver os {imoveis.length.toLocaleString("pt-BR")} lotes, definir o seu padrão e guardar favoritos.</div>)}
+        <div className="sinal info" style={{ margin: "0 0 16px" }}>{t("Você está vendo uma amostra de {n} lotes.", { n: LIMITE_VISITANTE })} <Link href="/entrar?modo=criar&next=/app/buscar" style={{ fontWeight: 600, textDecoration: "underline" }}>{t("Crie sua conta grátis")}</Link> {t("para ver os {n} lotes, definir o seu padrão e guardar favoritos.", { n: imoveis.length.toLocaleString(loc) })}</div>)}
       {!visitante && pronto && contaPronta && !ativo && (
-        <div className="sinal info" style={{ margin: "0 0 16px" }}>Você ainda não definiu o seu padrão, então a lista aparece sem pontuação. <Link href="/app/padrao?novo=1" style={{ fontWeight: 600, textDecoration: "underline" }}>Criar meu padrão</Link> leva 2 minutos.</div>)}
+        <div className="sinal info" style={{ margin: "0 0 16px" }}>{t("Você ainda não definiu o seu padrão, então a lista aparece sem pontuação.")} <Link href="/app/padrao?novo=1" style={{ fontWeight: 600, textDecoration: "underline" }}>{t("Criar meu padrão")}</Link> {t("leva 2 minutos.")}</div>)}
 
       <div className="contagem">
-        <div><b>{(visitante ? Math.min(lista.length, LIMITE_VISITANTE) : lista.length).toLocaleString("pt-BR")}</b> <span>{soPassam && ativo ? `lotes no padrão ${ativo.nome}` : "lotes"}</span></div>
-        <span style={{ color: "var(--mute)", fontSize: 13 }} title="Disponíveis = leilão aberto, sem veto e sem valor suspeito. Encerrados, vetados e valor a conferir podem ser exibidos em Filtros.">{disponiveis.toLocaleString("pt-BR")} disponíveis{lista.length < disponiveis && nFiltros + (busca ? 1 : 0) + (soPassam && ativo ? 1 : 0) > 0 ? ` · ${(disponiveis - lista.length).toLocaleString("pt-BR")} fora pelos filtros` : ""}</span>
+        <div><b>{(visitante ? Math.min(lista.length, LIMITE_VISITANTE) : lista.length).toLocaleString(loc)}</b> <span>{soPassam && ativo ? t("lotes no padrão {nome}", { nome: ativo.nome }) : t("lotes")}</span></div>
+        <span style={{ color: "var(--mute)", fontSize: 13 }} title={t("Disponíveis = leilão aberto, sem veto e sem valor suspeito. Encerrados, vetados e valor a conferir podem ser exibidos em Filtros.")}>{disponiveis.toLocaleString(loc)} {t("disponíveis")}{lista.length < disponiveis && nFiltros + (busca ? 1 : 0) + (soPassam && ativo ? 1 : 0) > 0 ? t(" · {n} fora pelos filtros", { n: (disponiveis - lista.length).toLocaleString(loc) }) : ""}</span>
       </div>
 
       {lista.length === 0 ? (
-        <div className="vazio"><b>Nada encontrado</b>{soFavs ? "Você ainda não marcou favoritos. Toque na estrela de um lote para guardar aqui." : "Afrouxe o seu padrão (faixa, deságio, margem ou região) ou remova algum filtro."}</div>
+        <div className="vazio"><b>{t("Nada encontrado")}</b>{soFavs ? t("Você ainda não marcou favoritos. Toque na estrela de um lote para guardar aqui.") : t("Afrouxe o seu padrão (faixa, deságio, margem ou região) ou remova algum filtro.")}</div>
       ) : (<>
         <div className="grade">{lista.slice(0, visitante ? LIMITE_VISITANTE : limite).map(({ i, a }) => <Card key={i.id} i={i} a={a} fav={favs.has(i.id)} toggle={toggle} />)}</div>
-        {visitante && lista.length > LIMITE_VISITANTE && <div className="vazio" style={{ marginTop: 20 }}><b>Mais {(lista.length - LIMITE_VISITANTE).toLocaleString("pt-BR")} lotes esperando</b>Crie sua conta grátis para ver tudo, com o seu padrão e a sua conta de lance.<p style={{ margin: "14px 0 0" }}><Link href="/entrar?modo=criar&next=/app/buscar" className="btn ouro">Criar conta grátis</Link></p></div>}
-        {!visitante && lista.length > limite && <p style={{ textAlign: "center", margin: 28 }}><button className="btn sec" onClick={() => setLimite(limite + 48)}>Mostrar mais {Math.min(48, lista.length - limite)} de {(lista.length - limite).toLocaleString("pt-BR")}</button></p>}
+        {visitante && lista.length > LIMITE_VISITANTE && <div className="vazio" style={{ marginTop: 20 }}><b>{t("Mais {n} lotes esperando", { n: (lista.length - LIMITE_VISITANTE).toLocaleString(loc) })}</b>{t("Crie sua conta grátis para ver tudo, com o seu padrão e a sua conta de lance.")}<p style={{ margin: "14px 0 0" }}><Link href="/entrar?modo=criar&next=/app/buscar" className="btn ouro">{t("Criar conta grátis")}</Link></p></div>}
+        {!visitante && lista.length > limite && <p style={{ textAlign: "center", margin: 28 }}><button className="btn sec" onClick={() => setLimite(limite + 48)}>{t("Mostrar mais {n} de {m}", { n: Math.min(48, lista.length - limite), m: (lista.length - limite).toLocaleString(loc) })}</button></p>}
       </>)}
     </>
   );

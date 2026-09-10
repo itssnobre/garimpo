@@ -4,6 +4,7 @@ import { META } from "@/lib/data";
 import { TODOS as IMOVEIS } from "@/lib/dadosCompletos";
 import { avaliarPadrao, brl, pct, type Regras } from "@/lib/motor";
 import { supabaseServer } from "@/lib/supabase/server";
+import { getLang, tServer } from "@/lib/i18n/server";
 export const runtime = "nodejs"; export const maxDuration = 60;
 
 // Sem padrão do usuário, o Sage descreve o lote cru (sem margem, teto ou score): a conta é sempre com as regras dele.
@@ -18,9 +19,11 @@ function resumoCom(REGRAS: Regras | null) {
 }
 
 export async function POST(req: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ texto: "O Sage ainda não está ligado neste servidor: falta a chave ANTHROPIC_API_KEY nas variáveis do Vercel. Assim que entrar, eu respondo aqui." });
+  const t = await tServer();
+  const lang = await getLang();
+  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ texto: t("O Sage ainda não está ligado neste servidor: falta a chave ANTHROPIC_API_KEY nas variáveis do Vercel. Assim que entrar, eu respondo aqui.") });
   const sb = await supabaseServer();
-  if (sb) { const { data } = await sb.auth.getUser(); if (!data.user) return NextResponse.json({ texto: "Entre na sua conta para conversar com o Sage." }, { status: 401 }); }
+  if (sb) { const { data } = await sb.auth.getUser(); if (!data.user) return NextResponse.json({ texto: t("Entre na sua conta para conversar com o Sage.") }, { status: 401 }); }
   const { mensagens, loteId, padrao } = (await req.json()) as { mensagens: { role: "user" | "assistant"; content: string }[]; loteId?: string; padrao?: (Regras & { nome?: string }) | null };
   const REGRAS: Regras | null = padrao ?? null; const resumo = resumoCom(REGRAS);
   const lote = loteId ? IMOVEIS.find((i) => i.id === loteId) : undefined;
@@ -38,11 +41,11 @@ Quando citar um lote, use o título e a cidade e ofereça o link /app/imovel/<id
 
 ${lote ? "LOTE ABERTO PELO USUÁRIO:\n" + resumo(lote) + "\nDescrição da fonte: " + (lote.descricao ?? "").slice(0, 1500) + "\n" : ""}
 ${REGRAS ? "TOP 40 QUE PASSAM NO PADRÃO DO USUÁRIO HOJE:" : "40 LOTES COM MAIOR DESÁGIO (sem padrão definido):"}\n${top}
-${relacionados ? "\nLOTES RELACIONADOS À PERGUNTA:\n" + relacionados : ""}`;
+${relacionados ? "\nLOTES RELACIONADOS À PERGUNTA:\n" + relacionados : ""}` + (lang === "en" ? "\n\nAnswer in English." : "");
   try {
     const client = new Anthropic();
     const r = await client.messages.create({ model: process.env.SAGE_MODEL || "claude-sonnet-5", max_tokens: 900, system: sistema, messages: mensagens.slice(-12) });
     const texto = r.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("\n");
     return NextResponse.json({ texto });
-  } catch (e) { return NextResponse.json({ texto: "Não consegui responder agora: " + String((e as Error).message ?? e) }, { status: 200 }); }
+  } catch (e) { return NextResponse.json({ texto: t("Não consegui responder agora: {erro}", { erro: String((e as Error).message ?? e) }) }, { status: 200 }); }
 }

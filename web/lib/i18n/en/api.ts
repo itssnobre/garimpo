@@ -1,0 +1,26 @@
+// PT → EN (grupo api). Chave = texto em português exatamente como está no código.
+export const api: Record<string, string> = {
+  "Autenticação indisponível neste servidor.": "Authentication unavailable on this server.",
+  "Entre na sua conta.": "Sign in to your account.",
+  "Corpo inválido: esperado JSON { ids: string[] }.": "Invalid body: expected JSON { ids: string[] }.",
+  "Informe ids: string[].": "Provide ids: string[].",
+  "No máximo {max} lotes por vez.": "Maximum of {max} lots at a time.",
+  "Lote não está no catálogo atual.": "Lot is not in the current catalog.",
+  "Só administradores.": "Administrators only.",
+  "Falta SUPABASE_SERVICE_ROLE_KEY no servidor.": "Missing SUPABASE_SERVICE_ROLE_KEY on the server.",
+  "E-mail e senha (mínimo 6 caracteres) são obrigatórios.": "Email and password (minimum 6 characters) are required.",
+  "Não criou.": "Could not create.",
+  "Você não pode rebaixar nem bloquear a própria conta.": "You cannot demote or block your own account.",
+  "Senha com pelo menos 6 caracteres.": "Password must be at least 6 characters.",
+  "Você não pode apagar a própria conta por aqui. Use Configurações.": "You cannot delete your own account here. Use Settings.",
+  "Exclusão indisponível neste servidor.": "Deletion unavailable on this server.",
+  "ANTHROPIC_API_KEY não configurada no servidor": "ANTHROPIC_API_KEY not configured on the server",
+  "Envie um PDF": "Send a PDF",
+  "PDF acima de 30 MB": "PDF over 30 MB",
+  "Sem resultado estruturado": "No structured result",
+  "Falha na análise: {erro}": "Analysis failed: {erro}",
+  "O Sage ainda não está ligado neste servidor: falta a chave ANTHROPIC_API_KEY nas variáveis do Vercel. Assim que entrar, eu respondo aqui.":
+    "Sage is not connected on this server yet: the ANTHROPIC_API_KEY is missing from the Vercel environment variables. As soon as it's set, I'll answer here.",
+  "Entre na sua conta para conversar com o Sage.": "Sign in to your account to chat with Sage.",
+  "Não consegui responder agora: {erro}": "Could not answer right now: {erro}",
+};

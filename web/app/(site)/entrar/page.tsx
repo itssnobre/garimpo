@@ -5,10 +5,12 @@ import { useSearchParams } from "next/navigation";
 import { nuvemConfigurada, supabaseBrowser } from "@/lib/supabase/client";
 import { MARCA } from "@/lib/marca";
 import { traduz } from "@/lib/authErros";
+import { useT } from "@/lib/i18n/client";
 
 type Modo = "entrar" | "criar";
 
 function Formulario() {
+  const { t } = useT();
   const params = useSearchParams(); const next = params.get("next") ?? "/app/buscar";
   const [modo, setModo] = useState<Modo>(params.get("modo") === "criar" ? "criar" : "entrar");
   const [nome, setNome] = useState(""); const [email, setEmail] = useState(""); const [senha, setSenha] = useState(""); const [senha2, setSenha2] = useState("");
@@ -17,7 +19,7 @@ function Formulario() {
   const sb = supabaseBrowser();
   // Já logado: não faz sentido ver o formulário, segue pro destino.
   useEffect(() => { sb?.auth.getUser().then(({ data }) => { if (data.user) location.replace(next); }); }, [sb, next]);
-  if (!nuvemConfigurada() || !sb) return <div className="sinal alerta">Conta ainda não está ativa neste ambiente.</div>;
+  if (!nuvemConfigurada() || !sb) return <div className="sinal alerta">{t("Conta ainda não está ativa neste ambiente.")}</div>;
   const redirect = `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
   const enviar = async (e: React.FormEvent) => {
@@ -36,28 +38,29 @@ function Formulario() {
 
   return (
     <form onSubmit={enviar} className="auth-card">
-      <div className="chips" role="tablist" aria-label="Modo">
-        {([["entrar", "Entrar"], ["criar", "Criar conta"]] as [Modo, string][]).map(([m, l]) => <button key={m} type="button" role="tab" aria-selected={modo === m} className={`chip ${modo === m ? "on" : ""}`} onClick={() => { setModo(m); setMsg(null); }}>{l}</button>)}
+      <div className="chips" role="tablist" aria-label={t("Modo")}>
+        {([["entrar", t("Entrar")], ["criar", t("Criar conta")]] as [Modo, string][]).map(([m, l]) => <button key={m} type="button" role="tab" aria-selected={modo === m} className={`chip ${modo === m ? "on" : ""}`} onClick={() => { setModo(m); setMsg(null); }}>{l}</button>)}
       </div>
-      {modo === "criar" && <label className="campo"><span>Seu nome</span><input autoComplete="name" required value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Como quer ser chamado" /></label>}
-      <label className="campo"><span>E-mail</span><input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@exemplo.com" /></label>
-      <label className="campo"><span>Senha{modo === "criar" ? " (mínimo 6 caracteres)" : ""}</span><input type="password" autoComplete={modo === "criar" ? "new-password" : "current-password"} required minLength={6} value={senha} onChange={(e) => setSenha(e.target.value)} /></label>
-      {modo === "criar" && <label className="campo"><span>Repita a senha</span><input type="password" autoComplete="new-password" required minLength={6} value={senha2} onChange={(e) => setSenha2(e.target.value)} /></label>}
-      {msg && <div className={`sinal ${msg.ok ? "info" : "alerta"}`}>{msg.txt}</div>}
-      <button className="btn ouro" type="submit" disabled={ocupado}>{ocupado ? "Aguarde…" : modo === "entrar" ? "Entrar" : "Criar conta"}</button>
-      {modo === "entrar" && <p style={{ margin: 0, fontSize: 13.5 }}><Link href={`/recuperar${email ? "?email=" + encodeURIComponent(email) : ""}`} style={{ textDecoration: "underline" }}>Esqueci a senha</Link></p>}
+      {modo === "criar" && <label className="campo"><span>{t("Seu nome")}</span><input autoComplete="name" required value={nome} onChange={(e) => setNome(e.target.value)} placeholder={t("Como quer ser chamado")} /></label>}
+      <label className="campo"><span>{t("E-mail")}</span><input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("voce@exemplo.com")} /></label>
+      <label className="campo"><span>{t("Senha")}{modo === "criar" ? t(" (mínimo 6 caracteres)") : ""}</span><input type="password" autoComplete={modo === "criar" ? "new-password" : "current-password"} required minLength={6} value={senha} onChange={(e) => setSenha(e.target.value)} /></label>
+      {modo === "criar" && <label className="campo"><span>{t("Repita a senha")}</span><input type="password" autoComplete="new-password" required minLength={6} value={senha2} onChange={(e) => setSenha2(e.target.value)} /></label>}
+      {msg && <div className={`sinal ${msg.ok ? "info" : "alerta"}`}>{t(msg.txt)}</div>}
+      <button className="btn ouro" type="submit" disabled={ocupado}>{ocupado ? t("Aguarde…") : modo === "entrar" ? t("Entrar") : t("Criar conta")}</button>
+      {modo === "entrar" && <p style={{ margin: 0, fontSize: 13.5 }}><Link href={`/recuperar${email ? "?email=" + encodeURIComponent(email) : ""}`} style={{ textDecoration: "underline" }}>{t("Esqueci a senha")}</Link></p>}
     </form>
   );
 }
 
 export default function Entrar() {
+  const { t } = useT();
   return (
     <section className="auth"><div className="auth-in">
-      <p className="eyebrow auth-eyebrow">Sua conta</p>
-      <h1>Entrar na {MARCA}</h1>
-      <p className="auth-lede">Com conta você define o seu padrão, vê o catálogo inteiro com lance máximo e score, guarda favoritos e usa o Sage. Tudo segue você em qualquer aparelho.</p>
+      <p className="eyebrow auth-eyebrow">{t("Sua conta")}</p>
+      <h1>{t("Entrar na {marca}", { marca: MARCA })}</h1>
+      <p className="auth-lede">{t("Com conta você define o seu padrão, vê o catálogo inteiro com lance máximo e score, guarda favoritos e usa o Sage. Tudo segue você em qualquer aparelho.")}</p>
       <Suspense fallback={null}><Formulario /></Suspense>
-      <p className="auth-pe"><Link href="/app/buscar" style={{ textDecoration: "underline" }}>Só dar uma olhada sem conta</Link> <span style={{ color: "var(--mute)" }}>(amostra de 30 lotes, sem análise)</span></p>
+      <p className="auth-pe"><Link href="/app/buscar" style={{ textDecoration: "underline" }}>{t("Só dar uma olhada sem conta")}</Link> <span style={{ color: "var(--mute)" }}>{t("(amostra de 30 lotes, sem análise)")}</span></p>
     </div></section>
   );
 }

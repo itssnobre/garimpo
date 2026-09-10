@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { exigirAdmin } from "@/lib/supabase/admin";
+import { tServer } from "@/lib/i18n/server";
 export const runtime = "nodejs";
 
 export interface UsuarioAdmin { id: string; email: string; nome: string; papel: "admin" | "cliente"; criado_em: string; ultimo_login: string | null; confirmado: boolean; bloqueado: boolean; padroes: string[]; favoritos: number; pipeline: number; lotes: number }
 
 /** Lista de contas da Lotwise (só quem tem perfil lotwise_perfis: o projeto Supabase é compartilhado com outros apps). */
 export async function GET() {
-  const g = await exigirAdmin(); if ("erro" in g) return NextResponse.json({ erro: g.erro }, { status: g.status });
+  const t = await tServer();
+  const g = await exigirAdmin(); if ("erro" in g) return NextResponse.json({ erro: t(g.erro) }, { status: g.status });
   const { admin } = g;
   const [{ data: perfis }, { data: padroes }, { data: favs }, { data: pipe }, { data: lotes }, usuarios] = await Promise.all([
     admin.from("lotwise_perfis").select("user_id,nome,papel,criado_em"),
@@ -31,12 +33,13 @@ export async function GET() {
 
 /** Cria conta já confirmada (o admin entrega e-mail e senha para a pessoa). */
 export async function POST(req: Request) {
-  const g = await exigirAdmin(); if ("erro" in g) return NextResponse.json({ erro: g.erro }, { status: g.status });
+  const t = await tServer();
+  const g = await exigirAdmin(); if ("erro" in g) return NextResponse.json({ erro: t(g.erro) }, { status: g.status });
   const { admin } = g;
   const { email, senha, nome, papel } = (await req.json()) as { email?: string; senha?: string; nome?: string; papel?: "admin" | "cliente" };
-  if (!email || !senha || senha.length < 6) return NextResponse.json({ erro: "E-mail e senha (mínimo 6 caracteres) são obrigatórios." }, { status: 400 });
+  if (!email || !senha || senha.length < 6) return NextResponse.json({ erro: t("E-mail e senha (mínimo 6 caracteres) são obrigatórios.") }, { status: 400 });
   const { data, error } = await admin.auth.admin.createUser({ email: email.trim().toLowerCase(), password: senha, email_confirm: true, user_metadata: { nome: nome?.trim() ?? "" } });
-  if (error || !data.user) return NextResponse.json({ erro: error?.message ?? "Não criou." }, { status: 400 });
+  if (error || !data.user) return NextResponse.json({ erro: error?.message ?? t("Não criou.") }, { status: 400 });
   const { error: e2 } = await admin.from("lotwise_perfis").upsert({ user_id: data.user.id, nome: nome?.trim() ?? "", papel: papel === "admin" ? "admin" : "cliente" });
   if (e2) return NextResponse.json({ erro: e2.message }, { status: 500 });
   return NextResponse.json({ id: data.user.id });

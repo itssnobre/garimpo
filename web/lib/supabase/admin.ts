@@ -18,7 +18,9 @@ export async function quemChama(): Promise<{ id: string; email: string; papel: P
   const { data: p } = await (admin ?? sb).from("lotwise_perfis").select("papel").eq("user_id", data.user.id).maybeSingle();
   return { id: data.user.id, email: data.user.email ?? "", papel: ((p?.papel as Papel | undefined) ?? "cliente") };
 }
-export async function exigirAdmin() {
+export async function exigirAdmin(): Promise<
+  { erro: string; status: 401 | 403 | 500 } | { quem: { id: string; email: string; papel: Papel }; admin: SupabaseClient }
+> {
   const q = await quemChama();
   if (!q) return { erro: "Entre na sua conta.", status: 401 as const };
   if (q.papel !== "admin") return { erro: "Só administradores.", status: 403 as const };

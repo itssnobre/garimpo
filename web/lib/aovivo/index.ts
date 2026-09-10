@@ -5,6 +5,8 @@
 import type { Imovel } from "../types";
 import type { EstadoAoVivo, Extrator, Requisicao, SituacaoAoVivo } from "./tipos";
 import { CABECALHOS_PADRAO } from "./comum";
+import type { T } from "@/lib/i18n";
+import { fmtLang } from "@/lib/fmt";
 
 import * as alfaleiloes from "./fontes/alfaleiloes";
 import * as biasi from "./fontes/biasi";
@@ -66,16 +68,19 @@ function topoDaPagina(corpo: string): string {
 }
 
 // ---------------------------------------------------------------- formatação
+// t é opcional (default identidade): quem chama estas funções a partir de um
+// componente/rota com idioma conhecido pode passar o t() da requisição.
 
 function brl(v: number): string {
   const casas = Number.isInteger(v) ? 0 : 2;
-  return "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+  return "R$ " + v.toLocaleString(fmtLang() === "en" ? "en-US" : "pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 }
 
-function diaMes(iso?: string): string {
-  if (!iso) return "sem data";
+function diaMes(iso: string | undefined, t: T = (s) => s): string {
+  if (!iso) return t("sem data");
   const p = iso.split("-");
-  return p.length === 3 ? `${p[2]}/${p[1]}` : iso;
+  if (p.length !== 3) return iso;
+  return fmtLang() === "en" ? `${p[1]}/${p[2]}` : `${p[2]}/${p[1]}`;
 }
 
 const ROTULO_SITUACAO: Record<SituacaoAoVivo, string> = {
@@ -88,31 +93,31 @@ const ROTULO_SITUACAO: Record<SituacaoAoVivo, string> = {
   desconhecido: "Situação não identificada na fonte",
 };
 
-/** Diferenças entre o lote guardado e o que a fonte mostra agora, em português. */
-function comparar(i: Imovel, e: EstadoAoVivo): string[] {
+/** Diferenças entre o lote guardado e o que a fonte mostra agora (traduzidas via t, se informado). */
+function comparar(i: Imovel, e: EstadoAoVivo, t: T = (s) => s): string[] {
   const m: string[] = [];
   const mudouDinheiro = (a: number | undefined | null, b: number | undefined | null) =>
     a != null && b != null && a > 0 && b > 0 && Math.abs(a - b) >= 0.01;
 
   if (mudouDinheiro(i.lance_minimo, e.lance_minimo)) {
-    m.push(`Lance mínimo mudou de ${brl(i.lance_minimo)} para ${brl(e.lance_minimo!)}`);
+    m.push(t("Lance mínimo mudou de {de} para {para}", { de: brl(i.lance_minimo), para: brl(e.lance_minimo!) }));
   }
   if (mudouDinheiro(i.avaliacao, e.avaliacao)) {
-    m.push(`Avaliação mudou de ${brl(i.avaliacao)} para ${brl(e.avaliacao!)}`);
+    m.push(t("Avaliação mudou de {de} para {para}", { de: brl(i.avaliacao), para: brl(e.avaliacao!) }));
   }
   if (e.lance_atual != null && e.lance_atual > 0) {
     const base = e.lance_minimo ?? i.lance_minimo;
-    if (base == null || e.lance_atual > base) m.push(`Já tem lance: ${brl(e.lance_atual)}`);
+    if (base == null || e.lance_atual > base) m.push(t("Já tem lance: {v}", { v: brl(e.lance_atual) }));
   }
   if (e.data_leilao && i.data_leilao && e.data_leilao !== i.data_leilao) {
-    m.push(`Data mudou de ${diaMes(i.data_leilao)} para ${diaMes(e.data_leilao)}`);
+    m.push(t("Data mudou de {de} para {para}", { de: diaMes(i.data_leilao, t), para: diaMes(e.data_leilao, t) }));
   } else if (e.data_leilao && !i.data_leilao) {
-    m.push(`Data do leilão: ${diaMes(e.data_leilao)}`);
+    m.push(t("Data do leilão: {v}", { v: diaMes(e.data_leilao, t) }));
   }
   if (e.praca != null && i.praca != null && e.praca !== i.praca) {
-    m.push(`Praça mudou de ${i.praca}ª para ${e.praca}ª`);
+    m.push(t("Praça mudou de {de}ª para {para}ª", { de: i.praca, para: e.praca }));
   }
-  if (e.situacao !== "aberto" && e.situacao !== "desconhecido") m.push(ROTULO_SITUACAO[e.situacao]);
+  if (e.situacao !== "aberto" && e.situacao !== "desconhecido") m.push(t(ROTULO_SITUACAO[e.situacao]));
   return m;
 }
 
@@ -126,30 +131,30 @@ function vazio(i: Imovel, extra: Partial<EstadoAoVivo>): EstadoAoVivo {
   return { loteId: i.id, fonte: i.fonte, verificadoEm: agora(), ok: false, situacao: "desconhecido", mudancas: [], ...extra };
 }
 
-function mensagemDeRede(e: unknown): string {
+function mensagemDeRede(e: unknown, t: T = (s) => s): string {
   const err = e as { name?: string; message?: string; cause?: { code?: string; message?: string } };
-  if (err?.name === "AbortError" || err?.name === "TimeoutError") return `Sem resposta em ${TIMEOUT_MS / 1000}s (timeout)`;
+  if (err?.name === "AbortError" || err?.name === "TimeoutError") return t("Sem resposta em {s}s (timeout)", { s: TIMEOUT_MS / 1000 });
   const codigo = err?.cause?.code ?? "";
   if (codigo === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" || codigo === "CERT_HAS_EXPIRED" || codigo === "SELF_SIGNED_CERT_IN_CHAIN") {
-    return `Certificado TLS inválido no site da fonte (${codigo})`;
+    return t("Certificado TLS inválido no site da fonte ({codigo})", { codigo });
   }
-  if (codigo === "ENOTFOUND" || codigo === "EAI_AGAIN") return "Domínio da fonte não resolveu (DNS)";
-  if (codigo === "ECONNREFUSED" || codigo === "ECONNRESET") return "Conexão recusada pela fonte";
+  if (codigo === "ENOTFOUND" || codigo === "EAI_AGAIN") return t("Domínio da fonte não resolveu (DNS)");
+  if (codigo === "ECONNREFUSED" || codigo === "ECONNRESET") return t("Conexão recusada pela fonte");
   const causa = err?.cause?.message ?? "";
-  if (/redirect count exceeded/i.test(causa)) return "Redirecionamento em laço na fonte (exige cookie de sessão)";
-  return `Falha de rede: ${err?.message ?? String(e)}${causa ? ` (${causa})` : ""}`;
+  if (/redirect count exceeded/i.test(causa)) return t("Redirecionamento em laço na fonte (exige cookie de sessão)");
+  return t("Falha de rede: {msg}{causa}", { msg: err?.message ?? String(e), causa: causa ? ` (${causa})` : "" });
 }
 
 /** Refaz o fetch do lote na fonte e devolve o estado atual. Nunca lança. */
-export async function verificarLote(i: Imovel): Promise<EstadoAoVivo> {
+export async function verificarLote(i: Imovel, t: T = (s) => s): Promise<EstadoAoVivo> {
   const extrator = EXTRATORES[i.fonte] ?? generico;
   let req: Requisicao;
   try {
     req = extrator.pedido ? extrator.pedido(i) : { url: i.url };
   } catch (e) {
-    return vazio(i, { erro: `Não deu para montar a requisição: ${(e as Error).message}` });
+    return vazio(i, { erro: t("Não deu para montar a requisição: {msg}", { msg: (e as Error).message }) });
   }
-  if (!req.url || !/^https?:/i.test(req.url)) return vazio(i, { erro: "Lote sem URL de origem utilizável" });
+  if (!req.url || !/^https?:/i.test(req.url)) return vazio(i, { erro: t("Lote sem URL de origem utilizável") });
 
   const ctrl = new AbortController();
   const relogio = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -165,7 +170,7 @@ export async function verificarLote(i: Imovel): Promise<EstadoAoVivo> {
     });
     corpo = await resp.text();
   } catch (e) {
-    return vazio(i, { erro: mensagemDeRede(e) });
+    return vazio(i, { erro: mensagemDeRede(e, t) });
   } finally {
     clearTimeout(relogio);
   }
@@ -179,13 +184,13 @@ export async function verificarLote(i: Imovel): Promise<EstadoAoVivo> {
       situacao: "indisponivel",
       mudancas: [],
     };
-    fora.mudancas = comparar(i, fora);
+    fora.mudancas = comparar(i, fora, t);
     return fora;
   }
   if (resp.status === 403 || resp.status === 429) {
-    return vazio(i, { erro: `Fonte bloqueou a consulta (HTTP ${resp.status}); a página exige navegador` });
+    return vazio(i, { erro: t("Fonte bloqueou a consulta (HTTP {status}); a página exige navegador", { status: resp.status }) });
   }
-  if (!resp.ok) return vazio(i, { erro: `A fonte respondeu HTTP ${resp.status}` });
+  if (!resp.ok) return vazio(i, { erro: t("A fonte respondeu HTTP {status}", { status: resp.status }) });
 
   const ausente = req.ausente ? req.ausente.test(corpo) : AUSENTE_PADRAO.test(topoDaPagina(corpo));
   if (ausente) {
@@ -197,7 +202,7 @@ export async function verificarLote(i: Imovel): Promise<EstadoAoVivo> {
       situacao: "indisponivel",
       mudancas: [],
     };
-    fora.mudancas = comparar(i, fora);
+    fora.mudancas = comparar(i, fora, t);
     return fora;
   }
 
@@ -205,7 +210,7 @@ export async function verificarLote(i: Imovel): Promise<EstadoAoVivo> {
   try {
     parcial = await extrator.extrair(corpo, i, resp);
   } catch (e) {
-    return vazio(i, { erro: `Não deu para ler a página da fonte: ${(e as Error).message}` });
+    return vazio(i, { erro: t("Não deu para ler a página da fonte: {msg}", { msg: (e as Error).message }) });
   }
 
   const fora: EstadoAoVivo = {
@@ -223,7 +228,7 @@ export async function verificarLote(i: Imovel): Promise<EstadoAoVivo> {
   if (parcial.data_fim) fora.data_fim = parcial.data_fim;
   if (parcial.praca !== undefined) fora.praca = parcial.praca;
   if (parcial.fotos?.length) fora.fotos = parcial.fotos;
-  fora.mudancas = comparar(i, fora);
+  fora.mudancas = comparar(i, fora, t);
   return fora;
 }
 
@@ -233,7 +238,7 @@ type Pendente = { im: Imovel; idx: number } | null;
  * Verifica vários lotes com limite global de concorrência e, dentro dele,
  * no máximo 2 requisições simultâneas por fonte (para não apanhar rate limit).
  */
-export async function verificarLotes(lista: Imovel[], concorrencia = 4): Promise<EstadoAoVivo[]> {
+export async function verificarLotes(lista: Imovel[], concorrencia = 4, t: T = (s) => s): Promise<EstadoAoVivo[]> {
   const saida: EstadoAoVivo[] = new Array(lista.length);
   const pendentes: Pendente[] = lista.map((im, idx) => ({ im, idx }));
   const emVoo = new Map<string, number>();
@@ -260,9 +265,9 @@ export async function verificarLotes(lista: Imovel[], concorrencia = 4): Promise
       restantes--;
       emVoo.set(p.im.fonte, (emVoo.get(p.im.fonte) ?? 0) + 1);
       try {
-        saida[p.idx] = await verificarLote(p.im);
+        saida[p.idx] = await verificarLote(p.im, t);
       } catch (e) {
-        saida[p.idx] = vazio(p.im, { erro: `Falha inesperada: ${(e as Error).message}` });
+        saida[p.idx] = vazio(p.im, { erro: t("Falha inesperada: {msg}", { msg: (e as Error).message }) });
       } finally {
         emVoo.set(p.im.fonte, (emVoo.get(p.im.fonte) ?? 1) - 1);
       }

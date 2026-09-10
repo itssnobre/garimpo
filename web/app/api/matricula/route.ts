@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
+import { tServer } from "@/lib/i18n/server";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
@@ -26,11 +27,12 @@ Em custos_previstos, estime em R$ quando houver base (ex.: saldo de execução i
 Se o documento não for uma matrícula nem edital, diga isso no resumo com risco_geral "alto".`;
 
 export async function POST(req: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) return new NextResponse("ANTHROPIC_API_KEY não configurada no servidor", { status: 500 });
+  const t = await tServer();
+  if (!process.env.ANTHROPIC_API_KEY) return new NextResponse(t("ANTHROPIC_API_KEY não configurada no servidor"), { status: 500 });
   const fd = await req.formData();
   const file = fd.get("file");
-  if (!(file instanceof File)) return new NextResponse("Envie um PDF", { status: 400 });
-  if (file.size > 30 * 1024 * 1024) return new NextResponse("PDF acima de 30 MB", { status: 413 });
+  if (!(file instanceof File)) return new NextResponse(t("Envie um PDF"), { status: 400 });
+  if (file.size > 30 * 1024 * 1024) return new NextResponse(t("PDF acima de 30 MB"), { status: 413 });
   const contexto = String(fd.get("contexto") ?? "");
   const data = Buffer.from(await file.arrayBuffer()).toString("base64");
   const client = new Anthropic();
@@ -46,9 +48,9 @@ export async function POST(req: Request) {
       ] }],
     });
     const tool = msg.content.find((b) => b.type === "tool_use");
-    if (!tool || tool.type !== "tool_use") return new NextResponse("Sem resultado estruturado", { status: 502 });
+    if (!tool || tool.type !== "tool_use") return new NextResponse(t("Sem resultado estruturado"), { status: 502 });
     return NextResponse.json(tool.input);
   } catch (e) {
-    return new NextResponse("Falha na análise: " + String((e as Error).message ?? e), { status: 502 });
+    return new NextResponse(t("Falha na análise: {erro}", { erro: String((e as Error).message ?? e) }), { status: 502 });
   }
 }

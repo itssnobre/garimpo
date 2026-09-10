@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useTema } from "@/lib/tema";
 import { useConta } from "@/lib/conta";
 import { MARCA } from "@/lib/marca";
+import Idioma from "@/components/Idioma";
+import { useT } from "@/lib/i18n/client";
 
 const P = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 const I = {
@@ -28,43 +30,46 @@ const GRUPOS: { titulo?: string; itens: { href: string; label: string; icone: ke
 ];
 
 export default function Sidebar() {
+  const { t } = useT();
   const path = usePathname(); const { tema, aplicar } = useTema(); const { user, perfil, nuvem, sair, pronto } = useConta(); const [aberto, setAberto] = useState(false);
   const grupos = perfil?.papel === "admin" ? [GRUPOS[0], { itens: [...GRUPOS[1].itens, { href: "/app/admin", label: "Administração", icone: "admin" as const }] }] : GRUPOS;
   const visitante = nuvem && pronto && !user;
   const conta = user
-    ? <p className="sb-nota sb-conta"><span title={user.email}>{perfil?.nome || user.email}</span><button type="button" onClick={sair}>Sair</button></p>
-    : nuvem ? <div className="sb-visitante"><Link href={`/entrar?modo=criar&next=${encodeURIComponent(path)}`} className="btn ouro sb-cta">Criar conta grátis</Link><Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec sb-cta">Entrar</Link></div> : <p className="sb-nota">Seus favoritos e pipeline ficam neste navegador.</p>;
+    ? <p className="sb-nota sb-conta"><span title={user.email}>{perfil?.nome || user.email}</span><button type="button" onClick={sair}>{t("Sair")}</button></p>
+    : nuvem ? <div className="sb-visitante"><Link href={`/entrar?modo=criar&next=${encodeURIComponent(path)}`} className="btn ouro sb-cta">{t("Criar conta grátis")}</Link><Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec sb-cta">{t("Entrar")}</Link></div> : <p className="sb-nota">{t("Seus favoritos e pipeline ficam neste navegador.")}</p>;
   useEffect(() => { setAberto(false); }, [path]);
   useEffect(() => { document.body.classList.toggle("travado", aberto); return () => document.body.classList.remove("travado"); }, [aberto]);
   return (
     <>
       <header className="app-topo-mobile">
         <Link href="/app/buscar" aria-label={MARCA}><img className="logo-inv" src="/marca/logo-dark.svg" alt={MARCA} /></Link>
-        {visitante ? <span className="topo-conta"><Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec mini">Entrar</Link><Link href={`/entrar?modo=criar&next=${encodeURIComponent(path)}`} className="btn ouro mini">Criar conta</Link></span> : <Link href="/#contato" className="btn ouro mini">Assessoria</Link>}
+        {visitante ? <span className="topo-conta"><Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec mini">{t("Entrar")}</Link><Link href={`/entrar?modo=criar&next=${encodeURIComponent(path)}`} className="btn ouro mini">{t("Criar conta")}</Link></span> : <Link href="/#contato" className="btn ouro mini">{t("Assessoria")}</Link>}
       </header>
-      <nav className="tabbar" aria-label="Navegação principal">
-        {GRUPOS[0].itens.slice(0, 4).map((it) => { const on = path.startsWith(it.href); return <Link key={it.href} href={it.href} className={`tab ${on ? "on" : ""}`}>{I[it.icone]}<span>{it.label}</span></Link>; })}
-        <button className={`tab ${aberto ? "on" : ""}`} onClick={() => setAberto(true)} aria-expanded={aberto}><svg {...P}><circle cx="5" cy="12" r="1.6" fill="currentColor" /><circle cx="12" cy="12" r="1.6" fill="currentColor" /><circle cx="19" cy="12" r="1.6" fill="currentColor" /></svg><span>Mais</span></button>
+      <nav className="tabbar" aria-label={t("Navegação principal")}>
+        {GRUPOS[0].itens.slice(0, 4).map((it) => { const on = path.startsWith(it.href); return <Link key={it.href} href={it.href} className={`tab ${on ? "on" : ""}`}>{I[it.icone]}<span>{t(it.label)}</span></Link>; })}
+        <button className={`tab ${aberto ? "on" : ""}`} onClick={() => setAberto(true)} aria-expanded={aberto}><svg {...P}><circle cx="5" cy="12" r="1.6" fill="currentColor" /><circle cx="12" cy="12" r="1.6" fill="currentColor" /><circle cx="19" cy="12" r="1.6" fill="currentColor" /></svg><span>{t("Mais")}</span></button>
       </nav>
-      {aberto && <><div className="folha-fundo" onClick={() => setAberto(false)} /><div className="folha" role="dialog" aria-label="Mais opções">
-        <h3>Mais</h3>{[...grupos[0].itens.slice(4), ...grupos[1].itens].map((it) => { const on = path.startsWith(it.href); return <Link key={it.href} href={it.href} className={`sb-item ${on ? "on" : ""}`}><span className="sb-ico">{I[it.icone]}</span><span>{it.label}</span></Link>; })}
-        <h3>Tema</h3><div className="tema">{(["light", "dark", "system"] as const).map((t) => <button key={t} aria-pressed={tema === t} onClick={() => aplicar(t)} style={{ fontSize: 12.5, fontWeight: 500 }}>{t === "light" ? "Claro" : t === "dark" ? "Escuro" : "Sistema"}</button>)}</div>
-        <h3>Conta</h3>{conta}
+      {aberto && <><div className="folha-fundo" onClick={() => setAberto(false)} /><div className="folha" role="dialog" aria-label={t("Mais opções")}>
+        <h3>{t("Mais")}</h3>{[...grupos[0].itens.slice(4), ...grupos[1].itens].map((it) => { const on = path.startsWith(it.href); return <Link key={it.href} href={it.href} className={`sb-item ${on ? "on" : ""}`}><span className="sb-ico">{I[it.icone]}</span><span>{t(it.label)}</span></Link>; })}
+        <h3>{t("Tema")}</h3><div className="tema">{(["light", "dark", "system"] as const).map((opt) => <button key={opt} aria-pressed={tema === opt} onClick={() => aplicar(opt)} style={{ fontSize: 12.5, fontWeight: 500 }}>{opt === "light" ? t("Claro") : opt === "dark" ? t("Escuro") : t("Sistema")}</button>)}</div>
+        <h3>{t("Idioma")}</h3><Idioma compacto={false} />
+        <h3>{t("Conta")}</h3>{conta}
       </div></>}
       <aside className="sidebar">
-        <Link href="/" className="sb-logo" aria-label={`${MARCA}, site`}><img className="logo-inv" src="/marca/logo-dark.svg" alt={MARCA} /></Link>
-        {visitante && <div className="sb-visitante alto"><Link href={`/entrar?modo=criar&next=${encodeURIComponent(path)}`} className="btn ouro sb-cta">Criar conta grátis</Link><Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec sb-cta">Entrar</Link></div>}
+        <Link href="/" className="sb-logo" aria-label={t("{marca}, site", { marca: MARCA })}><img className="logo-inv" src="/marca/logo-dark.svg" alt={MARCA} /></Link>
+        {visitante && <div className="sb-visitante alto"><Link href={`/entrar?modo=criar&next=${encodeURIComponent(path)}`} className="btn ouro sb-cta">{t("Criar conta grátis")}</Link><Link href={`/entrar?next=${encodeURIComponent(path)}`} className="btn sec sb-cta">{t("Entrar")}</Link></div>}
         <nav className="sb-nav">
           {grupos.map((g, k) => <div key={k} className="sb-grupo">{g.itens.map((it) => { const on = path.startsWith(it.href); return (
-            <Link key={it.href} href={it.href} className={`sb-item ${on ? "on" : ""} ${it.ia ? "ia" : ""}`} aria-current={on ? "page" : undefined}><span className="sb-ico">{I[it.icone]}</span><span>{it.label}</span>{it.ia && <span className="sb-tag">IA</span>}</Link>); })}</div>)}
+            <Link key={it.href} href={it.href} className={`sb-item ${on ? "on" : ""} ${it.ia ? "ia" : ""}`} aria-current={on ? "page" : undefined}><span className="sb-ico">{I[it.icone]}</span><span>{t(it.label)}</span>{it.ia && <span className="sb-tag">{t("IA")}</span>}</Link>); })}</div>)}
         </nav>
         <div className="sb-pe">
-          <div className="tema" role="group" aria-label="Tema">
-            {(["light", "dark", "system"] as const).map((t) => <button key={t} aria-pressed={tema === t} onClick={() => aplicar(t)} title={t === "light" ? "Claro" : t === "dark" ? "Escuro" : "Sistema"}>
-              {t === "light" ? <svg {...P}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg> : t === "dark" ? <svg {...P}><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z" /></svg> : <svg {...P}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>}
+          <div className="tema" role="group" aria-label={t("Tema")}>
+            {(["light", "dark", "system"] as const).map((opt) => <button key={opt} aria-pressed={tema === opt} onClick={() => aplicar(opt)} title={opt === "light" ? t("Claro") : opt === "dark" ? t("Escuro") : t("Sistema")}>
+              {opt === "light" ? <svg {...P}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg> : opt === "dark" ? <svg {...P}><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z" /></svg> : <svg {...P}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>}
             </button>)}
           </div>
-          <Link href="/#contato" className="btn ouro sb-cta">Falar com a equipe</Link>
+          <Idioma />
+          <Link href="/#contato" className="btn ouro sb-cta">{t("Falar com a equipe")}</Link>
           {!visitante && conta}
         </div>
       </aside>
