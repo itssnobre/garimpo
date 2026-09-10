@@ -30,6 +30,8 @@ const SEGURANCA = [
 
 const nextConfig: NextConfig = {
   async headers() { return [{ source: "/(.*)", headers: SEGURANCA }]; },
-  async redirects() { return [{ source: "/imoveis", destination: "/app/buscar", permanent: true }, { source: "/imovel/:id", destination: "/app/imovel/:id", permanent: true }]; },
+  async redirects() { return [{ source: "/imoveis", destination: "/app/buscar", permanent: true }, { source: "/imovel/:id", destination: "/app/imovel/:id", permanent: true },
+    // Telas removidas em 10/09/2026 (Carteira vive no Pipeline; Calculadora era a Parte 1 do lote; Jurídico era texto fixo).
+    { source: "/app/carteira", destination: "/app/pipeline", permanent: false }, { source: "/app/calculadora", destination: "/app/buscar", permanent: false }, { source: "/app/juridico", destination: "/#como-funciona", permanent: false }]; },
 };
 export default nextConfig;

@@ -29,7 +29,7 @@ export async function proxy(request: NextRequest) {
   }
   return res;
 }
-const PRIVADAS = ["/app/acompanhar", "/app/sugeridos", "/app/sage", "/app/pipeline", "/app/carteira", "/app/favoritos", "/app/padrao", "/app/calculadora", "/app/admin"];
+const PRIVADAS = ["/app/acompanhar", "/app/sugeridos", "/app/sage", "/app/pipeline", "/app/favoritos", "/app/padrao", "/app/admin"];
 const API_PRIVADA = ["/api/acompanhar", "/api/sage", "/api/matricula", "/api/admin", "/api/conta"];
 
 export const config = { matcher: ["/app/:path*", "/entrar", "/auth/:path*", "/api/:path*"] };
