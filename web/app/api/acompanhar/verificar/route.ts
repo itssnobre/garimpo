@@ -3,20 +3,26 @@ import { byId } from "@/lib/dadosCompletos";
 import { supabaseServer } from "@/lib/supabase/server";
 import { verificarLotes, type EstadoAoVivo } from "@/lib/aovivo";
 import { tServer } from "@/lib/i18n/server";
+import { permitir } from "@/lib/limite";
+import { origemOk } from "@/lib/origem";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 const MAX = 30;
+const POR_HORA = 60;
 
 /** POST { ids: string[] } -> { estados: EstadoAoVivo[] }. Refaz o fetch de cada lote na fonte. */
 export async function POST(req: Request) {
   const t = await tServer();
+  if (!origemOk(req)) return NextResponse.json({ erro: t("Origem não permitida.") }, { status: 403 });
   const sb = await supabaseServer();
   if (!sb) return NextResponse.json({ erro: t("Autenticação indisponível neste servidor.") }, { status: 500 });
   const { data } = await sb.auth.getUser();
   if (!data.user) return NextResponse.json({ erro: t("Entre na sua conta.") }, { status: 401 });
+  const limite = await permitir(`verificar:${data.user.id}`, POR_HORA, 60 * 60);
+  if (!limite.ok) return NextResponse.json({ erro: t("Limite de {n} verificações por hora atingido. Tente daqui a pouco.", { n: POR_HORA }) }, { status: 429 });
 
   let corpo: unknown;
   try {

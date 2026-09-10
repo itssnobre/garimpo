@@ -14,7 +14,8 @@ export function LangProvider({ inicial, children }: { inicial: Lang; children: R
   const router = useRouter();
   const trocar = useCallback((l: Lang) => {
     const novo = normalizarLang(l);
-    document.cookie = `${LANG_COOKIE}=${novo}; path=/; max-age=31536000; samesite=lax`;
+    const seguro = location.protocol === "https:" ? "; secure" : "";
+    document.cookie = `${LANG_COOKIE}=${novo}; path=/; max-age=31536000; samesite=lax${seguro}`;
     document.documentElement.lang = novo === "en" ? "en" : "pt-BR";
     setLang(novo);
     router.refresh();

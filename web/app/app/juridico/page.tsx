@@ -21,8 +21,7 @@ export default async function Juridico() {
     <div className="app-cab"><div><h1>{t("Jurídico")}</h1><p>{t("As regras que o motor aplica em cada lote, e o que checar na matrícula antes do lance.")}</p></div></div>
     <div className="doisdois">
       <div className="painel"><h2>{t("Regras do motor")}</h2>{REGRAS.map(([n, cls, d]) => <div key={n} className={`sinal ${cls}`}><b>{t(n)}.</b> {t(d)}</div>)}</div>
-      <div className="painel"><h2>{t("Análise de matrícula com Sage")}</h2><p style={{ color: "var(--mute)", fontSize: 14 }}>{t("Abra qualquer lote e suba o PDF da matrícula na Parte 1. A IA lê averbação por averbação e devolve ônus, execuções, cláusulas, custos previstos e as perguntas a fazer ao leiloeiro. Também pode conversar com o")} <Link href="/app/sage" style={{ textDecoration: "underline" }}>{t("Sage")}</Link> {t("sobre um caso específico.")}</p>
-        <h2 style={{ marginTop: 18 }}>{t("Checklist padrão")}</h2><ul className="check">{["Edital lido inteiro", "Matrícula atualizada (30 dias)", "Intimação pessoal na consolidação", "Débitos com síndico e prefeitura", "3 comparáveis no entorno", "Ocupação verificada", "Lance máximo definido antes"].map((n) => <li key={n}><input type="checkbox" disabled /><span>{t(n)}</span></li>)}</ul></div>
+      <div className="painel"><h2>{t("Análise de matrícula com Sage")}</h2><p style={{ color: "var(--mute)", fontSize: 14 }}>{t("Abra qualquer lote e suba o PDF da matrícula na Parte 2 (Riscos). A IA lê averbação por averbação e devolve ônus, execuções, cláusulas, custos previstos e as perguntas a fazer ao leiloeiro. Também pode conversar com o")} <Link href="/app/sage" style={{ textDecoration: "underline" }}>{t("Sage")}</Link> {t("sobre um caso específico.")}</p></div>
     </div>
   </>);
 }

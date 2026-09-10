@@ -4,7 +4,7 @@
 // isto roda em função serverless.
 import type { Imovel } from "../types";
 import type { EstadoAoVivo, Extrator, Requisicao, SituacaoAoVivo } from "./tipos";
-import { CABECALHOS_PADRAO } from "./comum";
+import { CABECALHOS_PADRAO, fetchPermitido, hostPermitido } from "./comum";
 import type { T } from "@/lib/i18n";
 import { fmtLang } from "@/lib/fmt";
 
@@ -155,19 +155,23 @@ export async function verificarLote(i: Imovel, t: T = (s) => s): Promise<EstadoA
     return vazio(i, { erro: t("Não deu para montar a requisição: {msg}", { msg: (e as Error).message }) });
   }
   if (!req.url || !/^https?:/i.test(req.url)) return vazio(i, { erro: t("Lote sem URL de origem utilizável") });
+  // O endereço vem do dataset: só sai requisição para host de fonte conhecida, em https.
+  if (!hostPermitido(req.url)) return vazio(i, { ok: false, erro: t("Fonte fora da lista permitida") });
 
   const ctrl = new AbortController();
   const relogio = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   let resp: Response;
   let corpo: string;
   try {
-    resp = await fetch(req.url, {
+    const r = await fetchPermitido(req.url, {
       method: req.metodo ?? "GET",
       headers: { ...CABECALHOS_PADRAO, ...(req.cabecalhos ?? {}) },
       body: req.corpo,
-      redirect: "follow",
       signal: ctrl.signal,
     });
+    // Redirecionamento para fora da lista (ou salto demais) morre aqui, sem virar proxy aberto.
+    if ("bloqueado" in r) return vazio(i, { ok: false, erro: t("Fonte fora da lista permitida") });
+    resp = r.resp;
     corpo = await resp.text();
   } catch (e) {
     return vazio(i, { erro: mensagemDeRede(e, t) });

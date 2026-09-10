@@ -3,6 +3,7 @@
 Uso: python3 collectors/build.py            (só junta o que já existe em data/raw)
      python3 collectors/build.py --collect  (roda todos os coletores antes)
 """
+import time
 import glob, importlib, json, os, re, sys, traceback, datetime as dt
 from collections import Counter
 from common import ROOT, RAW, now_iso, strip_accents, flags, desagio, extrair_do_texto
@@ -19,17 +20,34 @@ CAMPOS_RIQUEZA = ["quartos", "vagas", "area_privativa_m2", "area_terreno_m2", "o
                   "praca", "data_leilao", "data_fim", "aceita_financiamento", "aceita_fgts", "debitos_regra",
                   "debitos_por_conta_comprador", "lat", "lng", "processo"]
 
+# Teto de tempo por fonte (segundos): uma fonte travada não pode consumir o job inteiro e deixar as outras sem coletar.
+# Sem coleta nova, a fonte segue com o data/raw da última coleta boa (cache do workflow).
+TEMPO_POR_FONTE = {"caixa": 50 * 60}
+TEMPO_PADRAO = 20 * 60
+
+class TempoEsgotado(Exception): pass
+
 def run_collectors():
+    import signal
     sys.path.insert(0, os.path.dirname(__file__))
+    def _estourou(signum, frame): raise TempoEsgotado()
     for f in FONTES:
         if not os.path.exists(os.path.join(os.path.dirname(__file__), f + ".py")): continue
+        limite = TEMPO_POR_FONTE.get(f, TEMPO_PADRAO)
+        signal.signal(signal.SIGALRM, _estourou); signal.alarm(limite)
+        t0 = time.time()
         try:
             mod = importlib.import_module(f)
             items = mod.collect()
             from common import save_raw
             save_raw(f, items)
+            print(f"[{f}] ok em {int(time.time() - t0)}s")
+        except TempoEsgotado:
+            print(f"[{f}] TEMPO ESGOTADO ({limite}s): mantida a coleta anterior")
         except Exception:
             print(f"[{f}] FALHOU"); traceback.print_exc()
+        finally:
+            signal.alarm(0)
 
 # --------------------------------------------------------------------------
 # Dedupe multi-chave entre fontes

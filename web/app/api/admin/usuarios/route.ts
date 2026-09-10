@@ -1,7 +1,23 @@
 import { NextResponse } from "next/server";
 import { exigirAdmin } from "@/lib/supabase/admin";
 import { tServer } from "@/lib/i18n/server";
+import { origemOk } from "@/lib/origem";
+import type { SupabaseClient } from "@supabase/supabase-js";
 export const runtime = "nodejs";
+
+const PAGINA = 1000;
+
+/** Percorre auth.admin.listUsers até esgotar: com mais de 1000 contas no projeto, uma página só perdia gente. */
+async function todosUsuarios(admin: SupabaseClient) {
+  type Usuario = Awaited<ReturnType<SupabaseClient["auth"]["admin"]["listUsers"]>>["data"]["users"][number];
+  const users: Usuario[] = [];
+  for (let page = 1; ; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: PAGINA });
+    if (error) return { users, error };
+    users.push(...data.users);
+    if (data.users.length < PAGINA) return { users, error: null };
+  }
+}
 
 export interface UsuarioAdmin { id: string; email: string; nome: string; papel: "admin" | "cliente"; criado_em: string; ultimo_login: string | null; confirmado: boolean; bloqueado: boolean; padroes: string[]; favoritos: number; pipeline: number; lotes: number }
 
@@ -16,24 +32,25 @@ export async function GET() {
     admin.from("lotwise_favoritos").select("user_id"),
     admin.from("lotwise_pipeline").select("user_id"),
     admin.from("lotwise_lotes").select("user_id"),
-    admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    todosUsuarios(admin),
   ]);
-  if (usuarios.error) return NextResponse.json({ erro: usuarios.error.message }, { status: 500 });
+  if (usuarios.error) { console.error("[admin/usuarios] listUsers falhou:", usuarios.error.message); return NextResponse.json({ erro: t("Não deu para listar as contas agora.") }, { status: 500 }); }
   const conta = (rows: { user_id: string }[] | null) => { const m = new Map<string, number>(); rows?.forEach((r) => m.set(r.user_id, (m.get(r.user_id) ?? 0) + 1)); return m; };
   const nFav = conta(favs), nPipe = conta(pipe), nLotes = conta(lotes);
   const nomesPadrao = new Map<string, string[]>(); (padroes as { user_id: string; nome: string }[] | null)?.forEach((p) => nomesPadrao.set(p.user_id, [...(nomesPadrao.get(p.user_id) ?? []), p.nome ?? "(sem nome)"]));
   const perfilDe = new Map((perfis ?? []).map((p) => [p.user_id as string, p]));
-  const lista: UsuarioAdmin[] = usuarios.data.users.filter((u) => perfilDe.has(u.id)).map((u) => { const p = perfilDe.get(u.id)!; return {
+  const lista: UsuarioAdmin[] = usuarios.users.filter((u) => perfilDe.has(u.id)).map((u) => { const p = perfilDe.get(u.id)!; return {
     id: u.id, email: u.email ?? "", nome: (p.nome as string) ?? "", papel: p.papel as "admin" | "cliente", criado_em: u.created_at, ultimo_login: u.last_sign_in_at ?? null,
     confirmado: Boolean(u.email_confirmed_at), bloqueado: Boolean((u as { banned_until?: string | null }).banned_until && new Date((u as { banned_until?: string }).banned_until!) > new Date()),
     padroes: nomesPadrao.get(u.id) ?? [], favoritos: nFav.get(u.id) ?? 0, pipeline: nPipe.get(u.id) ?? 0, lotes: nLotes.get(u.id) ?? 0 }; })
     .sort((a, b) => (a.papel === b.papel ? b.criado_em.localeCompare(a.criado_em) : a.papel === "admin" ? -1 : 1));
-  return NextResponse.json({ usuarios: lista, outrosNoProjeto: usuarios.data.users.length - lista.length });
+  return NextResponse.json({ usuarios: lista, outrosNoProjeto: usuarios.users.length - lista.length });
 }
 
 /** Cria conta já confirmada (o admin entrega e-mail e senha para a pessoa). */
 export async function POST(req: Request) {
   const t = await tServer();
+  if (!origemOk(req)) return NextResponse.json({ erro: t("Origem não permitida.") }, { status: 403 });
   const g = await exigirAdmin(); if ("erro" in g) return NextResponse.json({ erro: t(g.erro) }, { status: g.status });
   const { admin } = g;
   const { email, senha, nome, papel } = (await req.json()) as { email?: string; senha?: string; nome?: string; papel?: "admin" | "cliente" };

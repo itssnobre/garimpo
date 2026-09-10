@@ -20,6 +20,7 @@ export default async function Landing() {
   const top = go.filter((x) => (x.i.fotos?.length || x.i.foto) && (!x.i.data_leilao || x.i.data_leilao >= hoje)).sort((x, y) => y.a.score - x.a.score).slice(0, 3);
   const ex = top[0];
   const fontes = Object.keys(META.fontes).length;
+  const atualizada = new Date(META.gerado_em).toLocaleDateString(lang === "en" ? "en-US" : "pt-BR", { day: "2-digit", month: "short" });
   return (
     <>
       <Reveal />
@@ -30,7 +31,7 @@ export default async function Landing() {
             <h1>{t("Todo leilão do país,")} <em>{t("com a conta feita")}</em> {t("antes do lance.")}</h1>
             <p className="sub">{t("A {marca} junta as fontes de leilão num só catálogo, refaz a conta de cada lote com leiloeiro, ITBI, registro, carrego e imposto, e filtra pelo padrão que você define: faixa, deságio, margem, região. Você só vê o que vale a pena.", { marca: MARCA })}</p>
             <div className="ctas"><Link href="/entrar?modo=criar" className="btn ouro">{t("Criar conta grátis")}</Link><Link href="/app/buscar" className="btn sec">{t("Ver o catálogo")}</Link></div>
-            <div className="prova"><div><b>{IMOVEIS.length.toLocaleString(lang === "en" ? "en-US" : "pt-BR")}</b><span>{t("lotes monitorados")}</span></div><div><b>{fontes}</b><span>{t("fontes oficiais")}</span></div><div><b>{go.length}</b><span>{t("passam no padrão")}</span></div><div><b>{Object.keys(META.fontes).length}</b><span>{t("coletas por dia")}</span></div></div>
+            <div className="prova"><div><b>{IMOVEIS.length.toLocaleString(lang === "en" ? "en-US" : "pt-BR")}</b><span>{t("lotes monitorados")}</span></div><div><b>{fontes}</b><span>{t("fontes oficiais")}</span></div><div><b>{go.length}</b><span>{t("passam no padrão")}</span></div><div><b>{atualizada}</b><span>{t("última coleta")}</span></div></div>
           </div>
           {ex && (
             <div className="hero-ficha" aria-hidden>

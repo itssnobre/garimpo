@@ -42,6 +42,8 @@ DETAIL_URL = BASE + "/sistema/detalhe-imovel.asp"
 SLEEP = 0.5
 RETRIES = 4
 BLOCK_WAIT = 45   # segundos de espera após 302 (cresce por tentativa)
+ENRICH_BUDGET = 40 * 60   # segundos no máximo enriquecendo detalhes; o resto herda a coleta anterior
+FALHAS_SEGUIDAS_MAX = 30  # a Caixa bloqueia o IP depois de ~800 detalhes: a partir daqui é só timeout, então para
 CSV_SLEEP = 3.0   # pausa entre CSVs de UF
 UFS = ("AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI",
        "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO")
@@ -366,11 +368,16 @@ def collect(ufs=None, enrich_filter=None, max_enrich=None):
     alvo = [it for it in items if flt(it) and not it.get("enriquecido_em")]
     if max_enrich is not None: alvo = alvo[:max_enrich]
     print(f"[caixa] enriquecendo {len(alvo)} itens", file=sys.stderr)
-    ok = 0
+    ok = 0; falhas_seguidas = 0; inicio = time.time()
     for i, it in enumerate(alvo, 1):
         enrich(it, s)
-        ok += "enriquecido_em" in it
+        if "enriquecido_em" in it: ok += 1; falhas_seguidas = 0
+        else: falhas_seguidas += 1
         if i % 25 == 0: print(f"[caixa] {i}/{len(alvo)} (ok={ok})", file=sys.stderr)
+        if falhas_seguidas >= FALHAS_SEGUIDAS_MAX:
+            print(f"[caixa] {falhas_seguidas} falhas seguidas (IP bloqueado?): parando o enriquecimento em {i}/{len(alvo)}", file=sys.stderr); break
+        if time.time() - inicio > ENRICH_BUDGET:
+            print(f"[caixa] orçamento de tempo esgotado: parando o enriquecimento em {i}/{len(alvo)}", file=sys.stderr); break
     print(f"[caixa] enriquecidos ok={ok}/{len(alvo)}", file=sys.stderr)
     return items
 

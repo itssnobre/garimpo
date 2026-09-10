@@ -256,7 +256,7 @@ export const telasApp: Record<string, string> = {
   "Ocupado": "Occupied",
   "Desocupação custa tempo e dinheiro. Preveja 3 a 12 meses e advogado.": "Eviction costs time and money. Budget 3 to 12 months and a lawyer.",
   "Análise de matrícula com Sage": "Registration analysis with Sage",
-  "Abra qualquer lote e suba o PDF da matrícula na Parte 1. A IA lê averbação por averbação e devolve ônus, execuções, cláusulas, custos previstos e as perguntas a fazer ao leiloeiro. Também pode conversar com o": "Open any lot and upload the registration PDF in Part 1. The AI reads it entry by entry and returns liens, lawsuits, clauses, projected costs, and the questions to ask the auctioneer. You can also chat with",
+  "Abra qualquer lote e suba o PDF da matrícula na Parte 2 (Riscos). A IA lê averbação por averbação e devolve ônus, execuções, cláusulas, custos previstos e as perguntas a fazer ao leiloeiro. Também pode conversar com o": "Open any lot and upload the registration PDF in Part 2 (Risks). The AI reads it entry by entry and returns liens, lawsuits, clauses, projected costs, and the questions to ask the auctioneer. You can also chat with",
   "sobre um caso específico.": "about a specific case.",
   "Checklist padrão": "Standard checklist",
   "Edital lido inteiro": "Read the whole auction notice",

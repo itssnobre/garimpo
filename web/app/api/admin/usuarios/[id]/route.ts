@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { exigirAdmin } from "@/lib/supabase/admin";
 import { tServer } from "@/lib/i18n/server";
+import { origemOk } from "@/lib/origem";
 export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -19,6 +20,7 @@ export async function GET(_: Request, { params }: Ctx) {
 /** Edita: nome, e-mail, senha nova, papel, bloqueio. Um admin não rebaixa nem bloqueia a si mesmo. */
 export async function PATCH(req: Request, { params }: Ctx) {
   const t = await tServer();
+  if (!origemOk(req)) return NextResponse.json({ erro: t("Origem não permitida.") }, { status: 403 });
   const g = await exigirAdmin(); if ("erro" in g) return NextResponse.json({ erro: t(g.erro) }, { status: g.status });
   const { admin, quem } = g; const { id } = await params;
   const b = (await req.json()) as { nome?: string; email?: string; senha?: string; papel?: "admin" | "cliente"; bloqueado?: boolean };
@@ -35,8 +37,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(_: Request, { params }: Ctx) {
+export async function DELETE(req: Request, { params }: Ctx) {
   const t = await tServer();
+  if (!origemOk(req)) return NextResponse.json({ erro: t("Origem não permitida.") }, { status: 403 });
   const g = await exigirAdmin(); if ("erro" in g) return NextResponse.json({ erro: t(g.erro) }, { status: g.status });
   const { id } = await params;
   if (id === g.quem.id) return NextResponse.json({ erro: t("Você não pode apagar a própria conta por aqui. Use Configurações.") }, { status: 400 });

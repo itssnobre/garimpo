@@ -1,11 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { META } from "@/lib/data";
-import { TODOS as IMOVEIS } from "@/lib/dadosCompletos";
+import { TODOS as IMOVEIS, byId } from "@/lib/dadosCompletos";
 import { avaliarPadrao, brl, pct, type Regras } from "@/lib/motor";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getLang, tServer } from "@/lib/i18n/server";
+import { permitir } from "@/lib/limite";
+import { origemOk } from "@/lib/origem";
 export const runtime = "nodejs"; export const maxDuration = 60;
+
+const CORPO_MAX = 32 * 1024; // 32 KB: o histórico que a tela manda cabe folgado
+const POR_HORA = 30;
 
 // Sem padrão do usuário, o Sage descreve o lote cru (sem margem, teto ou score): a conta é sempre com as regras dele.
 function resumoCom(REGRAS: Regras | null) {
@@ -22,14 +27,23 @@ export async function POST(req: Request) {
   const t = await tServer();
   const lang = await getLang();
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ texto: t("O Sage ainda não está ligado neste servidor: falta a chave ANTHROPIC_API_KEY nas variáveis do Vercel. Assim que entrar, eu respondo aqui.") });
+  if (!origemOk(req)) return NextResponse.json({ texto: t("Origem não permitida.") }, { status: 403 });
   const sb = await supabaseServer();
-  if (sb) { const { data } = await sb.auth.getUser(); if (!data.user) return NextResponse.json({ texto: t("Entre na sua conta para conversar com o Sage.") }, { status: 401 }); }
-  const { mensagens, loteId, padrao } = (await req.json()) as { mensagens: { role: "user" | "assistant"; content: string }[]; loteId?: string; padrao?: (Regras & { nome?: string }) | null };
+  const usuario = sb ? (await sb.auth.getUser()).data.user : null;
+  if (!usuario) return NextResponse.json({ texto: t("Entre na sua conta para conversar com o Sage.") }, { status: 401 });
+  const limite = await permitir(`sage:${usuario.id}`, POR_HORA, 60 * 60);
+  if (!limite.ok) return NextResponse.json({ texto: t("Limite de {n} perguntas ao Sage por hora atingido. Tente daqui a pouco.", { n: POR_HORA }) }, { status: 429 });
+  const bruto = await req.text();
+  if (bruto.length > CORPO_MAX) return NextResponse.json({ texto: t("Conversa longa demais para uma chamada. Comece um assunto novo.") }, { status: 413 });
+  let corpoJson: unknown;
+  try { corpoJson = JSON.parse(bruto); } catch { return NextResponse.json({ texto: t("Corpo inválido: esperado JSON.") }, { status: 400 }); }
+  const { mensagens, loteId, padrao } = (corpoJson ?? {}) as { mensagens: { role: "user" | "assistant"; content: string }[]; loteId?: string; padrao?: (Regras & { nome?: string }) | null };
+  if (!Array.isArray(mensagens)) return NextResponse.json({ texto: t("Informe mensagens: [].") }, { status: 400 });
   const REGRAS: Regras | null = padrao ?? null; const resumo = resumoCom(REGRAS);
-  const lote = loteId ? IMOVEIS.find((i) => i.id === loteId) : undefined;
+  const lote = loteId ? byId(loteId) : undefined;
   const top = REGRAS ? IMOVEIS.map((i) => ({ i, a: avaliarPadrao(i, REGRAS) })).filter((x) => x.a.passa).sort((x, y) => y.a.score - x.a.score).slice(0, 40).map((x) => resumo(x.i)).join("\n")
     : IMOVEIS.filter((i) => !i.direitos_fiduciante && !i.fracao_ideal).sort((x, y) => y.desagio_pct - x.desagio_pct).slice(0, 40).map(resumo).join("\n");
-  const ultima = mensagens[mensagens.length - 1]?.content.toLowerCase() ?? "";
+  const ultima = String(mensagens[mensagens.length - 1]?.content ?? "").toLowerCase();
   const termos = ultima.split(/\W+/).filter((t) => t.length > 3);
   const relacionados = termos.length ? IMOVEIS.filter((i) => termos.some((t) => (i.cidade + " " + (i.bairro ?? "") + " " + i.titulo).toLowerCase().includes(t))).slice(0, 25).map(resumo).join("\n") : "";
   const sistema = `Você é o Sage, a inteligência da Lotwise, plataforma de leilão de imóveis do Brasil inteiro. Fala português do Brasil, direto, sem travessões, como um analista sênior que já perdeu dinheiro em leilão e aprendeu.
@@ -47,5 +61,9 @@ ${relacionados ? "\nLOTES RELACIONADOS À PERGUNTA:\n" + relacionados : ""}` + (
     const r = await client.messages.create({ model: process.env.SAGE_MODEL || "claude-sonnet-5", max_tokens: 900, system: sistema, messages: mensagens.slice(-12) });
     const texto = r.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("\n");
     return NextResponse.json({ texto });
-  } catch (e) { return NextResponse.json({ texto: t("Não consegui responder agora: {erro}", { erro: String((e as Error).message ?? e) }) }, { status: 200 }); }
+  } catch (e) {
+    // Mensagem do provedor só no log: pode expor detalhe de infraestrutura ou da chave.
+    console.error("[sage] falha na resposta:", (e as Error).message ?? e);
+    return NextResponse.json({ texto: t("Não consegui responder agora. Tente de novo em alguns instantes.") }, { status: 200 });
+  }
 }

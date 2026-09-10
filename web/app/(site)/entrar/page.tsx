@@ -6,12 +6,14 @@ import { nuvemConfigurada, supabaseBrowser } from "@/lib/supabase/client";
 import { MARCA } from "@/lib/marca";
 import { traduz } from "@/lib/authErros";
 import { useT } from "@/lib/i18n/client";
+import { destinoSeguro } from "@/lib/destino";
 
 type Modo = "entrar" | "criar";
 
 function Formulario() {
   const { t } = useT();
-  const params = useSearchParams(); const next = params.get("next") ?? "/app/buscar";
+  // O "next" vem da URL: só caminho interno vira destino (senão o login manda pro site do atacante).
+  const params = useSearchParams(); const next = destinoSeguro(params.get("next"));
   const [modo, setModo] = useState<Modo>(params.get("modo") === "criar" ? "criar" : "entrar");
   const [nome, setNome] = useState(""); const [email, setEmail] = useState(""); const [senha, setSenha] = useState(""); const [senha2, setSenha2] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; txt: string } | null>(params.get("erro") === "link" ? { ok: false, txt: "Esse link expirou ou já foi usado. Peça outro." } : null);

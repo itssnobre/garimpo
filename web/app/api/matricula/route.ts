@@ -1,8 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { tServer } from "@/lib/i18n/server";
+import { quemChama } from "@/lib/supabase/admin";
+import { permitir } from "@/lib/limite";
+import { origemOk } from "@/lib/origem";
 export const runtime = "nodejs";
 export const maxDuration = 120;
+
+const TETO_MB = 15;
+const POR_DIA = 5;
 
 const SCHEMA = {
   type: "object", additionalProperties: false,
@@ -28,13 +34,22 @@ Se o documento não for uma matrícula nem edital, diga isso no resumo com risco
 
 export async function POST(req: Request) {
   const t = await tServer();
+  if (!origemOk(req)) return new NextResponse(t("Origem não permitida."), { status: 403 });
+  // Sessão exigida dentro da rota: o proxy cobre o caminho normal, mas a rota não pode depender só dele.
+  const quem = await quemChama();
+  if (!quem) return new NextResponse(t("Entre na sua conta."), { status: 401 });
   if (!process.env.ANTHROPIC_API_KEY) return new NextResponse(t("ANTHROPIC_API_KEY não configurada no servidor"), { status: 500 });
+  const limite = await permitir(`matricula:${quem.id}`, POR_DIA, 24 * 60 * 60);
+  if (!limite.ok) return new NextResponse(t("Limite de {n} análises de matrícula por dia atingido. Tente amanhã.", { n: POR_DIA }), { status: 429 });
   const fd = await req.formData();
   const file = fd.get("file");
   if (!(file instanceof File)) return new NextResponse(t("Envie um PDF"), { status: 400 });
-  if (file.size > 30 * 1024 * 1024) return new NextResponse(t("PDF acima de 30 MB"), { status: 413 });
-  const contexto = String(fd.get("contexto") ?? "");
-  const data = Buffer.from(await file.arrayBuffer()).toString("base64");
+  if (file.size > TETO_MB * 1024 * 1024) return new NextResponse(t("PDF acima de {n} MB", { n: TETO_MB }), { status: 413 });
+  const bytes = Buffer.from(await file.arrayBuffer());
+  // Assinatura do arquivo, não a extensão nem o content-type que o navegador mandou.
+  if (bytes.subarray(0, 5).toString("latin1") !== "%PDF-") return new NextResponse(t("O arquivo não é um PDF."), { status: 400 });
+  const contexto = String(fd.get("contexto") ?? "").slice(0, 4000);
+  const data = bytes.toString("base64");
   const client = new Anthropic();
   try {
     const msg = await client.messages.create({
@@ -51,6 +66,8 @@ export async function POST(req: Request) {
     if (!tool || tool.type !== "tool_use") return new NextResponse(t("Sem resultado estruturado"), { status: 502 });
     return NextResponse.json(tool.input);
   } catch (e) {
-    return new NextResponse(t("Falha na análise: {erro}", { erro: String((e as Error).message ?? e) }), { status: 502 });
+    // O erro do provedor pode carregar detalhe de infraestrutura: fica no log do servidor.
+    console.error("[matricula] falha na análise:", (e as Error).message ?? e);
+    return new NextResponse(t("Não deu para analisar o documento agora. Tente de novo em alguns minutos."), { status: 502 });
   }
 }

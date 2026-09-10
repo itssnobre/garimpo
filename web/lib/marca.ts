@@ -1,9 +1,12 @@
 export const MARCA = "Lotwise";
 export const TAGLINE = "Leilão de imóveis com a conta feita.";
 export const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP ?? "";            // só dígitos, com 55
-export const EMAIL = process.env.NEXT_PUBLIC_EMAIL ?? "itssnobre@gmail.com";
+export const EMAIL = process.env.NEXT_PUBLIC_EMAIL ?? "";                  // sem fallback: e-mail pessoal não vaza no bundle
+/** Link de contato. Sem WhatsApp nem e-mail configurados, cai na seção de contato do site. */
 export function contato(msg: string) {
-  return WHATSAPP ? `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}` : `mailto:${EMAIL}?subject=${encodeURIComponent("Assessoria " + MARCA)}&body=${encodeURIComponent(msg)}`;
+  if (WHATSAPP) return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
+  if (EMAIL) return `mailto:${EMAIL}?subject=${encodeURIComponent("Assessoria " + MARCA)}&body=${encodeURIComponent(msg)}`;
+  return "#contato";
 }
 export const PLANOS = [
   { nome: "Conta Lotwise", preco: "Grátis", sub: "catálogo do Brasil inteiro com o seu padrão", itens: ["Todas as fontes, em 27 estados", "Seu padrão: faixa, deságio, margem, região, vetos e custos", "Score, margem líquida e lance máximo em cada lote", "Favoritos, pipeline e o Sage, nossa IA"], cta: "Criar conta grátis", href: "/entrar?modo=criar", destaque: false },

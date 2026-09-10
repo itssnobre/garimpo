@@ -16,18 +16,10 @@ import Regua from "./Regua";
 import CampoMoeda from "./CampoMoeda";
 import { IArea, ICama, ICarro, ICasa, IChave, IDoc, IEstrela, IMapa, IRelogio } from "./Icones";
 
-const CHECKLIST = [
-  ["Edital lido inteiro", "A regra de débitos e as condições de pagamento estão no edital. É ele que diz se o condomínio atrasado fica com você."],
-  ["Matrícula atualizada (até 30 dias)", "Mostra dono, penhoras, hipotecas, execução condominial e cláusulas que podem anular o negócio."],
-  ["Consolidação com intimação pessoal", "Em alienação fiduciária, intimação só por edital aumenta o risco de ação anulatória depois do arremate."],
-  ["Não é direitos de fiduciante nem fração ideal", "Nos dois casos você não compra o imóvel: compra dívida ou um pedaço em condomínio com estranhos."],
-  ["Débitos de condomínio confirmados com o síndico", "O valor real costuma ser maior que o publicado. Ligue e peça o extrato."],
-  ["IPTU e dívida ativa consultados na prefeitura", "Em leilão judicial normalmente sub-roga no preço; em extrajudicial pode vir junto."],
-  ["Valor de venda conferido com 3 comparáveis", "Avaliação de laudo costuma estar acima do preço de rua. Confira anúncios no entorno de 500 m a 1 km."],
-  ["Ocupação verificada", "Imóvel ocupado custa tempo e advogado. Passe na porta, pergunte ao porteiro ou vizinho."],
-  ["Custo de desocupação e reforma estimado", "Entra na conta antes do lance, não depois."],
-  ["Lance máximo definido antes do pregão", "O erro mais caro do leilão é passar do teto no calor do lance."],
-] as const;
+// Link da fonte só sai como href quando é http(s): dado do catálogo com "javascript:" viraria XSS.
+const httpOk = (u?: string | null): u is string => typeof u === "string" && (u.startsWith("http://") || u.startsWith("https://"));
+
+
 
 interface AnaliseIA { resumo: string; risco_geral: "baixo" | "medio" | "alto" | "veto"; proprietario?: string; onus: string[]; alertas: string[]; ok: string[]; perguntas: string[]; custos_previstos?: string[] }
 const RISCO_TXT: Record<AnaliseIA["risco_geral"], string> = { baixo: "baixo", medio: "médio", alto: "alto", veto: "veto" };
@@ -60,7 +52,6 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
   const [custos, setCustos] = useState<Custos>(() => custosPara(i, ativo?.custos ?? CUSTOS_PADRAO));
   const [lance, setLance] = useState(i.lance_minimo);
   const [venda, setVenda] = useState(i.avaliacao);
-  const [checks, setChecks] = useState<boolean[]>(CHECKLIST.map(() => false));
   const [ia, setIa] = useState<AnaliseIA | null>(null);
   const [erro, setErro] = useState(""); const [carregando, setCarregando] = useState(false); const [arrasto, setArrasto] = useState(false);
   const [foto, setFoto] = useState(0); const [zoom, setZoom] = useState(false); const [abrirCustos, setAbrirCustos] = useState(false);
@@ -70,7 +61,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
   const visitante = contaPronta && !user; const semPadrao = padroesProntos && contaPronta && !regras;
   const chave = chaveDe(`garimpo:${i.id}`, uid);
 
-  const aplicar = (d: Partial<{ custos: Custos; lance: number; venda: number; checks: boolean[]; ia: AnaliseIA }>) => { d.custos && setCustos(d.custos); d.lance && setLance(d.lance); d.venda && setVenda(d.venda); d.checks && setChecks(d.checks); d.ia && setIa(d.ia); };
+  const aplicar = (d: Partial<{ custos: Custos; lance: number; venda: number; ia: AnaliseIA }>) => { d.custos && setCustos(d.custos); d.lance && setLance(d.lance); d.venda && setVenda(d.venda); d.ia && setIa(d.ia); };
   useEffect(() => { try { const s = localStorage.getItem(chave); if (s) aplicar(JSON.parse(s)); } catch {} }, [chave]);
   // Logado: se este navegador não tem nada do lote, usa o que está na nuvem.
   useEffect(() => {
@@ -79,12 +70,12 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
     return () => { vivo = false; };
   }, [uid, sb, i.id, chave]);
   useEffect(() => {
-    const dados = { custos, lance, venda, checks, ia };
+    const dados = { custos, lance, venda, ia };
     try { localStorage.setItem(chave, JSON.stringify(dados)); } catch {}
     if (!uid || !sb) return;
     const timer = setTimeout(() => emSegundoPlano(sb.from("lotwise_lotes").upsert({ lote_id: i.id, dados })), 900);
     return () => clearTimeout(timer);
-  }, [chave, custos, lance, venda, checks, ia, uid, sb, i.id]);
+  }, [chave, custos, lance, venda, ia, uid, sb, i.id]);
 
   const fotos = i.fotos ?? [];
   const res = useMemo(() => calcular(venda, lance, custos), [venda, lance, custos]);
@@ -93,7 +84,6 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
   const veto = (av?.sinais.some((s) => s.nivel === "veto") ?? false) || ia?.risco_geral === "veto";
   const margemMin = regras?.margemMin ?? 0, margemAlvo = regras?.margemAlvo ?? 0.3;
   const classe = veto ? "nogo" : res.lucro <= 0 || res.margem < margemMin ? "nogo" : res.margem < margemAlvo ? "atencao" : "go";
-  const feitos = checks.filter(Boolean).length;
   const endCompleto = [i.endereco, i.bairro, i.cidade, i.uf, i.cep].filter(Boolean).join(", ");
   const alvoPct = pct(margemAlvo);
   const lanceAlvo = margemAlvo >= 0.35 ? res.lanceMax35 : margemAlvo >= 0.3 ? res.lanceMax30 : res.lanceMax25;
@@ -139,9 +129,9 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
           <button className={`btn sec ${fav ? "favon" : ""}`} onClick={() => (visitante ? (location.href = `/entrar?next=${encodeURIComponent(location.pathname)}`) : toggle(i.id))} aria-pressed={fav}><IEstrela cheia={fav} />{fav ? t("Guardado") : t("Guardar")}</button>
           <button className={`btn sec ${acomp ? "favon" : ""}`} onClick={() => (visitante ? (location.href = `/entrar?next=${encodeURIComponent(location.pathname)}`) : toggleAcomp(i.id))} aria-pressed={acomp} title={t("Conferir lance, data e situação direto na fonte")}><IRelogio />{acomp ? t("Acompanhando") : t("Acompanhar")}</button>
           {endCompleto && <a className="btn sec" href={mapsUrl(endCompleto)} target="_blank" rel="noreferrer"><IMapa />{t("Ver no mapa")}</a>}
-          {i.matricula_url && <a className="btn sec" href={i.matricula_url} target="_blank" rel="noreferrer"><IDoc />{t("Matrícula")}</a>}
-          {i.edital_url && <a className="btn sec" href={i.edital_url} target="_blank" rel="noreferrer"><IDoc />{t("Edital")}</a>}
-          <a className="btn" href={i.url} target="_blank" rel="noreferrer">{t("Abrir na fonte")} ↗</a>
+          {httpOk(i.matricula_url) && <a className="btn sec" href={i.matricula_url} target="_blank" rel="noreferrer"><IDoc />{t("Matrícula")}</a>}
+          {httpOk(i.edital_url) && <a className="btn sec" href={i.edital_url} target="_blank" rel="noreferrer"><IDoc />{t("Edital")}</a>}
+          {httpOk(i.url) && <a className="btn" href={i.url} target="_blank" rel="noreferrer">{t("Abrir na fonte")} ↗</a>}
         </div>
       </div>
 
@@ -190,7 +180,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               </div>))}
           </div>
 
-          <nav className="ancoras" aria-label={t("Seções")}>{!semPadrao && <><a href="#valores">{t("Valores")}</a><a href="#riscos">{t("Riscos")}</a></>}<a href="#diligencia">{t("Diligência")}</a><a href="#documentos">{t("Documentos")}</a><a href="#descricao">{t("Descrição")}</a></nav>
+          <nav className="ancoras" aria-label={t("Seções")}>{!semPadrao && <><a href="#valores">{t("Valores")}</a><a href="#riscos">{t("Riscos")}</a></>}<a href="#documentos">{t("Documentos")}</a><a href="#descricao">{t("Descrição")}</a></nav>
 
           {semPadrao && <PainelSemPadrao visitante={visitante} />}
 
@@ -253,7 +243,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             <div className={`upload ${arrasto ? "ativo" : ""}`} onDragOver={(e) => { e.preventDefault(); setArrasto(true); }} onDragLeave={() => setArrasto(false)} onDrop={(e) => { e.preventDefault(); setArrasto(false); const f = e.dataTransfer.files?.[0]; if (f) analisar(f); }}>
               <p><b>{t("Análise da matrícula por IA.")}</b> {t("Arraste o PDF aqui ou")} <label className="link-arquivo">{t("escolha o arquivo")}<input type="file" accept="application/pdf" hidden disabled={carregando} onChange={(e) => e.target.files?.[0] && analisar(e.target.files[0])} /></label>.</p>
               <small>{carregando ? t("Lendo averbação por averbação…") : t("Devolve ônus, penhoras, alertas, custos previstos e o que perguntar antes do lance.")}</small>
-              {i.matricula_url && !carregando && <div style={{ marginTop: 10 }}><a className="btn sec mini" href={i.matricula_url} target="_blank" rel="noreferrer">{t("Baixar a matrícula da fonte")}</a></div>}
+              {httpOk(i.matricula_url) && !carregando && <div style={{ marginTop: 10 }}><a className="btn sec mini" href={i.matricula_url} target="_blank" rel="noreferrer">{t("Baixar a matrícula da fonte")}</a></div>}
             </div>
             {erro && <div className="sinal veto" style={{ marginTop: 10 }}>{erro}</div>}
             {ia && (
@@ -267,28 +257,16 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               </div>)}
           </section>}
 
-          {/* Diligência */}
-          <section className="secao" id="diligencia">
-            <h2>{t("Diligência")} <span className="badge">{t("{feitos} de {total}", { feitos, total: CHECKLIST.length })}</span></h2>
-            <p className="lede">{t("Diligência é a checagem feita")} <b>{t("antes")}</b> {t("de dar lance. Cada item abaixo é um jeito conhecido de perder dinheiro em leilão. Marque conforme confirmar; fica salvo neste navegador. Não muda o score, muda o seu risco.")}</p>
-            <div className="progresso"><i style={{ width: (feitos / CHECKLIST.length) * 100 + "%" }} /></div>
-            <ul className="check">{CHECKLIST.map(([chk, desc], k) => (
-              <li key={chk}>
-                <input type="checkbox" id={`c${k}`} checked={checks[k]} onChange={(e) => setChecks(checks.map((c, j) => (j === k ? e.target.checked : c)))} />
-                <label htmlFor={`c${k}`}><b className={checks[k] ? "ok" : ""}>{t(chk)}</b><small>{t(desc)}</small></label>
-              </li>))}</ul>
-          </section>
-
           {/* Documentos */}
           <section className="secao" id="documentos">
             <h2>{t("Documentos e links")}</h2>
             <p className="lede">{t("Tudo que a fonte publicou sobre este lote.")}</p>
             <div className="docs">
-              {i.matricula_url && <a href={i.matricula_url} target="_blank" rel="noreferrer"><IDoc />{t("Matrícula do imóvel (PDF)")}<small>{i.matricula ? t("nº {v}", { v: i.matricula }) : ""}</small></a>}
-              {i.edital_url && <a href={i.edital_url} target="_blank" rel="noreferrer"><IDoc />{t("Edital do leilão (PDF)")}<small>{ex.edital_num ?? ""}</small></a>}
-              <a href={i.url} target="_blank" rel="noreferrer"><IDoc />{t("Página do lote em {fonte}", { fonte: FONTE_LABEL[i.fonte] ?? i.fonte })}<small>{t("abre em nova aba")}</small></a>
+              {httpOk(i.matricula_url) && <a href={i.matricula_url} target="_blank" rel="noreferrer"><IDoc />{t("Matrícula do imóvel (PDF)")}<small>{i.matricula ? t("nº {v}", { v: i.matricula }) : ""}</small></a>}
+              {httpOk(i.edital_url) && <a href={i.edital_url} target="_blank" rel="noreferrer"><IDoc />{t("Edital do leilão (PDF)")}<small>{ex.edital_num ?? ""}</small></a>}
+              {httpOk(i.url) && <a href={i.url} target="_blank" rel="noreferrer"><IDoc />{t("Página do lote em {fonte}", { fonte: FONTE_LABEL[i.fonte] ?? i.fonte })}<small>{t("abre em nova aba")}</small></a>}
               {endCompleto && <a href={mapsUrl(endCompleto)} target="_blank" rel="noreferrer"><IMapa />{t("Ver o endereço no Google Maps")}<small>{i.cidade}/{i.uf}</small></a>}
-              {i.tambem_em?.map((item) => <a key={item.url} href={item.url} target="_blank" rel="noreferrer"><IDoc />{t("Mesmo lote em {fonte}", { fonte: FONTE_LABEL[item.fonte] ?? item.fonte })}<small>{brl(item.lance_minimo)}</small></a>)}
+              {i.tambem_em?.filter((item) => httpOk(item.url)).map((item) => <a key={item.url} href={item.url} target="_blank" rel="noreferrer"><IDoc />{t("Mesmo lote em {fonte}", { fonte: FONTE_LABEL[item.fonte] ?? item.fonte })}<small>{brl(item.lance_minimo)}</small></a>)}
               {!i.matricula_url && !i.edital_url && <div className="sinal alerta">{t("A fonte não publicou matrícula nem edital. Peça os dois ao leiloeiro antes de qualquer lance.")}</div>}
             </div>
           </section>

@@ -256,6 +256,87 @@ export async function memo<T>(chave: string, ttlMs: number, fn: () => Promise<T>
   return valor;
 }
 
+
+// ---------------------------------------------------------------- allowlist de hosts
+// O verificador ao vivo refaz o fetch da URL guardada no catálogo. Se o dado do lote for
+// adulterado (ou uma fonte redirecionar para outro lugar), o servidor viraria um proxy para
+// qualquer endereço, inclusive da rede interna. Só sai fetch para host de fonte conhecida, em https.
+
+/** Domínios das fontes do catálogo + hosts de API usados pelos extratores. */
+export const DOMINIOS_PERMITIDOS: readonly string[] = [
+  // fontes com extrator dedicado ou presentes no dataset
+  "alfaleiloes.com",
+  "biasileiloes.com.br",
+  "bomvalor.com.br",
+  "caixa.gov.br",
+  "emgeaimoveis.com.br",
+  "fidalgoleiloes.com.br",
+  "frazaoleiloes.com.br",
+  "freitasleiloeiro.com.br",
+  "grupolance.com.br",
+  "leilaoimovel.com.br",
+  "leilaovip.com.br",
+  "leiloesjudiciais.com.br",
+  "megaleiloes.com.br",
+  "nakakogueleiloes.com.br",
+  "pestanaleiloes.com.br",
+  "portalzuk.com.br",
+  "resale.com.br",
+  "santanderimoveis.com.br",
+  "sodresantoro.com.br",
+  "superbid.net",
+  "vitrinebradesco.com.br",
+  "wspleiloes.com.br",
+  // APIs da Resale e da Emgea (white-label): host cheio, não o domínio inteiro da AWS
+  "q3jhhgksa9.execute-api.us-east-2.amazonaws.com",
+  "yfvun6xbh1.execute-api.us-east-2.amazonaws.com",
+];
+
+/** true quando a url é https e o host é (ou está sob) um domínio da lista. */
+export function hostPermitido(url: string | null | undefined): boolean {
+  if (!url) return false;
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase().replace(/\.$/, "");
+  return DOMINIOS_PERMITIDOS.some((d) => host === d || host.endsWith("." + d));
+}
+
+/** Máximo de redirecionamentos seguidos à mão (cada salto passa pelo hostPermitido). */
+export const MAX_SALTOS = 3;
+
+/**
+ * fetch com redirect manual: segue no máximo MAX_SALTOS e só para host permitido.
+ * Devolve a resposta final e a url que foi realmente lida.
+ */
+export async function fetchPermitido(
+  url: string,
+  init: RequestInit,
+): Promise<{ resp: Response; url: string } | { bloqueado: string }> {
+  let atual = url;
+  for (let salto = 0; salto <= MAX_SALTOS; salto++) {
+    if (!hostPermitido(atual)) return { bloqueado: atual };
+    const resp = await fetch(atual, { ...init, redirect: "manual" });
+    if (resp.status < 300 || resp.status > 399) return { resp, url: atual };
+    const local = resp.headers.get("location");
+    if (!local) return { resp, url: atual };
+    let proxima: string;
+    try {
+      proxima = new URL(local, atual).toString();
+    } catch {
+      return { bloqueado: local };
+    }
+    // Depois do primeiro salto, o corpo e o método não seguem: redirecionamento vira GET.
+    init = { ...init, method: "GET", body: undefined };
+    atual = proxima;
+  }
+  return { bloqueado: atual };
+}
+
 /** GET/POST auxiliar dentro de um extrator (timeout curto, mesmos cabeçalhos do motor). */
 export async function buscar(
   url: string,
@@ -264,14 +345,14 @@ export async function buscar(
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), opcoes.timeoutMs ?? 12_000);
   try {
-    const r = await fetch(url, {
+    const r = await fetchPermitido(url, {
       method: opcoes.metodo ?? "GET",
       headers: { ...CABECALHOS_PADRAO, ...(opcoes.cabecalhos ?? {}) },
       body: opcoes.corpo,
-      redirect: "follow",
       signal: ctrl.signal,
     });
-    return { status: r.status, corpo: await r.text() };
+    if ("bloqueado" in r) return { status: 0, corpo: "" }; // host fora da lista: o extrator trata como sem dado
+    return { status: r.resp.status, corpo: await r.resp.text() };
   } finally {
     clearTimeout(t);
   }
