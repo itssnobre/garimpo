@@ -374,22 +374,26 @@ body.travado { overflow:hidden; touch-action:none }
 @media (max-width:899px) { body.travado .tabbar { visibility:hidden } }
 
 /* Faixa de especificações */
-.specs { display:grid; grid-template-columns:repeat(2, 1fr); background:var(--surface); border:1px solid var(--line); border-radius:var(--r2); overflow:hidden; margin-top:20px; box-shadow:var(--sh1) }
-@media (min-width:560px) { .specs { grid-template-columns:repeat(3, 1fr) } }
-@media (min-width:1500px) { .specs { grid-template-columns:repeat(6, 1fr) } }
-.spec { position:relative; padding:15px 16px; display:flex; flex-direction:column; gap:2px; min-width:0 }
-.spec::before { content:""; position:absolute; left:0; top:12px; bottom:12px; width:1px; background:var(--line2) }
-.spec:nth-child(odd)::before { display:none }
-@media (min-width:560px) { .spec:nth-child(odd)::before { display:block } .spec:nth-child(3n+1)::before { display:none } }
-@media (min-width:1100px) { .spec:nth-child(3n+1)::before { display:block } .spec:first-child::before { display:none } }
-.spec::after { content:""; position:absolute; left:16px; right:0; top:0; height:1px; background:var(--line2) }
-.spec:nth-child(-n+2)::after { display:none }
-@media (min-width:560px) { .spec:nth-child(-n+2)::after { display:block } .spec:nth-child(-n+3)::after { display:none } }
-@media (min-width:1100px) { .spec::after { display:none } }
-.spec-ic { color:var(--accent-ink); display:block; margin-bottom:6px; line-height:0 } .spec-ic svg { width:17px; height:17px }
-.spec b { font-size:16px; font-weight:600; letter-spacing:-.01em; line-height:1.25; overflow-wrap:anywhere }
-.spec-r { font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--mute); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-.spec.vazio b { color:var(--mute); font-weight:500 } .spec.vazio .spec-ic { color:var(--mute); opacity:.55 }
+/* Ficha técnica do lote: faixa contínua, um item por dado publicado. O divisor do primeiro item de cada
+   linha fica fora do container e some no overflow, então a barra quebra sem sobra de traço. */
+.fichatec { display:flex; flex-wrap:wrap; overflow:hidden; background:var(--surface); border:1px solid var(--line); border-radius:var(--r2); margin-top:20px; box-shadow:var(--sh1) }
+.ft-item { flex:1 1 128px; min-width:0; padding:14px 18px; box-shadow:-1px 0 0 var(--line2) }
+.ft-item b { display:block; font-size:16.5px; font-weight:600; letter-spacing:-.015em; line-height:1.25; overflow-wrap:anywhere }
+.ft-item > span { display:flex; align-items:center; gap:6px; margin-top:5px; font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.ft-item svg { width:13px; height:13px; flex:none; opacity:.7 }
+
+/* Lance inicial e o quanto ele está abaixo da avaliação. A barra preenchida é o que sai do bolso. */
+.desagio { padding:16px 18px 15px }
+.dg-rot { margin:0 0 7px; font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--mute); font-weight:600 }
+.dg-lin { display:flex; align-items:center; justify-content:space-between; gap:12px }
+.dg-v { font-size:clamp(25px, 2.5vw, 31px); font-weight:700; letter-spacing:-.035em; line-height:1 }
+.dg-selo { flex:none; font-size:12.5px; font-weight:700; color:var(--ok); background:var(--ok-bg); border-radius:999px; padding:4px 10px; letter-spacing:-.01em }
+.dg-trilho { height:6px; border-radius:999px; background:var(--surface2); overflow:hidden; margin:13px 0 9px }
+.dg-trilho i { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg, var(--accent), var(--accent-ink)) }
+.dg-pe { margin:0; font-size:12.5px; color:var(--mute); display:flex; align-items:baseline; justify-content:space-between; gap:10px }
+.dg-pe b { font-weight:600; color:var(--ink2) }
+/* No cartão com padrão o herói é o lucro: aqui o lance entra menor, sem disputar o olho. */
+.desagio.compacto .dg-v { font-size:19px; letter-spacing:-.025em } .desagio.compacto .dg-selo { font-size:11.5px; padding:3px 8px } .desagio.compacto .dg-trilho { height:5px; margin:11px 0 8px }
 
 /* Cartão de veredicto */
 .veredicto { border-radius:var(--r2); padding:20px; color:#fff; box-shadow:var(--sh2) }
@@ -431,6 +435,7 @@ body.travado { overflow:hidden; touch-action:none }
 .heroi > b.go { color:var(--ok) } .heroi > b.atencao { color:var(--warn) } .heroi > b.nogo { color:var(--bad) } .heroi > b.destaque-ouro { color:var(--accent-ink) }
 .heroi > small { display:block; margin-top:8px; font-size:12.5px; color:var(--mute); line-height:1.5 }
 .valores-lote { border-top:1px solid var(--line2) }
+.valores-lote .desagio { padding-top:15px }
 .valores-lote > div { display:flex; justify-content:space-between; align-items:baseline; gap:14px; padding:13px 18px; border-bottom:1px solid var(--line2) } .valores-lote > div:last-child { border-bottom:0 }
 .valores-lote span { font-size:13px; color:var(--ink2); line-height:1.35 } .valores-lote b { font-size:16px; font-weight:700; letter-spacing:-.02em; flex:none } .valores-lote small { display:block; font-size:11.5px; color:var(--ok); font-weight:600; margin-top:2px; text-align:right }
 .teto-alt { display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px }

@@ -12,6 +12,7 @@ import { useConta } from "@/lib/conta";
 import { chaveDe, emSegundoPlano } from "@/lib/nuvem";
 import { contato, MARCA } from "@/lib/marca";
 import { useT } from "@/lib/i18n/client";
+import type { T } from "@/lib/i18n";
 import Regua from "./Regua";
 import CampoMoeda from "./CampoMoeda";
 import { IArea, ICama, ICarro, ICasa, IChave, IDoc, IEstrela, IMapa, IRelogio } from "./Icones";
@@ -40,6 +41,23 @@ function PainelSemPadrao({ visitante }: { visitante: boolean }) {
         </p>
       </div>
     </section>);
+}
+
+/** Lance inicial com o deságio: a barra preenchida é a fração do valor de avaliação que sai do bolso. */
+function Desagio({ lance, avaliacao, desagio, compacto, t }: { lance: number; avaliacao: number; desagio?: number; compacto?: boolean; t: T }) {
+  const d = desagio && desagio > 0 ? desagio : avaliacao > 0 && lance > 0 ? 1 - lance / avaliacao : 0;
+  const temBarra = d > 0 && d < 1;
+  return (
+    <div className={`desagio ${compacto ? "compacto" : ""}`}>
+      <p className="dg-rot">{t("Lance inicial")}</p>
+      <div className="dg-lin">
+        <b className="num dg-v">{brl(lance)}</b>
+        {temBarra && <span className="dg-selo">&minus;{pct(d)}</span>}
+      </div>
+      {temBarra && <div className="dg-trilho" aria-hidden><i style={{ width: `${Math.max(4, Math.round((1 - d) * 100))}%` }} /></div>}
+      {avaliacao > 0 && <p className="dg-pe">{t("avaliação da fonte")} <b className="num">{brl(avaliacao)}</b></p>}
+    </div>
+  );
 }
 
 export default function Lote({ imovel: i }: { imovel: Imovel }) {
@@ -111,8 +129,8 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
     [t("Matrícula"), i.matricula ? <span className="mono">{i.matricula}</span> : null],
     [t("Cartório"), i.cartorio],
     [t("Inscrição"), ex.inscricao_imobiliaria ? <span className="mono">{ex.inscricao_imobiliaria}</span> : null],
-    [t("Área privativa"), i.area_privativa_m2 ? t("{v} m²", { v: i.area_privativa_m2 }) : null],
-    [t("Terreno"), i.area_terreno_m2 ? t("{v} m²", { v: i.area_terreno_m2 }) : null],
+    [t("Área privativa"), i.area_privativa_m2 ? t("{v} m²", { v: i.area_privativa_m2.toLocaleString(locale) }) : null],
+    [t("Terreno"), i.area_terreno_m2 ? t("{v} m²", { v: i.area_terreno_m2.toLocaleString(locale) }) : null],
     [t("Financiamento"), i.aceita_financiamento === true ? t("Aceita") : i.aceita_financiamento === false ? t("Não aceita") : null],
     ["FGTS", i.aceita_fgts === true ? t("Aceita") : i.aceita_fgts === false ? t("Não aceita") : null],
     [t("Pagamento"), ex.formas_pagamento],
@@ -163,22 +181,23 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
             <p className="lote-end"><IMapa />{[i.endereco, i.bairro, `${i.cidade}/${i.uf}`].filter(Boolean).join(" · ")}</p>
           </header>
 
-          {/* Especificações */}
-          <div className="specs">
-            {([
+          {/* Ficha técnica: faixa contínua, só com o que a fonte publicou */}
+          {(() => {
+            const itens = ([
               { ic: <ICasa />, r: t("Tipo"), v: i.tipo ? t(i.tipo)[0].toUpperCase() + t(i.tipo).slice(1) : null },
               { ic: <IArea />, r: i.area_privativa_m2 ? t("Área útil") : t("Terreno"), v: i.area_privativa_m2 ? t("{v} m²", { v: i.area_privativa_m2.toLocaleString(locale) }) : i.area_terreno_m2 ? t("{v} m²", { v: i.area_terreno_m2.toLocaleString(locale) }) : null },
               { ic: <ICama />, r: t("Dormitórios"), v: i.quartos ?? null },
               { ic: <ICarro />, r: t("Vagas"), v: i.vagas ?? null },
               { ic: <IChave />, r: t("Ocupação"), v: i.ocupado === true ? t("Ocupado") : i.ocupado === false ? t("Desocupado") : null },
               { ic: <IRelogio />, r: i.praca ? t("{n}ª praça", { n: i.praca }) : t("Leilão"), v: i.data_leilao ? dataBR(i.data_leilao) : null },
-            ]).map((x) => (
-              <div className={`spec ${x.v === null ? "vazio" : ""}`} key={x.r}>
-                <span className="spec-ic">{x.ic}</span>
-                <b>{x.v ?? "—"}</b>
-                <span className="spec-r">{x.r}</span>
-              </div>))}
-          </div>
+            ]).filter((x) => x.v !== null && x.v !== undefined && x.v !== "");
+            if (!itens.length) return null;
+            return <div className="fichatec">{itens.map((x) => (
+              <div className="ft-item" key={x.r}>
+                <b>{x.v}</b>
+                <span>{x.ic}{x.r}</span>
+              </div>))}</div>;
+          })()}
 
           <nav className="ancoras" aria-label={t("Seções")}>{!semPadrao && <><a href="#valores">{t("Valores")}</a><a href="#riscos">{t("Riscos")}</a></>}<a href="#documentos">{t("Documentos")}</a><a href="#descricao">{t("Descrição")}</a></nav>
 
@@ -276,10 +295,9 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
 
         {/* Lateral */}
         <aside className="lateral">
-          {semPadrao && <div className="cart destaque"><div className="cart-corpo"><div className="valores-lote" style={{ marginTop: 0 }}>
-              <div><span>{t("Lance inicial do leilão")}</span><b className="num">{brl(i.lance_minimo)}</b></div>
-              <div><span>{t("Quanto o imóvel vale (avaliação da fonte)")}</span><b className="num">{brl(i.avaliacao)}</b><small>{t("{pct} abaixo do lance", { pct: pct(i.desagio_pct) })}</small></div>
-            </div></div></div>}
+          {semPadrao && <div className="cart destaque">
+            <Desagio lance={i.lance_minimo} avaliacao={i.avaliacao} desagio={i.desagio_pct} t={t} />
+          </div>}
           {!semPadrao && <div className="cart destaque">
             <div className={`sit ${classe}`}>
               <span className="sit-pill">{veto ? t("Não comprar") : classe === "go" ? t("Vale a pena") : classe === "atencao" ? t("Atenção") : t("Não vale a pena")}</span>
@@ -295,8 +313,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
               </>)}
             </div>
             <div className="valores-lote">
-              <div><span>{t("Lance inicial do leilão")}</span><b className="num">{brl(i.lance_minimo)}</b></div>
-              <div><span>{t("Quanto o imóvel vale (avaliação da fonte)")}</span><b className="num">{brl(i.avaliacao)}</b><small>{t("{pct} abaixo do lance", { pct: pct(i.desagio_pct) })}</small></div>
+              <Desagio compacto lance={i.lance_minimo} avaliacao={i.avaliacao} desagio={i.desagio_pct} t={t} />
             </div>
           </div>}
 

@@ -1,5 +1,7 @@
 // PT → EN (grupo site). Chave = texto em português exatamente como está no código.
 export const site: Record<string, string> = {
+  "Lance inicial": "Opening bid",
+  "avaliação da fonte": "source appraisal",
   "Criar sua conta": "Create your account",
   "Celular (com DDD)": "Mobile phone (with area code)",
   "Informe um celular com DDD.": "Enter a mobile number with area code.",
