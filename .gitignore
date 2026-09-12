@@ -4,3 +4,4 @@ node_modules
 .env*
 data/raw/
 __pycache__
+.venv/

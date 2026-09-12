@@ -25,7 +25,9 @@ CAMPOS_RIQUEZA = ["quartos", "vagas", "area_privativa_m2", "area_terreno_m2", "o
 TEMPO_POR_FONTE = {"caixa": 50 * 60}
 TEMPO_PADRAO = 20 * 60
 
-class TempoEsgotado(Exception): pass
+# BaseException de propósito: os coletores têm `except Exception` no laço interno e engoliriam
+# o estouro de tempo, que foi o que manteve a coleta presa na Caixa e no Frazão até o job ser cancelado.
+class TempoEsgotado(BaseException): pass
 
 def run_collectors():
     import signal
