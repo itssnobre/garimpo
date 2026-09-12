@@ -50,7 +50,16 @@ def linha(it):
     r = {k: it.get(k) for k in COLUNAS}
     r["id"] = it["id"]
     r["busca"] = strip_accents(texto.lower())[:600]
+    # A capa do card: no arquivo completo só existe a lista `fotos`, e a listagem não carrega `detalhe`.
+    if not r.get("foto"):
+        fotos = it.get("fotos") or []
+        r["foto"] = fotos[0] if fotos else None
     r["detalhe"] = fora
+    # Flags calculadas: ausência quer dizer "não detectado", que no banco é falso e não nulo.
+    # Com nulo, um filtro do tipo "esconder valor a conferir" não devolveria nada.
+    for k in ("valor_suspeito", "debitos_teto10", "dominio_util", "massa_falida",
+              "direitos_aquisitivos", "onus_averbado", "direitos_fiduciante", "fracao_ideal"):
+        r[k] = bool(r.get(k))
     # Datas vazias quebram o insert: o Postgres quer null, não "".
     for k in ("data_leilao", "data_fim"):
         if not r.get(k):
