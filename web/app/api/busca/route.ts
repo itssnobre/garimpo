@@ -25,8 +25,8 @@ export async function POST(req: Request) {
   let corpo: unknown;
   try { corpo = JSON.parse(bruto || "{}"); } catch { return NextResponse.json({ erro: t("Corpo inválido: esperado JSON.") }, { status: 400 }); }
 
-  const { filtros = {}, padrao = null, soPassam = false, ordem = "desagio", inicio = 0, quantos = 48 } =
-    (corpo ?? {}) as { filtros?: FiltrosBusca; padrao?: Regras | null; soPassam?: boolean; ordem?: Ordem; inicio?: number; quantos?: number };
+  const { filtros = {}, padrao = null, soPassam = false, ordem = "desagio", inicio = 0, quantos = 48, previa = false } =
+    (corpo ?? {}) as { filtros?: FiltrosBusca; padrao?: Regras | null; soPassam?: boolean; ordem?: Ordem; inicio?: number; quantos?: number; previa?: boolean };
 
   const sb = await supabaseServer();
   const usuario = sb ? (await sb.auth.getUser()).data.user : null;
@@ -34,6 +34,22 @@ export async function POST(req: Request) {
   const de = usuario ? Math.max(0, inicio) : 0;
 
   const base: FiltrosBusca = { ...filtros, padrao: padrao ?? filtros.padrao ?? null };
+
+  // Prévia do editor de padrão: quantos passam, quantos batem a margem alvo e o melhor score.
+  if (previa && padrao) {
+    const [pool, semPadrao] = await Promise.all([
+      poolParaMotor(base, TETO_MOTOR),
+      buscar({ ...filtros, padrao: null, ordem: "desagio", inicio: 0, quantos: 1 }),
+    ]);
+    const passam = pool.itens.map((i) => avaliarPadrao(i, padrao)).filter((a) => a.passa);
+    return NextResponse.json({
+      passam: passam.length,
+      alvo: passam.filter((a) => a.res.margem >= padrao.margemAlvo).length,
+      melhor: passam.reduce((m, a) => Math.max(m, a.score), 0),
+      base: semPadrao.total,
+      cortado: pool.cortado,
+    });
+  }
 
   if (!PRECISA_MOTOR(ordem, soPassam, Boolean(padrao))) {
     const { itens, total } = await buscar({ ...base, ordem, inicio: de, quantos: limite });

@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
-import { useIndice } from "@/lib/indice";
+import { usePrevia } from "@/lib/busca";
+import { META } from "@/lib/meta";
 import { avaliarPadrao, MODALIDADE_LABEL, type Custos } from "@/lib/motor";
 import { brl, pct } from "@/lib/fmt";
 import { PRESETS, TIPOS, UFS, novoPadrao, type Padrao } from "@/lib/padrao";
@@ -16,9 +17,12 @@ export default function EditorPadrao({ inicial, onSalvar, onCancelar }: { inicia
   const [cidadeTxt, setCidadeTxt] = useState("");
   const set = (k: keyof Padrao, v: unknown) => setP({ ...p, [k]: v });
   const num = (v: string) => Number(String(v).replace(/[^\d]/g, "")) || 0;
-  const { imoveis: IMOVEIS } = useIndice(p.ufs);
-  const cidades = useMemo(() => Array.from(new Set(IMOVEIS.filter((i) => p.ufs.length === 0 || p.ufs.includes(i.uf)).map((i) => i.cidade))).sort((a, b) => a.localeCompare(b, loc)), [p.ufs, IMOVEIS, loc]);
-  const previa = useMemo(() => { const av = IMOVEIS.map((i) => avaliarPadrao(i, p)); const ok = av.filter((a) => a.passa); return { passam: ok.length, alvo: ok.filter((a) => a.res.margem >= p.margemAlvo).length, melhor: ok.reduce((m, a) => Math.max(m, a.score), 0) }; }, [p, IMOVEIS]);
+  const cidades = useMemo(() => {
+    const m = META.cidades_por_uf ?? {};
+    const alvo = p.ufs.length ? p.ufs : Object.keys(m);
+    return [...new Set(alvo.flatMap((u) => m[u] ?? []))].sort((a, b) => a.localeCompare(b, loc));
+  }, [p.ufs, loc]);
+  const previa = usePrevia(p);
   const toggle = (k: "ufs" | "cidades" | "tipos" | "modalidades", v: string) => set(k, p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v]);
 
   return (
@@ -81,7 +85,7 @@ export default function EditorPadrao({ inicial, onSalvar, onCancelar }: { inicia
       <aside className="lateral">
         <div className="ficha-cart"><div className="cab"><span>{t("Prévia na coleta de hoje")}</span></div>
           <dl className="linhas">
-            <div><dt>{t("Passam")}</dt><dd><span className="num">{previa.passam.toLocaleString(loc)}</span> <span style={{ color: "var(--mute)" }}>{t("de {n}", { n: IMOVEIS.length.toLocaleString(loc) })}</span></dd></div>
+            <div><dt>{t("Passam")}</dt><dd><span className="num">{previa.passam.toLocaleString(loc)}</span> <span style={{ color: "var(--mute)" }}>{t("de {n}", { n: previa.base.toLocaleString(loc) })}</span></dd></div>
             <div><dt>{t("Na margem alvo")}</dt><dd><span className="num" style={{ color: "var(--ok)" }}>{previa.alvo.toLocaleString(loc)}</span></dd></div>
             <div><dt>{t("Melhor score")}</dt><dd><span className="num">{previa.melhor}</span></dd></div>
             <div><dt>{t("Faixa")}</dt><dd>{p.faixaMin || p.faixaMax ? t("{min} a {max}", { min: p.faixaMin ? brl(p.faixaMin) : "0", max: p.faixaMax ? brl(p.faixaMax) : t("sem teto") }) : t("qualquer valor")}</dd></div>

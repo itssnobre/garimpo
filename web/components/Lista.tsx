@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { Imovel } from "@/lib/types";
-import { avaliarPadrao, FONTE_LABEL, MODALIDADE_LABEL, noPerfil, type Avaliacao } from "@/lib/motor";
+import { avaliarPadrao, FONTE_LABEL, MODALIDADE_LABEL, type Avaliacao } from "@/lib/motor";
+import { useBusca, type Ordem } from "@/lib/busca";
+import { META, disponiveisUF } from "@/lib/meta";
 import { brl } from "@/lib/fmt";
 import { usePadroes } from "@/lib/usePadroes";
 import Card from "./Card";
@@ -14,7 +15,6 @@ import { useT } from "@/lib/i18n/client";
 
 const LIMITE_VISITANTE = 30;
 
-type Ordem = "score" | "margem" | "desagio" | "lance" | "data";
 const ORDENS: [Ordem, string][] = [["score", "Melhor score"], ["margem", "Maior margem"], ["desagio", "Maior deságio"], ["lance", "Menor lance"], ["data", "Leilão mais próximo"]];
 const TIPOS = ["apartamento", "casa", "terreno", "comercial", "rural", "outro"];
 
@@ -24,7 +24,7 @@ const Xis = ({ s = 15 }: { s?: number }) => <svg {...S} width={s} height={s}><pa
 const Ajustes = () => <svg {...S}><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>;
 const Seta = () => <svg {...S} width={13} height={13}><path d="M6 9l6 6 6-6" /></svg>;
 
-export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
+export default function Lista({ ufs = [] }: { ufs?: string[] }) {
   const { t, lang } = useT();
   const loc = lang === "en" ? "en-US" : "pt-BR";
   const { ativo, lista: padroes, ativar, desativar, pronto } = usePadroes();
@@ -39,28 +39,30 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
   const hoje = new Date().toISOString().slice(0, 10);
   const [quartosMin, setQuartosMin] = useState(0); const [areaMin, setAreaMin] = useState(0); const [areaMax, setAreaMax] = useState(0);
   const perfil = { quartosMin, areaMin, areaMax }; const temPerfil = quartosMin > 0 || areaMin > 0 || areaMax > 0;
-  const [ordem, setOrdem] = useState<Ordem>("score"); const [limite, setLimite] = useState(48); const [painel, setPainel] = useState(false);
+  const [ordem, setOrdem] = useState<Ordem>("score"); const [painel, setPainel] = useState(false);
   const { favs, toggle: toggleFav } = useFavoritos();
   const toggle = (id: string) => { if (visitante) { router.push(`/entrar?next=${encodeURIComponent("/app/buscar")}`); return; } toggleFav(id); };
 
-  const avaliados = useMemo(() => imoveis.map((i) => ({ i, a: regras ? avaliarPadrao(i, regras) : null as Avaliacao | null })), [imoveis, regras]);
-  // Mesmo critério do chip de estados: leilão aberto, sem veto, sem valor suspeito.
-  const disponiveis = useMemo(() => imoveis.filter((i) => (!i.data_leilao || i.data_leilao >= hoje) && !(i.direitos_fiduciante || i.fracao_ideal) && !(i.valor_suspeito || i.desagio_pct >= 0.85)).length, [imoveis, hoje]);
-  const cidades = useMemo(() => Array.from(new Set(imoveis.map((i) => i.cidade))).sort((a, b) => a.localeCompare(b, loc)), [imoveis, loc]);
-  const fontes = useMemo(() => Array.from(new Set(imoveis.map((i) => i.fonte))).sort(), [imoveis]);
-
-  const lista = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    const l = avaliados.filter(({ i, a }) =>
-      (!cidade || i.cidade === cidade) && (!tipo || i.tipo === tipo) && (!fonte || i.fonte === fonte) && (!modalidade || i.modalidade === modalidade) &&
-      (precoMin <= 0 || i.lance_minimo >= precoMin) && (precoMax <= 0 || i.lance_minimo <= precoMax) && (!temPerfil || noPerfil(i, perfil)) &&
-      (!ocultarVeto || !(i.direitos_fiduciante || i.fracao_ideal)) && (!soFoto || Boolean(i.fotos?.length || i.foto)) && (!soFavs || favs.has(i.id)) &&
-      (!ocultarEncerrados || !i.data_leilao || i.data_leilao >= hoje) && (!soComData || Boolean(i.data_leilao)) && (!ocultarSuspeitos || !(i.valor_suspeito || i.desagio_pct >= 0.85)) &&
-      (!soPassam || !a || a.passa) &&
-      (!q || `${i.titulo} ${i.endereco ?? ""} ${i.bairro ?? ""} ${i.cidade} ${i.uf} ${i.matricula ?? ""}`.toLowerCase().includes(q)));
-    const k: Record<Ordem, (x: (typeof l)[number]) => number | string> = { score: (x) => (x.a ? -x.a.score : -x.i.desagio_pct), margem: (x) => (x.a ? -x.a.res.margem : -x.i.desagio_pct), desagio: (x) => -x.i.desagio_pct, lance: (x) => x.i.lance_minimo, data: (x) => x.i.data_leilao ?? "9999" };
-    return l.sort((x, y) => { const a = k[ordem](x), b = k[ordem](y); return a < b ? -1 : a > b ? 1 : 0; });
-  }, [avaliados, cidade, tipo, fonte, modalidade, busca, soPassam, ocultarVeto, soFoto, soFavs, favs, ordem, precoMin, precoMax, quartosMin, areaMin, areaMax, ocultarEncerrados, soComData, ocultarSuspeitos, hoje]);
+  // Filtros e ordenação são resolvidos no banco; aqui só pontuamos a página que voltou.
+  const pedido = useMemo(() => ({
+    filtros: {
+      ufs, cidade: cidade || undefined, tipo: tipo || undefined, fonte: fonte || undefined,
+      modalidade: modalidade || undefined, busca: busca.trim() || undefined,
+      precoMin, precoMax, quartosMin, areaMin, areaMax,
+      soFoto, ids: soFavs ? [...favs] : undefined,
+      ocultarVeto, ocultarEncerrados, soComData, ocultarSuspeitos,
+    },
+    padrao: regras, soPassam: soPassam && Boolean(regras), ordem,
+  }), [ufs, cidade, tipo, fonte, modalidade, busca, precoMin, precoMax, quartosMin, areaMin, areaMax, soFoto, soFavs, favs, ocultarVeto, ocultarEncerrados, soComData, ocultarSuspeitos, regras, soPassam, ordem]);
+  const { itens, total, carregando, carregandoMais, amostra, cortado, mais, temMais } = useBusca(pedido);
+  const lista = useMemo(() => itens.map((i) => ({ i, a: regras ? avaliarPadrao(i, regras) : (null as Avaliacao | null) })), [itens, regras]);
+  const disponiveis = useMemo(() => (ufs.length ? ufs : Object.keys(META.por_uf ?? {})).reduce((s2, u) => s2 + disponiveisUF(u), 0), [ufs]);
+  const cidades = useMemo(() => {
+    const m = META.cidades_por_uf ?? {};
+    const alvo = ufs.length ? ufs : Object.keys(m);
+    return [...new Set(alvo.flatMap((u) => m[u] ?? []))].sort((a, b) => a.localeCompare(b, loc));
+  }, [ufs, loc]);
+  const fontes = useMemo(() => Object.keys(META.por_fonte ?? META.fontes ?? {}).sort(), []);
 
   const pills = [
     soPassam && ativo && { k: "padrao", txt: t("Padrão: {nome}", { nome: ativo.nome }), off: () => setSoPassam(false), destaque: true },
@@ -89,7 +91,7 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
         <div className="fbar-linha">
           <div className="fbusca">
             <Lupa />
-            <input value={busca} onChange={(e) => { setBusca(e.target.value); setLimite(48); }} placeholder={t("Buscar cidade, bairro, rua ou matrícula")} aria-label={t("Buscar")} />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t("Buscar cidade, bairro, rua ou matrícula")} aria-label={t("Buscar")} />
             {busca && <button className="limpar" onClick={() => setBusca("")} aria-label={t("Limpar busca")}><Xis /></button>}
           </div>
           <button className={`fbtn so-icone ${nFiltros ? "on" : ""}`} onClick={() => setPainel(true)} aria-expanded={painel}><Ajustes /><span>{t("Filtros")}</span>{nFiltros > 0 && <i className="conta">{nFiltros}</i>}</button>
@@ -178,21 +180,25 @@ export default function Lista({ imoveis }: { imoveis: Imovel[] }) {
       </div>
 
       {visitante && (
-        <div className="sinal info" style={{ margin: "0 0 16px" }}>{t("Você está vendo uma amostra de {n} lotes.", { n: LIMITE_VISITANTE })} <Link href="/entrar?modo=criar&next=/app/buscar" style={{ fontWeight: 600, textDecoration: "underline" }}>{t("Crie sua conta grátis")}</Link> {t("para ver os {n} lotes, definir o seu padrão e guardar favoritos.", { n: imoveis.length.toLocaleString(loc) })}</div>)}
+        <div className="sinal info" style={{ margin: "0 0 16px" }}>{t("Você está vendo uma amostra de {n} lotes.", { n: LIMITE_VISITANTE })} <Link href="/entrar?modo=criar&next=/app/buscar" style={{ fontWeight: 600, textDecoration: "underline" }}>{t("Crie sua conta grátis")}</Link> {t("para ver os {n} lotes, definir o seu padrão e guardar favoritos.", { n: disponiveis.toLocaleString(loc) })}</div>)}
       {!visitante && pronto && contaPronta && !ativo && (
         <div className="sinal info" style={{ margin: "0 0 16px" }}>{t("Você ainda não definiu o seu padrão, então a lista aparece sem pontuação.")} <Link href="/app/padrao?novo=1" style={{ fontWeight: 600, textDecoration: "underline" }}>{t("Criar meu padrão")}</Link> {t("leva 2 minutos.")}</div>)}
 
+      {cortado && (
+        <div className="sinal alerta" style={{ margin: "0 0 16px" }}>{t("Muitos lotes no filtro: a ordem por score olhou os melhores por deságio, não a base inteira. Estreite a busca para o ranking ficar exato.")}</div>)}
       <div className="contagem">
-        <div><b>{(visitante ? Math.min(lista.length, LIMITE_VISITANTE) : lista.length).toLocaleString(loc)}</b> <span>{soPassam && ativo ? t("lotes no padrão {nome}", { nome: ativo.nome }) : t("lotes")}</span></div>
+        <div><b>{total.toLocaleString(loc)}</b> <span>{soPassam && ativo ? t("lotes no padrão {nome}", { nome: ativo.nome }) : t("lotes")}</span></div>
         <span style={{ color: "var(--mute)", fontSize: 13 }} title={t("Disponíveis = leilão aberto, sem veto e sem valor suspeito. Encerrados, vetados e valor a conferir podem ser exibidos em Filtros.")}>{disponiveis.toLocaleString(loc)} {t("disponíveis")}{lista.length < disponiveis && nFiltros + (busca ? 1 : 0) + (soPassam && ativo ? 1 : 0) > 0 ? t(" · {n} fora pelos filtros", { n: (disponiveis - lista.length).toLocaleString(loc) }) : ""}</span>
       </div>
 
-      {lista.length === 0 ? (
+      {carregando ? (
+        <div className="vazio"><b>{t("Carregando lotes…")}</b></div>
+      ) : lista.length === 0 ? (
         <div className="vazio"><b>{t("Nada encontrado")}</b>{soFavs ? t("Você ainda não marcou favoritos. Toque na estrela de um lote para guardar aqui.") : t("Afrouxe o seu padrão (faixa, deságio, margem ou região) ou remova algum filtro.")}</div>
       ) : (<>
-        <div className="grade">{lista.slice(0, visitante ? LIMITE_VISITANTE : limite).map(({ i, a }) => <Card key={i.id} i={i} a={a} fav={favs.has(i.id)} toggle={toggle} />)}</div>
-        {visitante && lista.length > LIMITE_VISITANTE && <div className="vazio" style={{ marginTop: 20 }}><b>{t("Mais {n} lotes esperando", { n: (lista.length - LIMITE_VISITANTE).toLocaleString(loc) })}</b>{t("Crie sua conta grátis para ver tudo, com o seu padrão e a sua conta de lance.")}<p style={{ margin: "14px 0 0" }}><Link href="/entrar?modo=criar&next=/app/buscar" className="btn ouro">{t("Criar conta grátis")}</Link></p></div>}
-        {!visitante && lista.length > limite && <p style={{ textAlign: "center", margin: 28 }}><button className="btn sec" onClick={() => setLimite(limite + 48)}>{t("Mostrar mais {n} de {m}", { n: Math.min(48, lista.length - limite), m: (lista.length - limite).toLocaleString(loc) })}</button></p>}
+        <div className="grade">{lista.map(({ i, a }) => <Card key={i.id} i={i} a={a} fav={favs.has(i.id)} toggle={toggle} />)}</div>
+        {amostra && total > lista.length && <div className="vazio" style={{ marginTop: 20 }}><b>{t("Mais {n} lotes esperando", { n: (total - lista.length).toLocaleString(loc) })}</b>{t("Crie sua conta grátis para ver tudo, com o seu padrão e a sua conta de lance.")}<p style={{ margin: "14px 0 0" }}><Link href="/entrar?modo=criar&next=/app/buscar" className="btn ouro">{t("Criar conta grátis")}</Link></p></div>}
+        {temMais && <p style={{ textAlign: "center", margin: 28 }}><button className="btn sec" onClick={mais} disabled={carregandoMais}>{carregandoMais ? t("Aguarde…") : t("Mostrar mais {n} de {m}", { n: Math.min(48, total - lista.length), m: (total - lista.length).toLocaleString(loc) })}</button></p>}
       </>)}
     </>
   );

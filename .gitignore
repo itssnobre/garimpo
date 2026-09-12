@@ -9,3 +9,6 @@ __pycache__
 # Catálogo: vive no banco (lotwise_catalogo). Os JSON grandes são artefato da coleta, não código.
 web/data/imoveis.json
 web/data/indice.json
+
+# Índices por estado: a busca consulta o banco, não arquivos servidos ao navegador.
+web/public/dados/

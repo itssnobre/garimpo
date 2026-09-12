@@ -256,14 +256,9 @@ def main():
         idx.append(r)
     json.dump(idx, open(os.path.join(ROOT, "web", "data", "indice.json"), "w", encoding="utf-8"), ensure_ascii=False)
     print(f"índice enxuto -> web/data/indice.json")
-    # um arquivo por UF em public/dados/uf/ (o cliente carrega só as UFs que o usuário escolheu)
-    pub = os.path.join(ROOT, "web", "public", "dados", "uf"); os.makedirs(pub, exist_ok=True)
-    for f in glob.glob(os.path.join(pub, "*.json")): os.remove(f)
+    # Agrupamento por UF só para as contagens do meta: a lista da tela vem do banco, paginada.
     por_uf = {}
     for r in idx: por_uf.setdefault(r["uf"], []).append(r)
-    for uf, lst in por_uf.items():
-        json.dump(lst, open(os.path.join(pub, f"{uf}.json"), "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"{len(por_uf)} UFs -> web/public/dados/uf/")
     fontes_meta = {}
     for it in out: fontes_meta.setdefault(it["fonte"], 0)
     for it in out: fontes_meta[it["fonte"]] += 1
@@ -279,6 +274,8 @@ def main():
                # precisa varrer o catálogo inteiro nem no navegador nem no banco.
                "por_cidade": dict(Counter(r["cidade"] for r in idx).most_common(40)),
                "cidades_total": len({r["cidade"] for r in idx}),
+               # Nomes das cidades por estado: alimenta o seletor da busca sem baixar o catálogo.
+               "cidades_por_uf": {uf: sorted({r["cidade"] for r in l}) for uf, l in sorted(por_uf.items())},
                "com_matricula": sum(1 for r in idx if r.get("matricula"))},
               open(os.path.join(ROOT, "web", "data", "meta.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     if "-v" in sys.argv or "--stats" in sys.argv:
