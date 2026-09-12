@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { META } from "@/lib/data";
-import { TODOS as IMOVEIS, byId } from "@/lib/dadosCompletos";
+import { candidatos, porId, porTermos } from "@/lib/catalogo";
+import type { Imovel } from "@/lib/types";
 import { avaliarPadrao, brl, pct, type Regras } from "@/lib/motor";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getLang, tServer } from "@/lib/i18n/server";
@@ -14,7 +15,7 @@ const POR_HORA = 30;
 
 // Sem padrão do usuário, o Sage descreve o lote cru (sem margem, teto ou score): a conta é sempre com as regras dele.
 function resumoCom(REGRAS: Regras | null) {
-  return (i: (typeof IMOVEIS)[number]) => {
+  return (i: Imovel) => {
     const base = `- [${i.id}] ${i.titulo} | ${i.cidade}${i.bairro ? "/" + i.bairro : ""} | ${i.modalidade} ${i.fonte} | aval ${brl(i.avaliacao)} lance ${brl(i.lance_minimo)} deságio ${pct(i.desagio_pct)}`;
     const fim = ` | leilão ${i.data_leilao ?? "?"} praça ${i.praca ?? "?"} | ocupado ${i.ocupado ?? "?"} | matr ${i.matricula ?? "?"}`;
     if (!REGRAS) return base + fim + (i.direitos_fiduciante ? " | direitos de fiduciante" : "") + (i.fracao_ideal ? " | fração ideal" : "");
@@ -40,12 +41,16 @@ export async function POST(req: Request) {
   const { mensagens, loteId, padrao } = (corpoJson ?? {}) as { mensagens: { role: "user" | "assistant"; content: string }[]; loteId?: string; padrao?: (Regras & { nome?: string }) | null };
   if (!Array.isArray(mensagens)) return NextResponse.json({ texto: t("Informe mensagens: [].") }, { status: 400 });
   const REGRAS: Regras | null = padrao ?? null; const resumo = resumoCom(REGRAS);
-  const lote = loteId ? byId(loteId) : undefined;
-  const top = REGRAS ? IMOVEIS.map((i) => ({ i, a: avaliarPadrao(i, REGRAS) })).filter((x) => x.a.passa).sort((x, y) => y.a.score - x.a.score).slice(0, 40).map((x) => resumo(x.i)).join("\n")
-    : IMOVEIS.filter((i) => !i.direitos_fiduciante && !i.fracao_ideal).sort((x, y) => y.desagio_pct - x.desagio_pct).slice(0, 40).map(resumo).join("\n");
   const ultima = String(mensagens[mensagens.length - 1]?.content ?? "").toLowerCase();
-  const termos = ultima.split(/\W+/).filter((t) => t.length > 3);
-  const relacionados = termos.length ? IMOVEIS.filter((i) => termos.some((t) => (i.cidade + " " + (i.bairro ?? "") + " " + i.titulo).toLowerCase().includes(t))).slice(0, 25).map(resumo).join("\n") : "";
+  // O banco corta pelos limites objetivos do padrão; o motor avalia só os candidatos que sobraram.
+  const [lote, pool, proximos] = await Promise.all([
+    loteId ? porId(loteId) : Promise.resolve(null),
+    candidatos(REGRAS, 400),
+    porTermos(ultima.split(/\W+/), 25),
+  ]);
+  const top = (REGRAS ? pool.map((i) => ({ i, a: avaliarPadrao(i, REGRAS) })).filter((x) => x.a.passa).sort((x, y) => y.a.score - x.a.score).slice(0, 40).map((x) => x.i)
+    : pool.slice(0, 40)).map(resumo).join("\n");
+  const relacionados = proximos.map(resumo).join("\n");
   const sistema = `Você é o Sage, a inteligência da Lotwise, plataforma de leilão de imóveis do Brasil inteiro. Fala português do Brasil, direto, sem travessões, como um analista sênior que já perdeu dinheiro em leilão e aprendeu.
 ${REGRAS ? `Padrão do usuário${padrao?.nome ? " (" + padrao.nome + ")" : ""}: avaliação ${REGRAS.faixaMin ? "de " + brl(REGRAS.faixaMin) : "sem mínimo"} ${REGRAS.faixaMax ? "até " + brl(REGRAS.faixaMax) : "sem teto"}, deságio mínimo ${pct(REGRAS.desagioMin)}, margem líquida mínima ${pct(REGRAS.margemMin)} (alvo ${pct(REGRAS.margemAlvo)}), região ${[...REGRAS.ufs, ...REGRAS.cidades].join(", ") || "Brasil inteiro"}, tipos ${REGRAS.tipos.join(", ") || "todos"}, ocupação ${REGRAS.ocupacao}. Vetos: ${[REGRAS.vetoFiduciante && "direitos de fiduciante", REGRAS.vetoFracao && "fração ideal", REGRAS.vetoEdital && "intimação por edital"].filter(Boolean).join(", ") || "nenhum"}. Respeite o padrão dele, não imponha o seu.
 Custos do usuário: leiloeiro ${REGRAS.custos.leiloeiro}%, ITBI ~${REGRAS.custos.itbi}%, registro ${REGRAS.custos.registro}%, advogado R$ ${REGRAS.custos.advogado}, certidões R$ ${REGRAS.custos.certidoes}, carrego ${REGRAS.custos.meses} meses x R$ ${REGRAS.custos.mensal}, corretagem ${REGRAS.custos.corretagem}%, IR ${REGRAS.custos.ir}%, venda ${REGRAS.custos.descontoVenda}% abaixo da avaliação. Margem = lucro líquido / capital total.`

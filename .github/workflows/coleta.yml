@@ -24,10 +24,18 @@ jobs:
       - run: pip install requests beautifulsoup4 lxml
       - name: Coletar e construir
         run: python collectors/build.py --collect
+      - name: Publicar no banco
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python collectors/publicar_catalogo.py
+
       - name: Comitar dados
+        # imoveis.json e indice.json não são versionados: o catálogo vive no banco e esses dois
+        # são artefato da coleta. Vai para o git só o resumo e os arquivos que o navegador busca.
         run: |
           git config user.name "lotwise-bot" && git config user.email "bot@lotwise"
-          git add web/data/imoveis.json web/data/indice.json web/data/meta.json web/public/dados
+          git add web/data/meta.json web/public/dados
           git diff --cached --quiet || (git commit -m "coleta $(date -u +%F)" && git pull --rebase && git push)
       - name: Publicar na Vercel
         working-directory: web

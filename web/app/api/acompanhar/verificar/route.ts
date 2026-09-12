@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { byId } from "@/lib/dadosCompletos";
+import { porIds } from "@/lib/catalogo";
 import { supabaseServer } from "@/lib/supabase/server";
 import { verificarLotes, type EstadoAoVivo } from "@/lib/aovivo";
 import { tServer } from "@/lib/i18n/server";
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   if (!ids.length) return NextResponse.json({ estados: [] as EstadoAoVivo[] });
   if (ids.length > MAX) return NextResponse.json({ erro: t("No máximo {max} lotes por vez.", { max: MAX }) }, { status: 400 });
 
-  const lotes = ids.map(byId).filter((x): x is NonNullable<typeof x> => !!x);
+  const lotes = await porIds(ids, true);
   const naoAchados = ids.filter((id) => !lotes.some((l) => l.id === id));
 
   const estados = await verificarLotes(lotes, 4, t);

@@ -231,6 +231,13 @@ def main():
     for it in out:
         if suspeito(it): it["valor_suspeito"] = True
 
+    # Mesmo id em mais de um item passava direto e o banco recusa a carga: fica o mais completo.
+    porid = {}
+    for it in out:
+        anterior = porid.get(it["id"])
+        if anterior is None or riqueza(it) > riqueza(anterior): porid[it["id"]] = it
+    if len(porid) != len(out): print(f"ids repetidos removidos: {len(out) - len(porid)}")
+    out = list(porid.values())
     out.sort(key=lambda x: -x["desagio_pct"])
     json.dump(out, open(os.path.join(ROOT, "web", "data", "imoveis.json"), "w", encoding="utf-8"), ensure_ascii=False)
     # índice enxuto para as listas (o JSON completo fica só no servidor, na página do lote)
@@ -267,7 +274,12 @@ def main():
                "por_uf": {uf: len(l) for uf, l in sorted(por_uf.items())},
                "disponiveis_total": sum(1 for r in idx if disp(r)),
                "disponiveis_por_uf": {uf: sum(1 for r in l if disp(r)) for uf, l in sorted(por_uf.items())},
-               "por_fonte": fontes_meta},
+               "por_fonte": fontes_meta,
+               # Pré-calculado aqui porque a página de cobertura só quer o resumo: assim ela não
+               # precisa varrer o catálogo inteiro nem no navegador nem no banco.
+               "por_cidade": dict(Counter(r["cidade"] for r in idx).most_common(40)),
+               "cidades_total": len({r["cidade"] for r in idx}),
+               "com_matricula": sum(1 for r in idx if r.get("matricula"))},
               open(os.path.join(ROOT, "web", "data", "meta.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     if "-v" in sys.argv or "--stats" in sys.argv:
         print("\nmesclagens por par de fontes:")

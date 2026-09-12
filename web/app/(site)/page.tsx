@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { IMOVEIS, META } from "@/lib/data";
+import { META } from "@/lib/data";
+import { candidatos } from "@/lib/catalogo";
 import { avaliar, brl, pct, CRITERIOS_PADRAO } from "@/lib/motor";
 import { MARCA, PLANOS } from "@/lib/marca";
 import Destaques from "@/components/Destaques";
@@ -13,11 +14,12 @@ export default async function Landing() {
   const t = await tServer();
   const lang = await getLang();
   setFmtLang(lang); // Server Component: os números do hero seguem o idioma da requisição
-  const av = IMOVEIS.map((i) => ({ i, a: avaliar(i, CRITERIOS_PADRAO) }));
+  // O banco devolve os que cabem no exemplo (faixa e deságio); a nota de cada um sai do motor aqui.
+  const pool = await candidatos({ faixaMin: CRITERIOS_PADRAO.faixaMin, faixaMax: CRITERIOS_PADRAO.faixaMax, desagioMin: CRITERIOS_PADRAO.desagioMin }, 1200);
+  const av = pool.map((i) => ({ i, a: avaliar(i, CRITERIOS_PADRAO) }));
   const go = av.filter((x) => x.a.classe === "go");
-  // Vitrine: só lotes com foto e leilão ainda aberto, 3 por linha.
-  const hoje = new Date().toISOString().slice(0, 10);
-  const top = go.filter((x) => (x.i.fotos?.length || x.i.foto) && (!x.i.data_leilao || x.i.data_leilao >= hoje)).sort((x, y) => y.a.score - x.a.score).slice(0, 3);
+  // Vitrine: só lotes com foto, 3 por linha. Leilão encerrado já ficou de fora na consulta.
+  const top = go.filter((x) => x.i.fotos?.length || x.i.foto).sort((x, y) => y.a.score - x.a.score).slice(0, 3);
   const ex = top[0];
   const fontes = Object.keys(META.fontes).length;
   const atualizada = new Date(META.gerado_em).toLocaleDateString(lang === "en" ? "en-US" : "pt-BR", { day: "2-digit", month: "short" });
@@ -31,7 +33,7 @@ export default async function Landing() {
             <h1>{t("Todo leilão do país,")} <em>{t("com a conta feita")}</em> {t("antes do lance.")}</h1>
             <p className="sub">{t("A {marca} junta as fontes de leilão num só catálogo, refaz a conta de cada lote com leiloeiro, ITBI, registro, carrego e imposto, e filtra pelo padrão que você define: faixa, deságio, margem, região. Você só vê o que vale a pena.", { marca: MARCA })}</p>
             <div className="ctas"><Link href="/entrar?modo=criar" className="btn ouro">{t("Criar conta grátis")}</Link><Link href="/app/buscar" className="btn sec">{t("Ver o catálogo")}</Link></div>
-            <div className="prova"><div><b>{IMOVEIS.length.toLocaleString(lang === "en" ? "en-US" : "pt-BR")}</b><span>{t("lotes monitorados")}</span></div><div><b>{fontes}</b><span>{t("fontes oficiais")}</span></div><div><b>{go.length}</b><span>{t("passam no padrão")}</span></div><div><b>{atualizada}</b><span>{t("última coleta")}</span></div></div>
+            <div className="prova"><div><b>{(META.total ?? 0).toLocaleString(lang === "en" ? "en-US" : "pt-BR")}</b><span>{t("lotes monitorados")}</span></div><div><b>{fontes}</b><span>{t("fontes oficiais")}</span></div><div><b>{go.length}</b><span>{t("passam no padrão")}</span></div><div><b>{atualizada}</b><span>{t("última coleta")}</span></div></div>
           </div>
           {ex && (
             <div className="hero-ficha" aria-hidden>

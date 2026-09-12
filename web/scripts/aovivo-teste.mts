@@ -6,8 +6,19 @@
  *   cd web && npx tsx scripts/aovivo-teste.mts --todas    # todas as fontes
  *   cd web && npx tsx scripts/aovivo-teste.mts caixa zuk  # fontes escolhidas
  */
-import imoveis from "../data/imoveis.json" with { type: "json" };
+import { readFileSync } from "node:fs";
 import type { Imovel } from "../lib/types";
+
+// O catálogo vive no banco; este teste usa o arquivo que a coleta deixa na máquina.
+// Rode `.venv/bin/python collectors/build.py` na raiz antes, se ele não existir.
+const CAMINHO = new URL("../data/imoveis.json", import.meta.url);
+let imoveis: Imovel[];
+try {
+  imoveis = JSON.parse(readFileSync(CAMINHO, "utf8"));
+} catch {
+  console.error("Falta web/data/imoveis.json. Rode a coleta antes: .venv/bin/python collectors/build.py");
+  process.exit(1);
+}
 import { verificarLote, temExtratorDedicado, type EstadoAoVivo } from "../lib/aovivo/index";
 
 const MAIORES = [

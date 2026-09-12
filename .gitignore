@@ -5,3 +5,7 @@ node_modules
 data/raw/
 __pycache__
 .venv/
+
+# Catálogo: vive no banco (lotwise_catalogo). Os JSON grandes são artefato da coleta, não código.
+web/data/imoveis.json
+web/data/indice.json
