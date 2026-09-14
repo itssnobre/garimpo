@@ -51,9 +51,14 @@ def flags(texto):
     t = re.sub(r"fracao ideal[^.;]{0,40}?(no|do|de|sobre o|correspondente ao) (terreno|solo|lote|condominio)", " ", t)
     t = re.sub(r"fracao ideal (de|correspondente a) [\d.,]+ ?%? ?(m2|do terreno|das coisas|das partes|nas partes|das areas)", " ", t)
     fracao = bool(re.search(
-        r"(venda|leilao|arrematacao|alienacao|direitos|penhora)[^.;]{0,60}(fracao|parte|metade|quinhao) ideal"
+        # "metade ideal", "parte ideal" e "quinhão" só aparecem quando se vende um pedaço: veto direto.
+        # "fração ideal" não entra aqui porque é texto padrão de matrícula de apartamento, e as
+        # ocorrências inofensivas já foram retiradas acima.
+        r"\b(metade|parte|quinhao) ideal"
+        r"|(venda|leilao|arrematacao|alienacao|direitos|penhora)[^.;]{0,60}(fracao|parte|metade|quinhao) ideal"
         r"|(fracao|parte|metade|quinhao) ideal (de|correspondente a|equivalente a) [\d.,]+ ?%"
-        r"|\b\d{1,2}([.,]\d+)? ?% (da |de |do |dos )?(imovel|fracao|parte ideal|direitos|propriedade|nua propriedade)"
+        # Aceita com e sem parênteses: "50% do imóvel" e "METADE IDEAL (50%) DO IMÓVEL".
+        r"|\(?\b\d{1,2}([.,]\d+)? ?%\)? (da |de |do |dos )?(imovel|fracao|parte ideal|direitos|propriedade|nua propriedade)"
         r"|\b(50|33|25|20)% ?\(", t))
     return {
         # Venda de DIREITOS (aquisitivos, do compromissário, do fiduciante) em vez da propriedade.
