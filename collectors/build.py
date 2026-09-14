@@ -9,8 +9,10 @@ from collections import Counter
 from common import ROOT, RAW, now_iso, strip_accents, flags, desagio, extrair_do_texto
 
 # Toda fonte é um módulo collectors/<fonte>.py com collect(); descoberta automática.
+# Os utilitários (publicar, importar) ficam de fora: sem isso o build tentava coletá-los.
+UTILITARIOS = ("build.py", "common.py", "publicar_catalogo.py", "importar_csv_caixa.py")
 FONTES = sorted(os.path.basename(f)[:-3] for f in glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "*.py"))
-                if os.path.basename(f) not in ("build.py", "common.py"))
+                if os.path.basename(f) not in UTILITARIOS)
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
 OBRIG = ["id", "fonte", "url", "tipo", "titulo", "cidade", "uf", "avaliacao", "lance_minimo", "desagio_pct", "modalidade",
          "direitos_fiduciante", "fracao_ideal", "coletado_em"]
@@ -22,8 +24,8 @@ CAMPOS_RIQUEZA = ["quartos", "vagas", "area_privativa_m2", "area_terreno_m2", "o
 
 # Teto de tempo por fonte (segundos): uma fonte travada não pode consumir o job inteiro e deixar as outras sem coletar.
 # Sem coleta nova, a fonte segue com o data/raw da última coleta boa (cache do workflow).
-TEMPO_POR_FONTE = {"caixa": 50 * 60}
-TEMPO_PADRAO = 20 * 60
+TEMPO_POR_FONTE = {"caixa": 40 * 60}
+TEMPO_PADRAO = 15 * 60
 
 # BaseException de propósito: os coletores têm `except Exception` no laço interno e engoliriam
 # o estouro de tempo, que foi o que manteve a coleta presa na Caixa e no Frazão até o job ser cancelado.
