@@ -1,5 +1,6 @@
 // PT → EN (grupo componentes-lote). Chave = texto em português exatamente como está no código.
 export const componentesLote: Record<string, string> = {
+  "Compra Direta da Caixa: sem leiloeiro, sem disputa e sem comissão de 5%, o primeiro que pagar o boleto leva. São 2 dias úteis para pagar, e o arrependimento vai até 7 dias corridos da homologação, com devolução integral (art. 49 do CDC). Depois disso vira desistência, com multa de 5% do valor da proposta e o resto devolvido sem correção. Regras da Venda Online, itens 12.1, 14.1 e 15.2.": "Caixa Direct Purchase: no auctioneer, no bidding war and no 5% fee, the first to pay the slip takes it. You get 2 business days to pay, and you can withdraw for a full refund up to 7 calendar days from approval (Brazilian Consumer Code, art. 49). After that it counts as backing out: a 5% penalty on the offer, and the rest returned without adjustment. Online Sale Rules, items 12.1, 14.1 and 15.2.",
   // lib/util.ts
   "encerrado": "closed",
   "encerra hoje": "closes today",
