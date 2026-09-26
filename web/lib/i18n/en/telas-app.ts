@@ -224,6 +224,9 @@ export const telasApp: Record<string, string> = {
   "Excluir conta": "Delete account",
   "Apaga a conta e tudo que está nela (padrões, favoritos, pipeline, análises). Não tem volta.": "Deletes the account and everything in it (standards, favorites, pipeline, analyses). No undo.",
   "Excluir minha conta": "Delete my account",
+  "Entra só com o Google? Crie uma senha pelo": "Only sign in with Google? Create a password through the",
+  "link de recuperação": "recovery link",
+  "antes de excluir.": "before deleting.",
 
   // favoritos/page.tsx
   "{n} lotes guardados{onde}": "{n} lots saved{onde}",

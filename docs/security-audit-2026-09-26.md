@@ -124,3 +124,25 @@ Não existe script de lint no `package.json`. Não rodei teste ponta a ponta con
 4. Na Vercel, confirmar `SUPABASE_SERVICE_ROLE_KEY` e `ANTHROPIC_API_KEY` só no ambiente de servidor (sem prefixo `NEXT_PUBLIC_`) e definir um teto de gasto no console da Anthropic.
 5. Não há indício de vazamento de credencial, então não há rotação obrigatória.
 6. Fazer o deploy desta branch só depois de revisar (o deploy é por `npx vercel --prod`, que não rodei).
+
+## Execução 26/09
+
+Autorizada pelo Nobre. Nada foi pushado nem deployado.
+
+1. **Migration `20260926000000_seguranca_auditoria.sql` aplicada em produção** (Project Nobre) com `supabase/aplicar.sh`, embrulhada em `begin; ... commit;`. O script agora lê o token de `~/ArquivoFrio/Projetos/trevocode-gestao/.env.local`. Verificação pela Management API:
+   - `lotwise_uso_incrementar(text,timestamptz)`: `security invoker`, `search_path=""`, execute para anon = false, authenticated = false, service_role = true. Teste com `set local role` e `rollback`: service_role devolve 1; anon recebe `permission denied for function lotwise_uso_incrementar`; nenhum resíduo gravado.
+   - `lotwise_catalogo_por_uf`: `reloptions = security_invoker=true`; select para anon = false, authenticated = false, service_role = true (27 UFs lidas).
+   - As demais migrations do repositório já estavam aplicadas (objetos, índices e policy de `papel` conferidos no banco). Não existe pendência além desta.
+2. **Admins da Lotwise**: 1 perfil com `papel = 'admin'` (`its***@gmail.com`, criado em 02/09). Não alterado.
+3. **Security Advisor** (`GET /v1/projects/{ref}/advisors/security`, HTTP 200, 26 avisos). Da Lotwise:
+   - WARN `function_search_path_mutable`: `public.lotwise_toca_atualizado` (trigger de `atualizado_em`). Não corrigido: fica para uma migration própria (`alter function ... set search_path = ''`).
+   - INFO `rls_enabled_no_policy`: `lotwise_catalogo` e `lotwise_uso`. Intencional: só o servidor lê e grava, com service role.
+   - `security_definer_view` não aparece mais (a view foi corrigida acima).
+   - Do projeto inteiro (não é só da Lotwise): `pg_trgm` e `pg_net` no schema `public`; proteção contra senha vazada desligada no Auth. Funções `security definer` executáveis por anon e authenticated (`agendar_poll`, `handle_new_user`, `is_admin`, `rls_auto_enable`) e tabelas `recovery_*` e `trevopost_*` sem policy são de outros apps e não foram tocadas.
+4. **`/api/conta` DELETE exige a senha atual** no corpo (`{ senha }`), conferida com `signInWithPassword` num cliente avulso (sem cookie nem sessão persistida) e com o id do usuário batendo; 5 tentativas por hora por conta (`lotwise_uso`); erro do Supabase não vaza mais ao cliente. A tela de Configurações ganhou o campo "Senha atual" no bloco de exclusão, com aviso para quem entra só com o Google criar uma senha pelo link de recuperação. Textos novos em `lib/i18n/en`.
+5. **CI (`coleta.yml`)**: actions fixadas por SHA (checkout v4.4.0 `11d5960`, setup-python v5.6.0 `a26af69`, setup-node v4.4.0 `49933ea`, cache v4.3.0 `0057852`), `pip install requests==2.34.2 beautifulsoup4==4.15.0 lxml==6.1.3`, `npx --yes vercel@59.23.2`. Mantidas as majors atuais; já existem majors novas (checkout v7, setup-python v7, setup-node v7, cache v6) para atualizar com teste.
+6. **`publicar_catalogo.py`**: o filtro `atualizado_em=lt.{marca}` vai por `params=`, então o `+00:00` sai como `%2B00%3A00`. `py_compile` ok.
+7. **`ativar-google.sh`**: JSON temporário com `mktemp`, `chmod 600` e `trap` que apaga na saída.
+8. **CSP**: segue report-only; `'unsafe-eval'` só em desenvolvimento. Teste com `next build` + `next start` e Chrome headless nas rotas `/`, `/entrar`, `/recuperar`, `/app/buscar`, `/app/cobertura`, `/app/configuracoes`, `/app/sugeridos` e página de lote: 0 violações de CSP (rotas `/api` bloqueadas no teste para não gravar em produção). Controle com `eval` injetado no HTML servido gerou a violação `script-src eval report`, então a detecção funciona.
+9. **Vercel**: o MCP respondeu 403 para listar variáveis; conferido com `vercel env ls` (só nomes). `SUPABASE_SERVICE_ROLE_KEY` existe como Secret em Production e Preview, sem variante `NEXT_PUBLIC_`. **`ANTHROPIC_API_KEY` não existe no projeto**, então o Sage e a leitura de matrícula (`/api/matricula`) ficam desligados em produção (respondem que falta a chave).
+10. `npx tsc --noEmit` e `npm run build` sem erro.

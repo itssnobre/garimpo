@@ -13,7 +13,7 @@ export default function Config() {
   const [nome, setNome] = useState(""); const [email, setEmail] = useState("");
   const [senhaAtual, setSenhaAtual] = useState(""); const [senha, setSenha] = useState(""); const [senha2, setSenha2] = useState("");
   const [msgPerfil, setMsgPerfil] = useState<Msg>(null); const [msgEmail, setMsgEmail] = useState<Msg>(null); const [msgSenha, setMsgSenha] = useState<Msg>(null); const [msgExcluir, setMsgExcluir] = useState<Msg>(null);
-  const [confirmaExcluir, setConfirmaExcluir] = useState("");
+  const [confirmaExcluir, setConfirmaExcluir] = useState(""); const [senhaExcluir, setSenhaExcluir] = useState("");
   useEffect(() => { setNome(perfil?.nome ?? ""); setEmail(user?.email ?? ""); }, [perfil?.nome, user?.email]);
   const EXCLUIR = t("EXCLUIR");
 
@@ -41,7 +41,8 @@ export default function Config() {
   };
   const excluir = async () => {
     if (confirmaExcluir !== EXCLUIR) { setMsgExcluir({ ok: false, txt: t("Digite {palavra} para confirmar.", { palavra: EXCLUIR }) }); return; }
-    const r = await fetch("/api/conta", { method: "DELETE" });
+    if (!senhaExcluir) { setMsgExcluir({ ok: false, txt: t("Confirme com a sua senha atual.") }); return; }
+    const r = await fetch("/api/conta", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senha: senhaExcluir }) });
     if (!r.ok) { setMsgExcluir({ ok: false, txt: (await r.json().catch(() => ({}))).erro ?? t("Não consegui excluir agora.") }); return; }
     try { Object.keys(localStorage).filter((k) => k.startsWith("garimpo:")).forEach((k) => localStorage.removeItem(k)); } catch {}
     await sb?.auth.signOut(); location.href = "/";
@@ -89,6 +90,8 @@ export default function Config() {
         {user && (<>
           <h2 style={{ marginTop: 18, color: "var(--bad)" }}>{t("Excluir conta")}</h2>
           <p style={{ fontSize: 14, color: "var(--mute)" }}>{t("Apaga a conta e tudo que está nela (padrões, favoritos, pipeline, análises). Não tem volta.")}</p>
+          <label className="campo"><span>{t("Senha atual")}</span><input type="password" autoComplete="current-password" value={senhaExcluir} onChange={(e) => setSenhaExcluir(e.target.value)} /></label>
+          <p style={{ fontSize: 12, color: "var(--mute)", margin: "6px 0 10px" }}>{t("Entra só com o Google? Crie uma senha pelo")} <Link href="/recuperar" style={{ textDecoration: "underline" }}>{t("link de recuperação")}</Link> {t("antes de excluir.")}</p>
           <div className="par"><label className="campo"><span>{t("Digite {palavra}", { palavra: EXCLUIR })}</span><input value={confirmaExcluir} onChange={(e) => setConfirmaExcluir(e.target.value)} /></label><div className="campo" style={{ justifyContent: "end" }}><button className="btn sec" style={{ color: "var(--bad)" }} onClick={excluir}>{t("Excluir minha conta")}</button></div></div>
           <Aviso m={msgExcluir} />
         </>)}

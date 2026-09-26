@@ -10,18 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with: { python-version: "3.12" }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: "22" }
       # data/raw não vai pro git: o cache guarda a última coleta boa de cada fonte, então uma fonte que falhar hoje não some do site.
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: data/raw
           key: raw-${{ github.run_id }}
           restore-keys: raw-
-      - run: pip install requests beautifulsoup4 lxml
+      - run: pip install requests==2.34.2 beautifulsoup4==4.15.0 lxml==6.1.3
       - name: Coletar e construir
         run: python collectors/build.py --collect
       - name: Publicar no banco
@@ -43,4 +43,4 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: npx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"
+        run: npx --yes vercel@59.23.2 deploy --prod --yes --token="$VERCEL_TOKEN"

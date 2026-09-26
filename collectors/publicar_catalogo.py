@@ -94,14 +94,14 @@ def main(seco=False):
         if (i // LOTE) % 10 == 0 or enviados == len(linhas):
             print(f"[catálogo] {enviados}/{len(linhas)}")
 
-    r = requests.get(f"{url}/rest/v1/{TABELA}?select=id&atualizado_em=lt.{marca}", headers={**cab, "Prefer": "count=exact", "Range": "0-0"}, timeout=60)
+    r = requests.get(f"{url}/rest/v1/{TABELA}", params={"select": "id", "atualizado_em": f"lt.{marca}"}, headers={**cab, "Prefer": "count=exact", "Range": "0-0"}, timeout=60)
     sobrando = int(r.headers.get("content-range", "*/0").split("/")[-1] or 0)
     if sobrando == 0:
         print("[catálogo] nada para remover"); return
     if total_antes and sobrando > total_antes / 3:
         print(f"[catálogo] ATENÇÃO: {sobrando} lotes ficaram de fora desta carga (mais de um terço). "
               "Não removi nada: confira a coleta antes."); return
-    d = requests.delete(f"{url}/rest/v1/{TABELA}?atualizado_em=lt.{marca}", headers={**cab, "Prefer": "return=minimal"}, timeout=180)
+    d = requests.delete(f"{url}/rest/v1/{TABELA}", params={"atualizado_em": f"lt.{marca}"}, headers={**cab, "Prefer": "return=minimal"}, timeout=180)
     if d.status_code >= 300:
         sys.exit(f"[catálogo] falha ao remover: HTTP {d.status_code} {d.text[:300]}")
     print(f"[catálogo] removidos {sobrando} lotes que saíram das fontes")

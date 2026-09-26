@@ -2,13 +2,14 @@ import type { NextConfig } from "next";
 
 // CSP em modo relatório: o navegador só registra a violação no console, não bloqueia nada.
 // Serve para medir o estrago antes de ligar a política de verdade (Content-Security-Policy).
-// 'unsafe-inline' e 'unsafe-eval' em script-src existem porque o Next injeta o bootstrap inline
-// e o Turbopack usa eval em desenvolvimento; tirar os dois é o passo seguinte, com nonce.
+// 'unsafe-inline' em script-src existe porque o Next injeta o bootstrap inline; tirar é o passo seguinte, com nonce.
+// 'unsafe-eval' só em desenvolvimento (Turbopack e o React dev usam eval); o build de produção não precisa.
+const DEV = process.env.NODE_ENV !== "production";
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  `script-src 'self' 'unsafe-inline'${DEV ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",

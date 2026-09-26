@@ -40,4 +40,6 @@ export const api: Record<string, string> = {
   "Papel inválido.": "Invalid role.",
   "Mensagens inválidas.": "Invalid messages.",
   "Muitas buscas seguidas. Entre na sua conta ou tente daqui a pouco.": "Too many searches in a row. Sign in or try again shortly.",
+  "Confirme com a sua senha atual.": "Confirm with your current password.",
+  "Muitas tentativas. Tente daqui a pouco.": "Too many attempts. Try again shortly.",
 };
