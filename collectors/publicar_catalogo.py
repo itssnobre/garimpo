@@ -76,7 +76,7 @@ def main(seco=False):
     linhas = [linha(it) for it in unicos.values()]
     print(f"[catálogo] {len(linhas)} lotes para publicar")
 
-    antes = requests.get(f"{url}/rest/v1/{TABELA}?select=id", headers={**cab, "Prefer": "count=exact", "Range": "0-0"})
+    antes = requests.get(f"{url}/rest/v1/{TABELA}?select=id", headers={**cab, "Prefer": "count=exact", "Range": "0-0"}, timeout=60)
     total_antes = int(antes.headers.get("content-range", "*/0").split("/")[-1] or 0)
     print(f"[catálogo] na tabela agora: {total_antes}")
     if seco:
@@ -94,7 +94,7 @@ def main(seco=False):
         if (i // LOTE) % 10 == 0 or enviados == len(linhas):
             print(f"[catálogo] {enviados}/{len(linhas)}")
 
-    r = requests.get(f"{url}/rest/v1/{TABELA}?select=id&atualizado_em=lt.{marca}", headers={**cab, "Prefer": "count=exact", "Range": "0-0"})
+    r = requests.get(f"{url}/rest/v1/{TABELA}?select=id&atualizado_em=lt.{marca}", headers={**cab, "Prefer": "count=exact", "Range": "0-0"}, timeout=60)
     sobrando = int(r.headers.get("content-range", "*/0").split("/")[-1] or 0)
     if sobrando == 0:
         print("[catálogo] nada para remover"); return

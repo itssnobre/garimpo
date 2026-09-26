@@ -36,4 +36,8 @@ export const api: Record<string, string> = {
   "Limite de {n} verificações por hora atingido. Tente daqui a pouco.": "Limit of {n} checks per hour reached. Try again shortly.",
   "Não deu para listar as contas agora.": "Could not list the accounts right now.",
   "Fonte fora da lista permitida": "Source outside the allowed list",
+  "Conta não encontrada.": "Account not found.",
+  "Papel inválido.": "Invalid role.",
+  "Mensagens inválidas.": "Invalid messages.",
+  "Muitas buscas seguidas. Entre na sua conta ou tente daqui a pouco.": "Too many searches in a row. Sign in or try again shortly.",
 };

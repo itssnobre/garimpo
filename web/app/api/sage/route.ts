@@ -12,6 +12,7 @@ export const runtime = "nodejs"; export const maxDuration = 60;
 
 const CORPO_MAX = 32 * 1024; // 32 KB: o histórico que a tela manda cabe folgado
 const POR_HORA = 30;
+const MSG_MAX = 8000; // caracteres por mensagem
 
 // Sem padrão do usuário, o Sage descreve o lote cru (sem margem, teto ou score): a conta é sempre com as regras dele.
 function resumoCom(REGRAS: Regras | null) {
@@ -40,6 +41,10 @@ export async function POST(req: Request) {
   try { corpoJson = JSON.parse(bruto); } catch { return NextResponse.json({ texto: t("Corpo inválido: esperado JSON.") }, { status: 400 }); }
   const { mensagens, loteId, padrao } = (corpoJson ?? {}) as { mensagens: { role: "user" | "assistant"; content: string }[]; loteId?: string; padrao?: (Regras & { nome?: string }) | null };
   if (!Array.isArray(mensagens)) return NextResponse.json({ texto: t("Informe mensagens: [].") }, { status: 400 });
+  // Só texto com papel user/assistant vai ao modelo: sem isso o cliente mandaria blocos de documento,
+  // imagem ou URL para a API (custo e conteúdo fora do controle do servidor).
+  if (!mensagens.length || !mensagens.every((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.length <= MSG_MAX))
+    return NextResponse.json({ texto: t("Mensagens inválidas.") }, { status: 400 });
   const REGRAS: Regras | null = padrao ?? null; const resumo = resumoCom(REGRAS);
   const ultima = String(mensagens[mensagens.length - 1]?.content ?? "").toLowerCase();
   // O banco corta pelos limites objetivos do padrão; o motor avalia só os candidatos que sobraram.

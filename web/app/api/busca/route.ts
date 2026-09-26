@@ -4,11 +4,14 @@ import { avaliarPadrao, type Regras } from "@/lib/motor";
 import { supabaseServer } from "@/lib/supabase/server";
 import { origemOk } from "@/lib/origem";
 import { tServer } from "@/lib/i18n/server";
+import { ipDe, permitir } from "@/lib/limite";
 export const dynamic = "force-dynamic";
 
 // Sem conta, a busca mostra uma amostra. O corte é aqui no servidor, não na tela.
 const AMOSTRA_VISITANTE = 30;
 const CORPO_MAX = 16 * 1024;
+// Visitante sem conta: teto por IP. A rota é pública e cada chamada pode varrer até TETO_MOTOR linhas.
+const VISITANTE_POR_HORA = 600;
 // Quando a ordem depende da conta de margem, o banco entrega este tanto e o motor pontua.
 // Acima disso o ranking passa a ser dos melhores por deságio, e a resposta avisa com `cortado`.
 const TETO_MOTOR = 1500;
@@ -30,6 +33,8 @@ export async function POST(req: Request) {
 
   const sb = await supabaseServer();
   const usuario = sb ? (await sb.auth.getUser()).data.user : null;
+  if (!usuario && !(await permitir(`busca-ip:${ipDe(req)}`, VISITANTE_POR_HORA, 60 * 60)).ok)
+    return NextResponse.json({ erro: t("Muitas buscas seguidas. Entre na sua conta ou tente daqui a pouco.") }, { status: 429 });
   const limite = usuario ? Math.min(200, Math.max(1, quantos)) : AMOSTRA_VISITANTE;
   const de = usuario ? Math.max(0, inicio) : 0;
 

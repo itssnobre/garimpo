@@ -29,6 +29,7 @@ const SEGURANCA = [
 ];
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   async headers() { return [{ source: "/(.*)", headers: SEGURANCA }]; },
   async redirects() { return [{ source: "/imoveis", destination: "/app/buscar", permanent: true }, { source: "/imovel/:id", destination: "/app/imovel/:id", permanent: true },
     // Telas removidas em 10/09/2026 (Carteira vive no Pipeline; Calculadora era a Parte 1 do lote; Jurídico era texto fixo).
