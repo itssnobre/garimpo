@@ -23,7 +23,11 @@ COLUNAS = {
     "fracao_ideal", "dominio_util", "massa_falida", "direitos_aquisitivos", "onus_averbado",
     "debitos_teto10", "valor_suspeito", "avaliacao_outra_fonte", "matricula", "leiloeiro",
     "foto", "coletado_em",
+    # espelho do condomínio (migration 20261007000000)
+    "predio_id", "bloco", "unidade", "andar", "final",
 }
+# Colunas novas que podem ainda não existir no banco: sem a migration, vão para `detalhe` em vez de quebrar a carga.
+COLUNAS_PREDIO = {"predio_id", "bloco", "unidade", "andar", "final"}
 
 
 def credenciais():
@@ -42,12 +46,12 @@ def credenciais():
     return url.rstrip("/"), chave
 
 
-def linha(it):
-    fora = {k: v for k, v in it.items() if k not in COLUNAS and v not in (None, [], "")}
+def linha(it, colunas=COLUNAS):
+    fora = {k: v for k, v in it.items() if k not in colunas and v not in (None, [], "")}
     texto = " ".join(str(x) for x in (it.get("cidade"), it.get("bairro"), it.get("endereco"),
                                       it.get("titulo"), it.get("matricula")) if x)
     # Todas as chaves em toda linha: o PostgREST recusa um lote onde os objetos diferem entre si.
-    r = {k: it.get(k) for k in COLUNAS}
+    r = {k: it.get(k) for k in colunas}
     r["id"] = it["id"]
     r["busca"] = strip_accents(texto.lower())[:600]
     # A capa do card: no arquivo completo só existe a lista `fotos`, e a listagem não carrega `detalhe`.
@@ -73,7 +77,13 @@ def main(seco=False):
     dados = json.load(open(os.path.join(ROOT, "web", "data", "imoveis.json"), encoding="utf-8"))
     # Defesa: id repetido no mesmo lote faz o Postgres recusar o upsert inteiro.
     unicos = {it["id"]: it for it in dados}
-    linhas = [linha(it) for it in unicos.values()]
+    colunas = COLUNAS
+    teste = requests.get(f"{url}/rest/v1/{TABELA}", params={"select": "predio_id", "limit": "1"}, headers=cab, timeout=60)
+    if teste.status_code >= 300:
+        colunas = COLUNAS - COLUNAS_PREDIO
+        print("[catálogo] AVISO: colunas do espelho (predio_id...) ainda não existem no banco; "
+              "vão em `detalhe` até aplicar supabase/migrations/20261007000000_catalogo_predio.sql")
+    linhas = [linha(it, colunas) for it in unicos.values()]
     print(f"[catálogo] {len(linhas)} lotes para publicar")
 
     antes = requests.get(f"{url}/rest/v1/{TABELA}?select=id", headers={**cab, "Prefer": "count=exact", "Range": "0-0"}, timeout=60)

@@ -17,6 +17,12 @@ export function urgencia(iso?: string, t: T = (s) => s): { txt: string; nivel: "
 }
 export const mapsUrl = (end: string) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(end);
 
+/** "RUA MACAPA, N. 273, Apto 403, BL 02" -> "RUA MACAPA, N. 273": o endereço do prédio, sem a unidade. */
+export function enderecoDoPredio(e?: string | null) {
+  if (!e) return "";
+  return e.split(/,?\s*\b(?:apto?\.?|apartamento|unidade|bl\.?|bloco|torre)\b|\s-\s|,?\s*\bcep\b/i)[0].replace(/[\s,.-]+$/, "");
+}
+
 const TIPO_LABEL: Record<string, string> = { apartamento: "Apartamento", casa: "Casa", terreno: "Terreno", comercial: "Imóvel comercial", rural: "Imóvel rural", outro: "Imóvel" };
 
 // Os títulos das fontes são longos e cheios de sigla. Monta um título limpo com os dados do lote.

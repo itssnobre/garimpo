@@ -498,3 +498,49 @@ body.travado { overflow:hidden; touch-action:none }
 /* Login: link discreto e troca entrar/criar */
 .auth-link { margin:-4px 0 0; font-size:13px; text-align:center } .auth-link a { color:var(--mute); text-decoration:underline } .auth-link a:hover { color:var(--ink) }
 .auth-troca { margin:0; font-size:13px; color:var(--mute); text-align:center } .auth-troca button { border:0; background:none; padding:0; font:inherit; color:var(--ink); text-decoration:underline; cursor:pointer }
+
+/* Espelho do condomínio: unidades do mesmo prédio por andar x final */
+.cel, .cel-cor { --c-bg:var(--surface2); --c-ln:var(--line); --c-tx:var(--mute) }
+.cel.go, .cel-cor.go { --c-bg:var(--ok-bg); --c-ln:color-mix(in srgb, var(--ok) 45%, transparent); --c-tx:var(--ok) }
+.cel.atencao, .cel-cor.atencao { --c-bg:var(--warn-bg); --c-ln:color-mix(in srgb, var(--warn) 45%, transparent); --c-tx:var(--warn) }
+.cel.nogo, .cel-cor.nogo { --c-bg:var(--bad-bg); --c-ln:color-mix(in srgb, var(--bad) 40%, transparent); --c-tx:var(--bad) }
+.cel.d4, .cel-cor.d4 { --c-bg:var(--accent); --c-ln:var(--accent); --c-tx:var(--on-accent) }
+.cel.d3, .cel-cor.d3 { --c-bg:color-mix(in srgb, var(--accent) 50%, var(--surface)); --c-ln:color-mix(in srgb, var(--accent) 70%, transparent); --c-tx:var(--ink) }
+.cel.d2, .cel-cor.d2 { --c-bg:color-mix(in srgb, var(--accent) 22%, var(--surface)); --c-ln:var(--accent-line); --c-tx:var(--ink2) }
+.cel.d1, .cel-cor.d1 { --c-bg:var(--surface2); --c-ln:var(--line); --c-tx:var(--mute) }
+.cel.conf, .cel-cor.conf { --c-bg:var(--surface); --c-ln:var(--mute); --c-tx:var(--mute) }
+.cel.fim, .cel-cor.fim { --c-bg:var(--line2); --c-ln:var(--line); --c-tx:var(--mute) }
+.cel-cor { display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-bg); border:1px solid var(--c-ln); flex:none } .cel-cor.conf { border-style:dashed }
+.condo-tit h1 { overflow-wrap:anywhere }
+.condo-stats { margin-top:18px } .condo-stats .stat b { font-size:clamp(17px, 2vw, 22px); white-space:normal; line-height:1.2 }
+.condo-dica { margin:-6px 0 14px; font-size:13.5px; color:var(--ink2); background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:var(--r); padding:10px 12px } .condo-dica a { color:var(--accent-ink); font-weight:600; text-decoration:underline }
+.condo-legenda { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin:0 0 14px; font-size:12.5px; color:var(--mute) } .condo-legenda > span { display:inline-flex; align-items:center; gap:6px } .condo-legenda .chip { margin-left:auto; padding:6px 11px; font-size:12.5px }
+.condo-blocos { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap:12px; align-items:start }
+.condo-mais { margin:12px 0 0; text-align:center }
+.condo-bloco { min-width:0; border:1px solid var(--line); border-radius:var(--r2); padding:12px; background:var(--bg) }
+.condo-bloco-cab { display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:10px } .condo-bloco-cab b { font-family:var(--f-display); font-size:16px; font-weight:600 } .condo-bloco-cab small { color:var(--mute); font-size:12px }
+.condo-rolo { overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch }
+.condo-grade { display:grid; gap:4px; min-width:max-content } .condo-linha { display:contents }
+.condo-final, .condo-andar { font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); display:flex; align-items:center; justify-content:center; white-space:nowrap } .condo-final { padding-bottom:2px } .condo-andar { justify-content:flex-start; font-weight:600 }
+.cel { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:46px; padding:4px 2px; border-radius:6px; background:var(--c-bg); border:1px solid var(--c-ln); color:var(--ink); line-height:1.1; transition:transform .12s, box-shadow .15s }
+a.cel:hover { transform:translateY(-1px); box-shadow:var(--sh2); z-index:1 } a.cel:focus-visible { outline:2px solid var(--info); outline-offset:2px }
+.cel b { font-size:13px; font-weight:700; font-variant-numeric:tabular-nums } .cel small { font-size:10.5px; font-weight:600; color:var(--c-tx); font-variant-numeric:tabular-nums }
+.cel.d4 b, .cel.d4 small { color:var(--on-accent) } .cel.conf { border-style:dashed } .cel.fim b { text-decoration:line-through; color:var(--mute) }
+.cel em { position:absolute; top:-6px; right:-6px; min-width:17px; height:17px; padding:0 4px; border-radius:99px; background:var(--ink); color:var(--bg); font-style:normal; font-size:10px; font-weight:700; display:grid; place-items:center }
+.cel.vazia { background:transparent; border:1px dashed var(--line2); min-height:46px }
+.condo-sempos { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line) } .condo-sempos > span { font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); margin-right:4px } .cel.solta { min-width:54px; padding:4px 8px }
+.condo-nota { margin:14px 0 0; font-size:12.5px; color:var(--mute) }
+.condo-tabela { min-width:820px } .condo-tabela tr.fim { opacity:.55 } .condo-tabela td { white-space:nowrap } .condo-tabela tbody tr:hover { background:var(--surface2) }
+.condo-ord { border:0; background:none; padding:0; font:inherit; color:inherit; letter-spacing:inherit; text-transform:inherit; cursor:pointer } .condo-ord:hover { color:var(--ink) }
+.condo-unid { display:inline-flex; align-items:center; gap:8px; font-weight:600 } .condo-unid:hover { color:var(--accent-ink) }
+.condo-cta { margin-top:16px } @media (min-width:700px) { .condo-cta { display:grid; grid-template-columns:1fr auto; gap:4px 24px; align-items:center } .condo-cta p { margin:0 } .condo-cta .btn { width:auto; grid-row:1 / span 2; grid-column:2 } }
+.condo-filtro { display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; margin:0 0 16px } .condo-filtro label { display:grid; gap:4px; font-size:12px; color:var(--mute) } .condo-filtro select { font:inherit; font-size:14px; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:8px 10px; min-width:220px; max-width:100% }
+.condo-lista { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap:12px }
+.condo-card { display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; background:var(--surface); border:1px solid var(--line); border-radius:var(--r2); padding:14px 16px; box-shadow:var(--sh1); transition:border-color .15s, box-shadow .15s } .condo-card:hover { border-color:var(--accent-line); box-shadow:var(--sh2) }
+.cc-qtd { display:grid; justify-items:center; min-width:58px; padding:8px 6px; border-radius:var(--r); background:var(--accent-soft); color:var(--accent-ink); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; font-weight:600 } .cc-qtd b { font-size:24px; letter-spacing:-.02em; line-height:1 }
+.cc-corpo { display:grid; gap:3px; min-width:0 } .cc-corpo > b { font-family:var(--f-display); font-weight:600; font-size:15.5px; line-height:1.25; overflow-wrap:anywhere } .cc-corpo small { color:var(--mute); font-size:12.5px }
+.cc-fatos { display:flex; flex-wrap:wrap; gap:2px 14px }
+.cc-ir, .pa-ir { color:var(--mute); font-size:18px }
+.predio-aviso { display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; margin-top:14px; padding:12px 16px; background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:var(--r2); transition:box-shadow .15s } .predio-aviso:hover { box-shadow:var(--sh2) }
+.pa-grade { display:grid; grid-template-columns:repeat(3, 9px); gap:3px } .pa-grade i { width:9px; height:9px; border-radius:2px; border:1px solid var(--accent-line); background:var(--surface) } .pa-grade i.on { background:var(--accent); border-color:var(--accent) }
+.pa-txt { display:grid; gap:2px; min-width:0 } .pa-txt b { font-size:14.5px; font-weight:600; color:var(--ink) } .pa-txt small { font-size:12.5px; color:var(--ink2) }

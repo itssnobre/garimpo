@@ -277,4 +277,12 @@ export const componentesLote: Record<string, string> = {
   "Na região": "In target region",
   "Compra Direta: sem leiloeiro, 2 dias pra decidir": "Direct Purchase: no auctioneer, 2 days to decide",
   "Venda Online: sem leiloeiro": "Online Sale: no auctioneer",
+
+  // Aviso do espelho do condomínio e unidade na ficha técnica
+  "Outra unidade neste prédio em leilão": "Another unit in this building is at auction",
+  "Outras {n} unidades neste prédio em leilão": "{n} other units in this building are at auction",
+  "Compare o apto {u} com os vizinhos no espelho do condomínio": "Compare apt {u} with its neighbors on the building floor map",
+  "Compare os preços no espelho do condomínio": "Compare prices on the building floor map",
+  "térreo": "ground floor",
+  "{n}º andar": "floor {n}",
 };
