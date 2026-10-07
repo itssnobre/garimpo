@@ -19,6 +19,10 @@ Limitações:
   leilões de bancos (imóveis próprios, "LEILÃO ON-LINE - N IMÓVEIS - BANCO X"): avaliação = lance inicial (deságio 0).
 - O WAF devolve 403 após ~300 requests rápidos: por isso 2 threads, ~0.6s entre requests e backoff de 20s+ no 403.
 - Status vem do card (ABERTO PARA LANCES / ABERTO PARA PROPOSTAS / EM LOTEAMENTO = em breve); encerrados/vendidos ficam fora.
+- TLS: o servidor manda o intermediário errado (AlphaSSL G2) para um certificado emitido pelo
+  "GlobalSign GCC R6 AlphaSSL CA 2025". Navegador busca o certo via AIA, o requests não. Por isso
+  certs/globalsign-gcc-r6-alphassl-ca-2025.pem (assinado pela GlobalSign Root R6, vence 21/05/2027)
+  entra junto do certifi. Se voltar CERTIFICATE_VERIFY_FAILED, conferir o emissor com openssl s_client.
 """
 import re, sys, os, time, html as htmlmod
 from concurrent.futures import ThreadPoolExecutor
@@ -251,8 +255,16 @@ def _build(card, d):
     }
     return {k: v for k, v in item.items() if v is not None or k in ("praca", "ocupado", "data_leilao")}
 
+def _ca_bundle():
+    import certifi, tempfile
+    pem = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certs", "globalsign-gcc-r6-alphassl-ca-2025.pem")
+    with open(certifi.where()) as a, open(pem) as b, tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False) as f:
+        f.write(a.read() + "\n" + b.read())
+    return f.name
+
 def collect():
     s = session()
+    s.verify = _ca_bundle()
     cards = _list_pages(s)
     skip = ("encerrad", "vendido", "suspens", "cancelad", "retirad", "arrematad", "finaliz")
     cards = [c for c in cards if not any(k in c["status"] for k in skip)]
