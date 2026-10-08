@@ -60,7 +60,7 @@ function Desagio({ lance, avaliacao, desagio, compacto, t }: { lance: number; av
   );
 }
 
-export default function Lote({ imovel: i }: { imovel: Imovel }) {
+export default function Lote({ imovel: i, outrasNoPredio = 0 }: { imovel: Imovel; outrasNoPredio?: number }) {
   const { t, lang } = useT();
   const locale = lang === "en" ? "en-US" : "pt-BR";
   const ex = i as Imovel & { lance_1a_praca?: number; lance_2a_praca?: number; datas_leilao?: Record<string, string>; formas_pagamento?: string; edital_num?: string; inscricao_imobiliaria?: string; descricao_detalhe?: string };
@@ -185,6 +185,7 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
           {(() => {
             const itens = ([
               { ic: <ICasa />, r: t("Tipo"), v: i.tipo ? t(i.tipo)[0].toUpperCase() + t(i.tipo).slice(1) : null },
+              { ic: <IChave />, r: t("Unidade"), v: i.unidade ? [t("Apto {u}", { u: i.unidade }), i.bloco, typeof i.andar === "number" ? (i.andar === 0 ? t("térreo") : t("{n}º andar", { n: i.andar })) : null].filter(Boolean).join(" · ") : null },
               { ic: <IArea />, r: i.area_privativa_m2 ? t("Área útil") : t("Terreno"), v: i.area_privativa_m2 ? t("{v} m²", { v: i.area_privativa_m2.toLocaleString(locale) }) : i.area_terreno_m2 ? t("{v} m²", { v: i.area_terreno_m2.toLocaleString(locale) }) : null },
               { ic: <ICama />, r: t("Dormitórios"), v: i.quartos ?? null },
               { ic: <ICarro />, r: t("Vagas"), v: i.vagas ?? null },
@@ -198,6 +199,16 @@ export default function Lote({ imovel: i }: { imovel: Imovel }) {
                 <span>{x.ic}{x.r}</span>
               </div>))}</div>;
           })()}
+
+          {i.predio_id && outrasNoPredio > 0 && (
+            <Link href={`/app/condominio/${i.predio_id}`} className="predio-aviso">
+              <span className="pa-grade" aria-hidden><i /><i className="on" /><i /><i className="on" /><i className="on" /><i /></span>
+              <span className="pa-txt">
+                <b>{t(outrasNoPredio === 1 ? "Outra unidade neste prédio em leilão" : "Outras {n} unidades neste prédio em leilão", { n: outrasNoPredio })}</b>
+                <small>{i.unidade ? t("Compare o apto {u} com os vizinhos no espelho do condomínio", { u: i.unidade }) : t("Compare os preços no espelho do condomínio")}</small>
+              </span>
+              <span className="pa-ir" aria-hidden>→</span>
+            </Link>)}
 
           <nav className="ancoras" aria-label={t("Seções")}>{!semPadrao && <><a href="#valores">{t("Valores")}</a><a href="#riscos">{t("Riscos")}</a></>}<a href="#documentos">{t("Documentos")}</a><a href="#descricao">{t("Descrição")}</a></nav>
 

@@ -6,7 +6,7 @@ Uso: python3 collectors/build.py            (só junta o que já existe em data/
 import time
 import glob, importlib, json, os, re, sys, traceback, datetime as dt
 from collections import Counter
-from common import ROOT, RAW, now_iso, strip_accents, flags, desagio, extrair_do_texto
+from common import ROOT, RAW, now_iso, strip_accents, flags, desagio, extrair_do_texto, predio_e_unidade
 
 # Toda fonte é um módulo collectors/<fonte>.py com collect(); descoberta automática.
 # Os utilitários (publicar, importar) ficam de fora: sem isso o build tentava coletá-los.
@@ -232,6 +232,15 @@ def main():
 
     for it in out:
         if suspeito(it): it["valor_suspeito"] = True
+
+    # Prédio e unidade dos apartamentos: é o que monta o espelho do condomínio (lotes do mesmo prédio).
+    # Calculado depois da mesclagem para valer o endereço final, e sempre do zero (nada do raw).
+    for it in out:
+        for k in ("predio_id", "bloco", "unidade", "andar", "final"): it.pop(k, None)
+        it.update(predio_e_unidade(it))
+    por_predio = Counter(it["predio_id"] for it in out if it.get("predio_id"))
+    multi = [n for n in por_predio.values() if n >= 2]
+    print(f"prédios com 2+ unidades: {len(multi)} ({sum(multi)} unidades); com 5+: {sum(1 for n in multi if n >= 5)}")
 
     # Mesmo id em mais de um item passava direto e o banco recusa a carga: fica o mais completo.
     porid = {}

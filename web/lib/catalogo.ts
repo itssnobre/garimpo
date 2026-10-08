@@ -200,3 +200,93 @@ export async function poolParaMotor(f: FiltrosBusca, teto = 1500): Promise<{ ite
   if (error || !data) return { itens: [], total: 0, cortado: false };
   return { itens: (data as unknown as Linha[]).map(paraImovel), total: count ?? 0, cortado: (count ?? 0) > teto };
 }
+
+// ---------------------------------------------------------------------------------------------
+// Espelho do condomínio: apartamentos do mesmo prédio (predio_id vem do build, collectors/common.py).
+// As colunas novas ficam fora de CAMPOS_LISTA de propósito: se a migration ainda não estiver no
+// banco, só estas consultas falham (e devolvem vazio), a busca e o resto do app seguem normais.
+const CAMPOS_PREDIO = CAMPOS_LISTA + ",predio_id,bloco,unidade,andar,final";
+
+export type ResumoPredio = {
+  predio_id: string; uf: string; cidade: string; bairro: string | null; endereco: string | null;
+  unidades: number; abertas: number; blocos: number; lance_min: number; lance_max: number; desagio_max: number;
+};
+
+/** Todos os lotes de um prédio, encerrados inclusive: a tela decide o que mostrar. */
+export async function porPredio(predioId: string): Promise<Imovel[]> {
+  if (!/^[0-9a-f]{12}$/.test(predioId)) return [];
+  const local = await predioLocal();
+  if (local) return local.porPredio(predioId);
+  const sb = supabaseAdmin();
+  if (!sb) return [];
+  const { data, error } = await sb.from(TABELA).select(CAMPOS_PREDIO).eq("predio_id", predioId).order("lance_minimo", { ascending: true }).limit(400);
+  if (error || !data) return [];
+  return (data as unknown as Linha[]).map(paraImovel);
+}
+
+/** Quantas OUTRAS unidades do mesmo prédio estão com leilão aberto (ou sem data). Alimenta o aviso na página do lote. */
+export async function outrasDoPredio(i: Imovel): Promise<number> {
+  const predio = i.predio_id;
+  if (!predio) return 0;
+  const hoje = new Date().toISOString().slice(0, 10);
+  const local = await predioLocal();
+  if (local) return local.porPredio(predio).filter((x) => x.id !== i.id && (!x.data_leilao || x.data_leilao >= hoje)).length;
+  const sb = supabaseAdmin();
+  if (!sb) return 0;
+  const { count, error } = await sb.from(TABELA).select("id", { count: "exact", head: true })
+    .eq("predio_id", predio).neq("id", i.id).or(`data_leilao.is.null,data_leilao.gte.${hoje}`);
+  return error ? 0 : count ?? 0;
+}
+
+/** Prédios com 2+ unidades abertas, os mais cheios primeiro: onde há vários apartamentos em leilão ao mesmo tempo. */
+export async function predios(f: { uf?: string; limite?: number } = {}): Promise<ResumoPredio[]> {
+  const limite = Math.min(200, Math.max(1, f.limite ?? 60));
+  const local = await predioLocal();
+  if (local) return local.predios(f.uf, limite);
+  const sb = supabaseAdmin();
+  if (!sb) return [];
+  let q = sb.from("lotwise_catalogo_predios").select("*").gte("abertas", 2);
+  if (f.uf) q = q.eq("uf", f.uf);
+  const { data, error } = await q.order("abertas", { ascending: false }).order("predio_id", { ascending: true }).limit(limite);
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map((r) => ({
+    ...(r as unknown as ResumoPredio),
+    unidades: Number(r.unidades), abertas: Number(r.abertas), blocos: Number(r.blocos),
+    lance_min: Number(r.lance_min), lance_max: Number(r.lance_max), desagio_max: Number(r.desagio_max),
+  }));
+}
+
+/** Completa o lote com os campos do prédio quando o banco ainda não os tem (só no modo local de desenvolvimento). */
+export async function comPredio(i: Imovel): Promise<Imovel> {
+  if (i.predio_id) return i;
+  const local = await predioLocal();
+  const achado = local?.porId(i.id);
+  return achado ? { ...i, predio_id: achado.predio_id, bloco: achado.bloco, unidade: achado.unidade, andar: achado.andar, final: achado.final } : i;
+}
+
+// Modo local (só desenvolvimento): LOTWISE_PREDIO_LOCAL=<caminho do web/data/imoveis.json> lê o catálogo do arquivo
+// gerado pelo build, para ver o espelho antes da migration chegar ao banco. Em produção é ignorado.
+type Local = { porPredio: (id: string) => Imovel[]; porId: (id: string) => Imovel | undefined; predios: (uf: string | undefined, limite: number) => ResumoPredio[] };
+let localCache: Promise<Local | null> | null = null;
+function predioLocal(): Promise<Local | null> {
+  const arquivo = process.env.LOTWISE_PREDIO_LOCAL;
+  if (!arquivo || process.env.NODE_ENV === "production") return Promise.resolve(null);
+  localCache ??= (async () => {
+    const { readFile } = await import("node:fs/promises");
+    const todos = JSON.parse(await readFile(arquivo, "utf8")) as Imovel[];
+    const grupos = new Map<string, Imovel[]>(); const ids = new Map<string, Imovel>();
+    for (const i of todos) { ids.set(i.id, i); if (i.predio_id) { const g = grupos.get(i.predio_id) ?? []; g.push(i); grupos.set(i.predio_id, g); } }
+    const hoje = new Date().toISOString().slice(0, 10);
+    return {
+      porPredio: (id) => [...(grupos.get(id) ?? [])].sort((a, b) => a.lance_minimo - b.lance_minimo),
+      porId: (id) => ids.get(id),
+      predios: (uf, limite) => [...grupos.entries()]
+        .map(([predio_id, g]) => ({ predio_id, uf: g[0].uf, cidade: g[0].cidade, bairro: g[0].bairro ?? null, endereco: g[0].endereco ?? null,
+          unidades: g.length, abertas: g.filter((x) => !x.data_leilao || x.data_leilao >= hoje).length, blocos: new Set(g.map((x) => x.bloco ?? "")).size,
+          lance_min: Math.min(...g.map((x) => x.lance_minimo)), lance_max: Math.max(...g.map((x) => x.lance_minimo)), desagio_max: Math.max(0, ...g.filter((x) => !x.valor_suspeito).map((x) => x.desagio_pct)) }))
+        .filter((p) => p.abertas >= 2 && (!uf || p.uf === uf))
+        .sort((a, b) => b.abertas - a.abertas || a.predio_id.localeCompare(b.predio_id)).slice(0, limite),
+    };
+  })();
+  return localCache;
+}

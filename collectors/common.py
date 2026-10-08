@@ -233,3 +233,121 @@ def extrair_do_texto(texto):
     elif desocup and not ocup: out["ocupado"] = False
     # texto que afirma as duas coisas: não dá para decidir, deixa em branco
     return out
+
+
+# --------------------------------------------------------------------------
+# Prédio e unidade (espelho do condomínio)
+# --------------------------------------------------------------------------
+# Onde o endereço deixa de ser o prédio e passa a ser a unidade, o bloco ou o loteamento.
+_RE_CORTE_PREDIO = re.compile(r"[,\s]+(?:apto?|apart\w*|unidade|und|bl|bloco|torre|lt|qd|lote|quadra|cj|conj|"
+                              r"pavimento|andar|cep|vg|box)\b|\s-\s")
+_RE_UNIDADE = re.compile(r"\b(?:apto?|apart(?:amento)?|unidade|und)\b\.?\s*(?:n[o°º]?\.?\s*)?(?:ap\.?\s*)?(\d{1,4})([a-d])?\b"
+                         r"(?![/,.]\d|/|\s*(?:\(|dorm|quart|qto|suite|vaga|m2|m²|m\b|metro|banh|sala|wc|pav|andar|ambiente|comodo))")
+_RE_BLOCO = re.compile(r"\b(bl(?:oco)?|torre)\b\.?\s*(?:n[o°º]?\.?\s*)?(\d{1,3}[a-z]?|[a-z])(?:\s*/\s*([a-z0-9]))?\b")
+_RE_ANDAR = re.compile(r"\b(\d{1,2})\s*[º°o]?\s*(?:andar|pavimento)\b")
+_RE_TERREO = re.compile(r"\bterreo\b")
+_RE_SN = re.compile(r"^(?:sn|s/?n[o°º]?|0+)$")
+_RE_LT = re.compile(r"\b(?:lt|lote)\b\.?\s*([0-9][0-9a-z-]*)")
+_RE_QD = re.compile(r"\b(?:qd|quadra)\b\.?\s*([0-9a-z][0-9a-z-]*)")
+_RE_NOME_COND = re.compile(r"\b(?:lot|loteamento|residencial|res|cond|condominio|edificio|ed|conjunto)\b\.?\s+([a-z0-9 ]{3,40})")
+_VIA_PREFIXO = re.compile(r"^(?:r|rua|av|avda|avenida|al|alameda|tv|trav|travessa|est|estr|estrada|rod|rodovia|pca|praca|"
+                          r"lgo|largo|vl|vila|via|viela|servidao|ladeira|acesso|marginal|anel|beco)\b\.?\s*")
+_VIA_ABREV = {"dr": "doutor", "dra": "doutora", "prof": "professor", "profa": "professora", "eng": "engenheiro", "cel": "coronel",
+              "gal": "general", "gen": "general", "pres": "presidente", "pe": "padre", "sen": "senador", "cap": "capitao",
+              "ten": "tenente", "mal": "marechal", "alm": "almirante", "des": "desembargador", "ver": "vereador",
+              "dep": "deputado", "sta": "santa", "sto": "santo", "sra": "senhora", "gov": "governador",
+              "brig": "brigadeiro", "comend": "comendador", "maj": "major", "sgt": "sargento", "mons": "monsenhor"}
+_VIA_VAZIAS = {"de", "da", "do", "das", "dos", "e"}
+
+def _limpo(s):
+    return re.sub(r"\s+", " ", strip_accents(str(s or "").lower())).strip()
+
+def _via_norm(via):
+    v = re.sub(r"[^a-z0-9 ]+", " ", via).strip()
+    v = _VIA_PREFIXO.sub("", v)
+    return "".join(_VIA_ABREV.get(p, p) for p in v.split() if p not in _VIA_VAZIAS)
+
+def _posicao(digitos, bloco):
+    """'1203' -> (12, '03'); '52' -> (5, '2'); '101' -> (1, '01'); '001' -> (0, '01'). Sem leitura segura: (None, None)."""
+    d = digitos
+    if len(d) == 4 and bloco and d[:2].lstrip("0") == bloco.lstrip("0"):
+        d = d[2:]                      # "2245" no BL 22 = unidade 45 do bloco 22
+    if len(d) == 2: andar, final = int(d[0]), d[1]
+    elif len(d) == 3: andar, final = int(d[0]), d[1:]
+    elif len(d) == 4: andar, final = int(d[:2]), d[2:]
+    else: return None, None
+    if int(final) == 0 or andar > 60: return None, None
+    return andar, final
+
+def predio_e_unidade(it):
+    """Para apartamento: {predio_id, bloco, unidade, andar, final}, só o que der para ler com segurança.
+
+    predio_id = hash curto de UF + cidade + via + número. Endereço sem número só vira prédio com
+    outro sinal (lote/quadra, nome do condomínio ou CEP), porque "Estrada X, s/n" sozinho junta
+    condomínios diferentes da mesma estrada.
+    """
+    if it.get("tipo") != "apartamento": return {}
+    import hashlib
+    end = _limpo(it.get("endereco"))
+    out = {}
+
+    # bloco / torre ("BL 09", "BL.05", "BLOCO A", "TORRE 4", "BL 07/A")
+    partes = []
+    for m in _RE_BLOCO.finditer(end):
+        rot = "Torre" if m.group(1) == "torre" else "Bloco"
+        v = m.group(2).upper().lstrip("0") or "0"
+        if m.group(3): v += "/" + m.group(3).upper()
+        p = f"{rot} {v}"
+        if p not in partes: partes.append(p)
+    if partes: out["bloco"] = ", ".join(partes[:2])
+
+    # unidade e posição: o endereço manda; título e começo da descrição só se ele não trouxer
+    txt = end
+    m = _RE_UNIDADE.search(txt)
+    if not m:
+        txt = _limpo(it.get("titulo")) + " " + _limpo(str(it.get("descricao") or "")[:300])
+        m = _RE_UNIDADE.search(txt)
+    if m:
+        dig = m.group(1)
+        out["unidade"] = dig + (m.group(2) or "").upper()
+        num_bloco = re.sub(r"\D", "", partes[0]) if partes else ""
+        andar, final = _posicao(dig, num_bloco)
+        # andar escrito por extenso perto da unidade ("apto 101, no 10º andar") vence a leitura dos dígitos
+        explicito = _RE_ANDAR.search(txt[m.end():m.end() + 80]) or (_RE_ANDAR.search(end) if txt is not end else None)
+        if final is not None:
+            if _RE_TERREO.search(end): andar = 0
+            elif explicito and int(explicito.group(1)) <= 60:
+                andar = int(explicito.group(1)); a = str(andar)
+                if dig.startswith(a) and len(dig) > len(a) and int(dig[len(a):]) > 0: final = dig[len(a):]
+        if andar is not None and final is not None:
+            out["andar"], out["final"] = andar, final
+
+    # prédio: via + número, cortando unidade, bloco, bairro e CEP
+    base = _RE_CORTE_PREDIO.split(end, maxsplit=1)[0]
+    if "," in base:
+        via, resto = base.split(",", 1)
+        mn = re.search(r"(\d+[a-z]?|s\s*/?\s*n[o°º]?|sn)\b", resto)
+        numero = mn.group(1) if mn else ""
+    else:
+        m = re.match(r"^(.*?)\s+(?:n[o°º]?\.?\s*)?(\d+[a-z]?|s/?n|sn)\s*$", base)
+        via, numero = (m.group(1), m.group(2)) if m else (base, "")
+    via = _via_norm(re.sub(r"\bn[o°º]?\.?\s*$", "", via.strip()))
+    cidade = re.sub(r"[^a-z0-9]", "", _limpo(it.get("cidade")))
+    if len(via) < 4 or not cidade: return out
+    numero = re.sub(r"\s", "", numero)
+    if not numero or _RE_SN.match(numero):
+        sinais = []
+        lt, qd = _RE_LT.search(end), _RE_QD.search(end)
+        if lt: sinais.append("lt" + lt.group(1))
+        if qd: sinais.append("qd" + qd.group(1))
+        nome = _RE_NOME_COND.search(end)
+        if nome: sinais.append("n" + re.sub(r"[^a-z0-9]", "", nome.group(1)))
+        cep = re.sub(r"\D", "", str(it.get("cep") or ""))
+        if len(cep) == 8: sinais.append("c" + cep)
+        if not sinais: return out
+        numero = "sn|" + "|".join(sinais)
+    else:
+        numero = numero.lstrip("0") or "0"
+    chave = f"{it.get('uf')}|{cidade}|{via}|{numero}"
+    out["predio_id"] = hashlib.sha1(chave.encode()).hexdigest()[:12]
+    return out

@@ -12,6 +12,8 @@ export interface Imovel {
   matricula?: string; cartorio?: string; edital_url?: string; matricula_url?: string;
   fotos?: string[]; descricao?: string; leiloeiro?: string; coletado_em: string;
   tambem_em?: { fonte: string; url: string; lance_minimo: number }[];
+  // Espelho do condomínio (só apartamentos; nulo quando o endereço não deixa ler com segurança)
+  predio_id?: string; bloco?: string; unidade?: string; andar?: number; final?: string;
 }
 
 export interface Meta { gerado_em: string; total: number; fontes: Record<string, { lidos: number; validos: number }>; por_uf?: Record<string, number>; por_fonte?: Record<string, number>; disponiveis_total?: number; disponiveis_por_uf?: Record<string, number>; por_cidade?: Record<string, number>; cidades_por_uf?: Record<string, string[]>; cidades_total?: number; com_matricula?: number }
